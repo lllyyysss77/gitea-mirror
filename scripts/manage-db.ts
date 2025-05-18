@@ -85,6 +85,7 @@ async function ensureTablesExist() {
                 clone_url TEXT NOT NULL,
                 owner TEXT NOT NULL,
                 organization TEXT,
+                mirrored_location TEXT DEFAULT '',
                 is_private INTEGER NOT NULL DEFAULT 0,
                 is_fork INTEGER NOT NULL DEFAULT 0,
                 forked_from TEXT,
@@ -165,9 +166,9 @@ async function checkDatabase() {
     console.warn(
       "⚠️  WARNING: Database file found in root directory: gitea-mirror.db"
     );
-    console.warn("   This file should be in the data directory.");
+    console.warn("This file should be in the data directory.");
     console.warn(
-      '   Run "pnpm manage-db fix" to fix this issue or "pnpm cleanup-db" to remove it.'
+      'Run "pnpm manage-db fix" to fix this issue or "pnpm cleanup-db" to remove it.'
     );
   }
 
@@ -187,12 +188,12 @@ async function checkDatabase() {
       if (userCount === 0) {
         console.log("ℹ️  No users found in the database.");
         console.log(
-          "   When you start the application, you will be directed to the signup page"
+          "When you start the application, you will be directed to the signup page"
         );
-        console.log("   to create an initial admin account.");
+        console.log("to create an initial admin account.");
       } else {
         console.log(`✅ ${userCount} user(s) found in the database.`);
-        console.log("   The application will show the login page on startup.");
+        console.log("The application will show the login page on startup.");
       }
 
       // Check for configurations
@@ -204,7 +205,7 @@ async function checkDatabase() {
       if (configCount === 0) {
         console.log("ℹ️  No configurations found in the database.");
         console.log(
-          "   You will need to set up your GitHub and Gitea configurations after login."
+          "You will need to set up your GitHub and Gitea configurations after login."
         );
       } else {
         console.log(
@@ -214,12 +215,12 @@ async function checkDatabase() {
     } catch (error) {
       console.error("❌ Error connecting to the database:", error);
       console.warn(
-        '   The database file might be corrupted. Consider running "pnpm manage-db init" to recreate it.'
+        'The database file might be corrupted. Consider running "pnpm manage-db init" to recreate it.'
       );
     }
   } else {
     console.warn("⚠️  WARNING: Database file not found in data directory.");
-    console.warn('   Run "pnpm manage-db init" to create it.');
+    console.warn('Run "pnpm manage-db init" to create it.');
   }
 }
 
@@ -300,13 +301,13 @@ async function updateSchema() {
     }
 
     // Check for mirrored_location column in repositories table
-    const repoColumns = await client.execute(
-      `PRAGMA table_info(repositories)`
-    );
+    const repoColumns = await client.execute(`PRAGMA table_info(repositories)`);
     const repoColumnNames = repoColumns.rows.map((row: any) => row.name);
 
     if (!repoColumnNames.includes("mirrored_location")) {
-      console.log("Adding missing mirrored_location column to repositories table...");
+      console.log(
+        "Adding missing mirrored_location column to repositories table..."
+      );
       await client.execute(
         `ALTER TABLE repositories ADD COLUMN mirrored_location TEXT DEFAULT '';`
       );
@@ -328,10 +329,10 @@ async function initializeDatabase() {
   if (fs.existsSync(dataDbFile)) {
     console.log("⚠️  Database already exists at data/gitea-mirror.db");
     console.log(
-      '   If you want to recreate the database, run "pnpm cleanup-db" first.'
+      'If you want to recreate the database, run "pnpm cleanup-db" first.'
     );
     console.log(
-      '   Or use "pnpm manage-db reset-users" to just remove users without recreating tables.'
+      'Or use "pnpm manage-db reset-users" to just remove users without recreating tables.'
     );
 
     // Check if we can connect to it
@@ -342,7 +343,7 @@ async function initializeDatabase() {
     } catch (error) {
       console.error("❌ Error connecting to the existing database:", error);
       console.log(
-        "   The database might be corrupted. Proceeding with reinitialization..."
+        "The database might be corrupted. Proceeding with reinitialization..."
       );
     }
   }
@@ -722,7 +723,7 @@ async function fixDatabaseIssues() {
     console.warn(
       "⚠️  WARNING: Production database file not found in data directory."
     );
-    console.warn('   Run "pnpm manage-db init" to create it.');
+    console.warn('Run "pnpm manage-db init" to create it.');
   } else {
     console.log("✅ Production database file found in data directory.");
 
@@ -734,7 +735,7 @@ async function fixDatabaseIssues() {
     } catch (error) {
       console.error("❌ Error connecting to the database:", error);
       console.warn(
-        '   The database file might be corrupted. Consider running "pnpm manage-db init" to recreate it.'
+        'The database file might be corrupted. Consider running "pnpm manage-db init" to recreate it.'
       );
     }
   }
