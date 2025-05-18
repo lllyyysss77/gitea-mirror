@@ -2,6 +2,8 @@
 
 **Gitea Mirror** is a modern web application for automatically mirroring repositories from GitHub to your self-hosted Gitea instance. Designed for developers, teams, and organizations who want to retain full control of their code while still collaborating on GitHub.
 
+![Dashboard](.github/assets/dashboard.png)
+
 ## Features
 
 - 🔁 Sync public, private, or starred GitHub repos to Gitea
@@ -18,7 +20,7 @@
 
 ## Screenshots
 
-<table> <tr> <td><img src=".github/assets/dashboard.png" width="100%"/></td> <td><img src=".github/assets/repositories.png" width="100%"/></td> </tr> <tr> <td><img src=".github/assets/organisations.png" width="100%"/></td> <td><img src=".github/assets/configuration.png" width="100%"/></td> </tr> </table>
+<table> <tr> <td><img src=".github/assets/repositories.png" width="100%"/></td> <td><img src=".github/assets/organisations.png" width="100%"/></td> </tr> <tr> <td><img src=".github/assets/configuration.png" width="100%"/></td> <td><img src=".github/assets/activity.png" width="100%"/></td> </tr> </table>
 
 ### Dashboard
 The dashboard provides an overview of your mirroring status, including total repositories, successfully mirrored repositories, and recent activity.
@@ -35,7 +37,7 @@ See the [Quick Start Guide](docs/quickstart.md) for detailed instructions on get
 
 ### Prerequisites
 
-- Node.js 18 or later
+- Node.js 22 or later
 - A GitHub account with a personal access token
 - A Gitea instance with an access token
 
