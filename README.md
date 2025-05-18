@@ -145,7 +145,7 @@ The Docker container can be configured with the following environment variables:
 
 - `DATABASE_URL`: SQLite database URL (default: `sqlite://data/gitea-mirror.db`)
 - `HOST`: Host to bind to (default: `0.0.0.0`)
-- `PORT`: Port to listen on (default: `3000`)
+- `PORT`: Port to listen on (default: `4321`)
 - `JWT_SECRET`: Secret key for JWT token generation (important for security)
 
 
@@ -302,7 +302,7 @@ After Gitea is running:
 docker run -d \
   --name gitea-mirror-dev \
   --network gitea-network \
-  -p 3000:3000 \
+  -p 4321:4321 \
   -v gitea-mirror-data:/app/data \
   -e NODE_ENV=development \
   -e JWT_SECRET=dev-secret-key \
@@ -351,6 +351,28 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Project Status
+
+This project is now complete and ready for production use with version 1.0.0. All planned features have been implemented, thoroughly tested, and optimized for performance:
+
+- ✅ User-friendly dashboard with status overview
+- ✅ Repository management interface
+- ✅ Organization management interface
+- ✅ Configuration management for GitHub and Gitea
+- ✅ Scheduling and automation
+- ✅ Activity logging and monitoring
+- ✅ Responsive design for all screen sizes
+- ✅ Modern toast notifications for better user feedback
+- ✅ First-time user signup experience
+- ✅ Better error handling and user guidance
+- ✅ Comprehensive error handling
+- ✅ Unit tests for components and API
+- ✅ Direct GitHub to Gitea mirroring (no external dependencies)
+- ✅ Docker and docker-compose support for easy deployment
+- ✅ Multi-architecture support (ARM64 and x86_64)
+- ✅ Light/dark mode toggle
+- ✅ Persistent configuration storage
 
 ## Acknowledgements
 

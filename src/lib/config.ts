@@ -24,5 +24,5 @@ export const ENV = {
 
   // Server host and port
   HOST: process.env.HOST || "localhost",
-  PORT: parseInt(process.env.PORT || "3000", 10),
+  PORT: parseInt(process.env.PORT || "4321", 10),
 };
