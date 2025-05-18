@@ -1,0 +1,51 @@
+import type { Organization } from "@/lib/db/schema";
+import { z } from "zod";
+import type { RepoStatus } from "./Repository";
+
+export const membershipRoleEnum = z.enum([
+  "member",
+  "admin",
+  "billing_manager",
+]);
+
+export type MembershipRole = z.infer<typeof membershipRoleEnum>;
+
+export interface OrganizationsApiSuccessResponse {
+  success: true;
+  message: string;
+  organizations: Organization[];
+}
+
+export interface OrganizationsApiErrorResponse {
+  success: false;
+  error: string;
+  message?: string;
+}
+
+export type OrganizationsApiResponse =
+  | OrganizationsApiSuccessResponse
+  | OrganizationsApiErrorResponse;
+
+export interface GitOrg {
+  name: string;
+  avatarUrl: string;
+  membershipRole: MembershipRole;
+  isIncluded: boolean;
+  status: RepoStatus;
+  repositoryCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AddOrganizationApiRequest {
+  userId: string;
+  org: string;
+  role: MembershipRole;
+}
+
+export interface AddOrganizationApiResponse {
+  success: boolean;
+  message: string;
+  organization: Organization;
+  error?: string;
+}

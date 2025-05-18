@@ -1,0 +1,33 @@
+---
+import '../styles/global.css';
+import ThemeScript from '@/components/theme/ThemeScript.astro';
+import { LoginForm } from '@/components/auth/LoginForm';
+import { client } from '../lib/db';
+
+// Check if any users exist in the database
+const userCountResult = await client.execute(`SELECT COUNT(*) as count FROM users`);
+const userCount = userCountResult.rows[0].count;
+
+// Redirect to signup if no users exist
+if (userCount === 0) {
+  return Astro.redirect('/signup');
+}
+
+const generator = Astro.generator;
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={generator} />
+    <title>Login - Gitea Mirror</title>
+    <ThemeScript />
+  </head>
+  <body>
+    <div class="h-dvh flex items-center justify-center bg-muted/30 p-4">
+      <LoginForm client:load />
+    </div>
+  </body>
+</html>

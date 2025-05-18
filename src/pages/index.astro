@@ -1,0 +1,70 @@
+---
+import '../styles/global.css';
+import App from '@/components/layout/MainLayout';
+import { db, repositories, mirrorJobs, client } from '@/lib/db';
+import ThemeScript from '@/components/theme/ThemeScript.astro';
+
+// Check if any users exist in the database
+const userCountResult = await client.execute(`SELECT COUNT(*) as count FROM users`);
+const userCount = userCountResult.rows[0].count;
+
+// Redirect to signup if no users exist
+if (userCount === 0) {
+  return Astro.redirect('/signup');
+}
+
+// Fetch data from the database
+let repoData:any[] = [];
+let activityData = [];
+
+try {
+  // Fetch repositories from database
+  const dbRepos = await db.select().from(repositories).limit(10);
+  repoData = dbRepos;
+
+  // Fetch recent activity from mirror jobs
+  const jobs = await db.select().from(mirrorJobs).limit(10);
+  activityData = jobs.flatMap((job: any) => {
+    // Check if log exists before parsing
+    if (!job.log) {
+      console.warn(`Job ${job.id} has no log data`);
+      return [];
+    }
+    try {
+      const log = JSON.parse(job.log);
+      if (!Array.isArray(log)) {
+        console.warn(`Job ${job.id} log is not an array`);
+        return [];
+      }
+      return log.map((entry: any) => ({
+        id: `${job.id}-${entry.timestamp}`,
+        message: entry.message,
+        timestamp: new Date(entry.timestamp),
+        status: entry.level,
+      }));
+    } catch (parseError) {
+      console.error(`Failed to parse log for job ${job.id}:`, parseError);
+      return [];
+    }
+  }).slice(0, 10);
+} catch (error) {
+  console.error('Error fetching data:', error);
+  // Fallback to empty arrays if database access fails
+  repoData = [];
+  activityData = [];
+}
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Dashboard - Gitea Mirror</title>
+    <ThemeScript />
+  </head>
+  <body>
+    <App page='dashboard' client:load />
+  </body>
+</html>

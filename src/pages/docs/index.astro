@@ -1,0 +1,44 @@
+---
+import { getCollection } from 'astro:content';
+import MainLayout from '../../layouts/main.astro';
+import { LuSettings, LuRocket, LuBookOpen } from 'react-icons/lu';
+
+// Helper to pick an icon based on doc.slug
+// We'll use inline conditional rendering instead of this function
+
+// Get all documentation entries, sorted by order
+const docs = await getCollection('docs');
+const sortedDocs = docs.sort((a, b) => {
+  const orderA = a.data.order || 999;
+  const orderB = b.data.order || 999;
+  return orderA - orderB;
+});
+---
+
+<MainLayout title="Documentation">
+  <main class="max-w-5xl mx-auto px-4 py-12">
+    <h1 class="text-3xl font-bold mb-2 text-center text-foreground">Gitea Mirror Documentation</h1>
+    <p class="mb-10 text-lg text-muted-foreground text-center">Browse guides and technical docs for Gitea Mirror.</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      {sortedDocs.map(doc => (
+        <a
+          href={`/docs/${doc.slug}`}
+          class="group block p-7 border border-border rounded-2xl bg-card hover:bg-muted transition-colors shadow-lg focus:ring-2 focus:ring-ring outline-none"
+          tabindex="0"
+        >
+          <div class="flex items-center gap-3 mb-2">
+            <div class="w-10 h-10 bg-muted rounded-full flex items-center justify-center text-muted-foreground">
+              {doc.slug === 'architecture' && <LuBookOpen className="w-5 h-5" />}
+              {doc.slug === 'configuration' && <LuSettings className="w-5 h-5" />}
+              {doc.slug === 'quickstart' && <LuRocket className="w-5 h-5" />}
+              {!['architecture', 'configuration', 'quickstart'].includes(doc.slug) && <LuBookOpen className="w-5 h-5" />}
+            </div>
+            <h2 class="text-xl font-semibold group-hover:text-foreground transition">{doc.data.title}</h2>
+          </div>
+          <p class="text-muted-foreground">{doc.data.description}</p>
+        </a>
+      ))}
+    </div>
+  </main>
+</MainLayout>
