@@ -18,7 +18,7 @@
 
 ## Screenshots
 
-<table> <tr> <td><img src="https://github.com/user-attachments/assets/e62c6560-3da1-4e58-be88-3479e2b3b00b" width="100%"/></td> <td><img src="https://github.com/user-attachments/assets/fd982b81-fae3-4103-bc60-a4d3d5b477dd" width="100%"/></td> </tr> <tr> <td><img src="https://github.com/user-attachments/assets/3f499710-4cfe-45d9-8480-8665ec1efc9e" width="100%"/></td> <td><img src="https://github.com/user-attachments/assets/e032161f-1526-4508-ad13-d91a44458e66" width="100%"/></td> </tr> </table>
+<table> <tr> <td><img src=".github/assets/dashboard.png" width="100%"/></td> <td><img src=".github/assets/repositories.png" width="100%"/></td> </tr> <tr> <td><img src=".github/assets/organisations.png" width="100%"/></td> <td><img src=".github/assets/configuration.png" width="100%"/></td> </tr> </table>
 
 ### Dashboard
 The dashboard provides an overview of your mirroring status, including total repositories, successfully mirrored repositories, and recent activity.
@@ -351,25 +351,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Project Status
-
-This project is now complete with the following features implemented:
-
-- ✅ User-friendly dashboard with status overview
-- ✅ Repository management interface
-- ✅ Organization management interface
-- ✅ Configuration management for GitHub and Gitea
-- ✅ Scheduling and automation
-- ✅ Activity logging and monitoring
-- ✅ Responsive design for all screen sizes
-- ✅ Modern toast notifications for better user feedback
-- ✅ First-time user signup experience
-- ✅ Better error handling and user guidance
-- ✅ Comprehensive error handling
-- ✅ Unit tests for components and API
-- ✅ Direct GitHub to Gitea mirroring (no external dependencies)
-- ✅ Docker and docker-compose support for easy deployment
 
 ## Acknowledgements
 
