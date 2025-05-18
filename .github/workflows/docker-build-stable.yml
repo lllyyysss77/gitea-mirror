@@ -10,13 +10,13 @@ env:
   REGISTRY: ghcr.io
   IMAGE: ${{ github.repository }}
 
-permissions:
-  contents: write
-  packages: write
-
 jobs:
   docker:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      packages: write
 
     services:
       redis:
@@ -33,7 +33,7 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }} # Replace with secrets.GHCR_PAT if using PAT
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: docker/build-push-action@v5
         with:
