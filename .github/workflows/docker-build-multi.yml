@@ -11,9 +11,8 @@ env:
   IMAGE: ${{ github.repository }}
 
 jobs:
-  # Build platform-specific images in parallel
   build:
-    name: Build ${{ matrix.platform }}
+    name: Build ${{ matrix.arch }}
     runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
@@ -24,7 +23,6 @@ jobs:
           - arch: arm64
             platform: linux/arm64
             runner: ubuntu-24.04-arm
-
 
     permissions:
       contents: read
@@ -52,11 +50,11 @@ jobs:
           context: .
           platforms: ${{ matrix.platform }}
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ matrix.platform-suffix }}-${{ github.sha }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ matrix.arch }}-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # Create and push the multi-platform manifest
   manifest:
     name: Create and Push Manifest
     runs-on: ubuntu-latest
@@ -80,7 +78,6 @@ jobs:
 
       - name: Create and push manifest
         run: |
-          # Create and push the manifest with both architectures
           docker manifest create ${{ env.REGISTRY }}/${{ env.IMAGE }}:latest \
             ${{ env.REGISTRY }}/${{ env.IMAGE }}:amd64-${{ github.sha }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE }}:arm64-${{ github.sha }}
@@ -89,6 +86,5 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE }}:amd64-${{ github.sha }} \
             ${{ env.REGISTRY }}/${{ env.IMAGE }}:arm64-${{ github.sha }}
 
-          # Push the manifests
           docker manifest push ${{ env.REGISTRY }}/${{ env.IMAGE }}:latest
           docker manifest push ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ github.sha }}
