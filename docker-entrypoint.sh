@@ -124,17 +124,8 @@ else
     node dist/scripts/manage-db.js fix
   fi
 
-  # Update the database schema
-  echo "Updating database schema..."
-  if [ -f "dist/scripts/manage-db.js" ]; then
-    node dist/scripts/manage-db.js update-schema
-  fi
-
-  # Run migrations
-  echo "Running database migrations..."
-  if [ -f "dist/scripts/run-migrations.js" ]; then
-    node dist/scripts/run-migrations.js
-  fi
+  # Since the application is not used by anyone yet, we've removed the schema updates and migrations
+  echo "Database already exists, no migrations needed."
 fi
 
 # Start the application

@@ -224,102 +224,8 @@ async function checkDatabase() {
   }
 }
 
-/**
- * Update database schema
- */
-async function updateSchema() {
-  console.log(`Checking and updating database schema at ${dbPath}...`);
-
-  // Check if the database exists
-  if (!fs.existsSync(dataDbFile)) {
-    console.log(
-      "⚠️  Database file doesn't exist. Run 'pnpm manage-db init' first to create it."
-    );
-    return;
-  }
-
-  try {
-    console.log("Checking for missing columns in mirror_jobs table...");
-
-    // Check if repository_id column exists in mirror_jobs table
-    const tableInfoResult = await client.execute(
-      `PRAGMA table_info(mirror_jobs)`
-    );
-
-    // Get column names
-    const columns = tableInfoResult.rows.map((row) => row.name);
-
-    // Check for repository_id column
-    if (!columns.includes("repository_id")) {
-      console.log(
-        "Adding missing repository_id column to mirror_jobs table..."
-      );
-      await client.execute(
-        `ALTER TABLE mirror_jobs ADD COLUMN repository_id TEXT;`
-      );
-      console.log("✅ Added repository_id column to mirror_jobs table.");
-    }
-
-    // Check for repository_name column
-    if (!columns.includes("repository_name")) {
-      console.log(
-        "Adding missing repository_name column to mirror_jobs table..."
-      );
-      await client.execute(
-        `ALTER TABLE mirror_jobs ADD COLUMN repository_name TEXT;`
-      );
-      console.log("✅ Added repository_name column to mirror_jobs table.");
-    }
-
-    // Check for organization_id column
-    if (!columns.includes("organization_id")) {
-      console.log(
-        "Adding missing organization_id column to mirror_jobs table..."
-      );
-      await client.execute(
-        `ALTER TABLE mirror_jobs ADD COLUMN organization_id TEXT;`
-      );
-      console.log("✅ Added organization_id column to mirror_jobs table.");
-    }
-
-    // Check for organization_name column
-    if (!columns.includes("organization_name")) {
-      console.log(
-        "Adding missing organization_name column to mirror_jobs table..."
-      );
-      await client.execute(
-        `ALTER TABLE mirror_jobs ADD COLUMN organization_name TEXT;`
-      );
-      console.log("✅ Added organization_name column to mirror_jobs table.");
-    }
-
-    // Check for details column
-    if (!columns.includes("details")) {
-      console.log("Adding missing details column to mirror_jobs table...");
-      await client.execute(`ALTER TABLE mirror_jobs ADD COLUMN details TEXT;`);
-      console.log("✅ Added details column to mirror_jobs table.");
-    }
-
-    // Check for mirrored_location column in repositories table
-    const repoColumns = await client.execute(`PRAGMA table_info(repositories)`);
-    const repoColumnNames = repoColumns.rows.map((row: any) => row.name);
-
-    if (!repoColumnNames.includes("mirrored_location")) {
-      console.log(
-        "Adding missing mirrored_location column to repositories table..."
-      );
-      await client.execute(
-        `ALTER TABLE repositories ADD COLUMN mirrored_location TEXT DEFAULT '';`
-      );
-      console.log("✅ Added mirrored_location column to repositories table.");
-    }
-
-    console.log("✅ Schema update completed successfully.");
-  } catch (error) {
-    console.error("❌ Error updating schema:", error);
-    process.exit(1);
-  }
-}
+// Database schema updates and migrations have been removed
+// since the application is not used by anyone yet
 
 /**
  * Initialize the database
@@ -730,7 +636,7 @@ async function fixDatabaseIssues() {
     // Check if we can connect to the database
     try {
       // Try to query the database
-      const configCount = await db.select().from(configs).limit(1);
+      await db.select().from(configs).limit(1);
       console.log(`✅ Successfully connected to the database.`);
     } catch (error) {
       console.error("❌ Error connecting to the database:", error);
@@ -766,16 +672,10 @@ async function main() {
     case "reset-users":
       await resetUsers();
       break;
-    case "update-schema":
-      await updateSchema();
-      break;
     case "auto":
       // Auto mode: check, fix, and initialize if needed
       console.log("Running in auto mode: check, fix, and initialize if needed");
       await fixDatabaseIssues();
-
-      // Also update schema in auto mode
-      await updateSchema();
 
       if (!fs.existsSync(dataDbFile)) {
         await initializeDatabase();
@@ -790,7 +690,6 @@ Available commands:
   init         - Initialize the database (only if it doesn't exist)
   fix          - Fix database location issues
   reset-users  - Remove all users and their data
-  update-schema - Update the database schema to the latest version
   auto         - Automatic mode: check, fix, and initialize if needed
 
 Usage: pnpm manage-db [command]
