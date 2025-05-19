@@ -98,6 +98,7 @@ docker run -d --name gitea-mirror-redis redis:alpine
 docker pull ghcr.io/arunavo4/gitea-mirror:latest
 
 # Run the application with a link to the Redis container
+# Note: The REDIS_URL environment variable is required and must point to the Redis container
 docker run -d -p 4321:4321 --link gitea-mirror-redis:redis \
   -e REDIS_URL=redis://redis:6379 \
   ghcr.io/arunavo4/gitea-mirror:latest
@@ -158,7 +159,7 @@ The Docker container can be configured with the following environment variables:
 - `HOST`: Host to bind to (default: `0.0.0.0`)
 - `PORT`: Port to listen on (default: `4321`)
 - `JWT_SECRET`: Secret key for JWT token generation (important for security)
-- `REDIS_URL`: URL for Redis connection (required, default: none)
+- `REDIS_URL`: URL for Redis connection (required, default: none). When using Docker Compose, this should be set to `redis://redis:6379` to connect to the Redis container.
 
 
 #### Manual Installation
