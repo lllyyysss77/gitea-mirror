@@ -225,24 +225,24 @@ export function ConfigTabs() {
   useEffect(() => {
     const generateDockerCode = () => {
       return `services:
-                gitea-mirror:
-                  image: arunavo4/gitea-mirror:latest
-                  restart: unless-stopped
-                  container_name: gitea-mirror
-                  environment:
-                    - GITHUB_USERNAME=${config.githubConfig.username}
-                    - GITEA_URL=${config.giteaConfig.url}
-                    - GITEA_TOKEN=${config.giteaConfig.token}
-                    - GITHUB_TOKEN=${config.githubConfig.token}
-                    - SKIP_FORKS=${config.githubConfig.skipForks}
-                    - PRIVATE_REPOSITORIES=${config.githubConfig.privateRepositories}
-                    - MIRROR_ISSUES=${config.githubConfig.mirrorIssues}
-                    - MIRROR_STARRED=${config.githubConfig.mirrorStarred}
-                    - PRESERVE_ORG_STRUCTURE=${config.githubConfig.preserveOrgStructure}
-                    - SKIP_STARRED_ISSUES=${config.githubConfig.skipStarredIssues}
-                    - GITEA_ORGANIZATION=${config.giteaConfig.organization}
-                    - GITEA_ORG_VISIBILITY=${config.giteaConfig.visibility}
-                    - DELAY=${config.scheduleConfig.interval}`;
+  gitea-mirror:
+    image: arunavo4/gitea-mirror:latest
+    restart: unless-stopped
+    container_name: gitea-mirror
+    environment:
+      - GITHUB_USERNAME=${config.githubConfig.username}
+      - GITEA_URL=${config.giteaConfig.url}
+      - GITEA_TOKEN=${config.giteaConfig.token}
+      - GITHUB_TOKEN=${config.githubConfig.token}
+      - SKIP_FORKS=${config.githubConfig.skipForks}
+      - PRIVATE_REPOSITORIES=${config.githubConfig.privateRepositories}
+      - MIRROR_ISSUES=${config.githubConfig.mirrorIssues}
+      - MIRROR_STARRED=${config.githubConfig.mirrorStarred}
+      - PRESERVE_ORG_STRUCTURE=${config.githubConfig.preserveOrgStructure}
+      - SKIP_STARRED_ISSUES=${config.githubConfig.skipStarredIssues}
+      - GITEA_ORGANIZATION=${config.giteaConfig.organization}
+      - GITEA_ORG_VISIBILITY=${config.giteaConfig.visibility}
+      - DELAY=${config.scheduleConfig.interval}`;
     };
 
     const code = generateDockerCode();
