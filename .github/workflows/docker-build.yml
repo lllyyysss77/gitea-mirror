@@ -35,6 +35,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Extract version from tag if present
+      - name: Extract version from tag
+        id: tag_version
+        run: |
+          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+            echo "Using version tag: ${GITHUB_REF#refs/tags/}"
+          else
+            echo "VERSION=latest" >> $GITHUB_OUTPUT
+            echo "No version tag, using 'latest'"
+          fi
+
       - uses: docker/build-push-action@v5
         with:
           context: .
@@ -43,3 +55,4 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE }}:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ steps.tag_version.outputs.VERSION }}
