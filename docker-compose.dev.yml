@@ -36,7 +36,7 @@ services:
 
   # Development service connected to local Gitea
   gitea-mirror-dev:
-    image: ${DOCKER_REGISTRY:-ghcr.io}/${DOCKER_IMAGE:-arunavo4/gitea-mirror}:${DOCKER_TAG:-latest}
+    # For dev environment, always build from local sources
     build:
       context: .
       dockerfile: Dockerfile
