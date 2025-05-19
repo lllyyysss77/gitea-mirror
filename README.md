@@ -75,14 +75,16 @@ Gitea Mirror provides multi-architecture Docker images that work on both ARM64 (
 
 ```bash
 # Start the application using Docker Compose
-docker-compose --profile production up -d
+docker compose --profile production up -d
 
 # For development mode (requires configuration)
 # Ensure you have run pnpm setup first
-docker-compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml up -d
 ```
 
 > **Important**: Docker Compose is the recommended method for running Gitea Mirror as it automatically sets up the required Redis sidecar service that the application depends on.
+
+> **Note**: The examples above use the modern `docker compose` syntax (without hyphen) which is the recommended approach for Docker Compose V2. If you're using an older version of Docker Compose (V1), you may need to use `docker-compose` (with hyphen) instead.
 
 ##### Using Pre-built Images from GitHub Container Registry
 
@@ -119,7 +121,7 @@ cp .env.example .env
 ./scripts/build-docker.sh --push
 
 # Then run with Docker Compose
-docker-compose --profile production up -d
+docker compose --profile production up -d
 ```
 
 See [Docker build documentation](./scripts/README-docker.md) for more details.
@@ -340,7 +342,7 @@ For convenience, a dedicated development docker-compose file is provided that se
 
 ```bash
 # Start with development environment and local Gitea instance
-docker-compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml up -d
 ```
 
 You can also create a `.env` file with your GitHub and Gitea credentials:

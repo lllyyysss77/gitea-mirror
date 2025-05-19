@@ -1,7 +1,5 @@
-version: '3.8'
-
 # Development environment with local Gitea instance for testing
-# Run with: docker-compose -f docker-compose.dev.yml up -d
+# Run with: docker compose -f docker-compose.dev.yml up -d
 
 services:
   # Local Gitea instance for testing
