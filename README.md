@@ -1,10 +1,25 @@
-# Gitea Mirror
+<!-- Badges -->
+<p align="center">
+  <a href="https://github.com/arunavo4/gitea-mirror/releases/latest"><img src="https://img.shields.io/github/v/tag/arunavo4/gitea-mirror?label=release"/></a>
+  <a href="https://github.com/arunavo4/gitea-mirror/actions/workflows/astro-build-test.yml"><img src="https://img.shields.io/github/actions/workflow/status/arunavo4/gitea-mirror/astro-build-test.yml?branch=main"/></a>
+  <a href="https://github.com/arunavo4/gitea-mirror/pkgs/container/gitea-mirror"><img src="https://img.shields.io/badge/ghcr.io-container-blue?logo=github"/></a>
+  <a href="https://github.com/arunavo4/gitea-mirror/blob/main/LICENSE"><img src="https://img.shields.io/github/license/arunavo4/gitea-mirror"/></a>
+</p>
 
+# Gitea Mirror
 
 <p align="center">
   <i>A modern web application for automatically mirroring repositories from GitHub to your self-hosted Gitea instance.</i><br>
   <sub>Designed for developers, teams, and organizations who want to retain full control of their code while still collaborating on GitHub.</sub>
 </p>
+
+## 🚀 Quick Start
+
+```bash
+docker compose --profile production up -d
+# or
+pnpm setup && pnpm dev
+```
 
 <p align="center">
   <img src=".github/assets/dashboard.png" alt="Dashboard" width="80%"/>
@@ -330,12 +345,12 @@ docker compose -f docker-compose.dev.yml up -d
 
 > [!TIP]
 > You can also create a `.env` file with your GitHub and Gitea credentials:
-> 
+>
 > ```env
 > # GitHub credentials
 > GITHUB_TOKEN=your-github-token
 > GITHUB_USERNAME=your-github-username
-> 
+>
 > # Gitea credentials (will be set up after you create a user in the local Gitea instance)
 > GITEA_TOKEN=your-local-gitea-token
 > GITEA_USERNAME=your-local-gitea-username
@@ -385,14 +400,14 @@ This project is now complete and ready for production use with version 1.0.0. Al
 
 > [!WARNING]
 > If you encounter network-related warnings or errors when running Docker Compose, such as:
-> 
+>
 > ```
 > WARN[0095] a network with name gitea-network exists but was not created by compose.
 > Set `external: true` to use an existing network
 > ```
-> 
+>
 > or
-> 
+>
 > ```
 > network gitea-network was found but has incorrect label com.docker.compose.network set to "" (expected: "gitea-network")
 > ```
@@ -416,7 +431,7 @@ Try the following steps:
 
 > [!TIP]
 > If you need to share the network with other Docker Compose projects, you can modify the `docker-compose.dev.yml` file to mark the network as external:
-> 
+>
 > ```yaml
 > networks:
 >   gitea-network:
@@ -428,7 +443,7 @@ Try the following steps:
 
 > [!CAUTION]
 > If the application fails to connect to Redis with errors like `ECONNREFUSED 127.0.0.1:6379`, ensure:
-> 
+>
 > 1. The Redis container is running:
 >    ```bash
 >    docker ps | grep redis
@@ -494,13 +509,13 @@ redis.on('error', (err) => console.error('Redis client error:', err));
 
 > [!TIP]
 > If containers are not starting properly, check their health status:
-> 
+>
 > ```bash
 > docker ps --format "{{.Names}}: {{.Status}}"
 > ```
-> 
+>
 > For more detailed logs:
-> 
+>
 > ```bash
 > docker logs gitea-mirror-dev
 > ```
