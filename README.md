@@ -1,10 +1,16 @@
 # Gitea Mirror
 
-**Gitea Mirror** is a modern web application for automatically mirroring repositories from GitHub to your self-hosted Gitea instance. Designed for developers, teams, and organizations who want to retain full control of their code while still collaborating on GitHub.
 
-![Dashboard](.github/assets/dashboard.png)
+<p align="center">
+  <i>A modern web application for automatically mirroring repositories from GitHub to your self-hosted Gitea instance.</i><br>
+  <sub>Designed for developers, teams, and organizations who want to retain full control of their code while still collaborating on GitHub.</sub>
+</p>
 
-## Features
+<p align="center">
+  <img src=".github/assets/dashboard.png" alt="Dashboard" width="80%"/>
+</p>
+
+## ✨ Features
 
 - 🔁 Sync public, private, or starred GitHub repos to Gitea
 - 🏢 Mirror entire organizations with structure preservation
@@ -18,9 +24,16 @@
 - 📊 Dashboard with real-time status updates
 - ⏱️ Scheduled automatic mirroring
 
-## Screenshots
+## 📸 Screenshots
 
-<table> <tr> <td><img src=".github/assets/repositories.png" width="100%"/></td> <td><img src=".github/assets/organisations.png" width="100%"/></td> </tr> <tr> <td><img src=".github/assets/configuration.png" width="100%"/></td> <td><img src=".github/assets/activity.png" width="100%"/></td> </tr> </table>
+<p align="center">
+  <img src=".github/assets/repositories.png" width="45%"/>
+  <img src=".github/assets/organisations.png" width="45%"/>
+</p>
+<p align="center">
+  <img src=".github/assets/configuration.png" width="45%"/>
+  <img src=".github/assets/activity.png" width="45%"/>
+</p>
 
 ### Dashboard
 The dashboard provides an overview of your mirroring status, including total repositories, successfully mirrored repositories, and recent activity.
@@ -46,13 +59,17 @@ See the [Quick Start Guide](docs/quickstart.md) for detailed instructions on get
 
 The database (`data/gitea-mirror.db`) is created when the application first runs. It starts empty and is populated as you configure and use the application.
 
-**Note**: On first launch, you'll be guided through creating an admin account with your chosen credentials.
+
+> [!NOTE]
+> On first launch, you'll be guided through creating an admin account with your chosen credentials.
 
 #### Production Database
 
 The production database (`data/gitea-mirror.db`) is created when the application runs in production mode. It starts empty and is populated as you configure and use the application.
 
-**Important**: The production database file is excluded from the Git repository as it may contain sensitive information like GitHub and Gitea tokens. Never commit this file to the repository.
+
+> [!IMPORTANT]
+> The production database file is excluded from the Git repository as it may contain sensitive information like GitHub and Gitea tokens. **Never commit this file to the repository.**
 
 ##### Database Initialization
 
@@ -82,9 +99,13 @@ docker compose --profile production up -d
 docker compose -f docker-compose.dev.yml up -d
 ```
 
-> **Important**: Docker Compose is the recommended method for running Gitea Mirror as it automatically sets up the required Redis sidecar service that the application depends on.
 
-> **Note**: The examples above use the modern `docker compose` syntax (without hyphen) which is the recommended approach for Docker Compose V2. If you're using an older version of Docker Compose (V1), you may need to use `docker-compose` (with hyphen) instead.
+> [!IMPORTANT]
+> **Docker Compose is the recommended method for running Gitea Mirror** as it automatically sets up the required Redis sidecar service that the application depends on.
+
+
+> [!NOTE]
+> The examples above use the modern `docker compose` syntax (without hyphen) which is the recommended approach for Docker Compose V2. If you're using an older version of Docker Compose (V1), you may need to use `docker-compose` (with hyphen) instead.
 
 ##### Using Pre-built Images from GitHub Container Registry
 
@@ -217,55 +238,10 @@ Key configuration options include:
 - Mirroring options (issues, starred repositories, organizations)
 - Scheduling options for automatic mirroring
 
-## Architecture
+> [!IMPORTANT]
+> **Redis is a required component for Gitea Mirror** as it's used for job queuing and caching.
 
-Gitea Mirror follows a modular architecture with clear separation of concerns. See the [Architecture Document](docs/architecture.md) for a comprehensive overview of the system design, including:
-
-- Component diagrams
-- Data flow
-- Project structure
-- Key components
-- Database schema
-- API endpoints
-
-### High-Level Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Gitea Mirror                             │
-│                                                                 │
-│  ┌─────────────┐     ┌─────────────┐     ┌─────────────────┐   │
-│  │             │     │             │     │                 │   │
-│  │  Frontend   │◄───►│   Backend   │◄───►│    Database     │   │
-│  │  (Astro)    │     │  (Node.js)  │     │    (SQLite)     │   │
-│  │             │     │      │      │     │                 │   │
-│  └─────────────┘     └──────┼──────┘     └─────────────────┘   │
-│                             │                                   │
-│                      ┌──────┴──────┐                            │
-│                      │             │                            │
-│                      │    Redis    │                            │
-│                      │             │                            │
-│                      └──────┬──────┘                            │
-│                             │                                   │
-└─────────────────────────────┼───────────────────────────────────┘
-                              │
-                              ▼
-          ┌─────────────────────────────────────────┐
-          │                                         │
-          │              External APIs              │
-          │                                         │
-          │  ┌─────────────┐     ┌─────────────┐   │
-          │  │             │     │             │   │
-          │  │  GitHub API │     │  Gitea API  │   │
-          │  │             │     │             │   │
-          │  └─────────────┘     └─────────────┘   │
-          │                                         │
-          └─────────────────────────────────────────┘
-```
-
-> **Note**: Redis is a required component for Gitea Mirror as it's used for job queuing and caching.
-
-## Development
+## 🚀 Development
 
 ### Local Development Setup
 
@@ -276,6 +252,7 @@ pnpm setup
 # Start the development server
 pnpm dev
 ```
+
 
 ### Setting Up a Local Gitea Instance for Testing
 
@@ -312,12 +289,13 @@ docker run -d \
   gitea/gitea:latest
 ```
 
-After Gitea is running:
 
-1. Access Gitea at http://localhost:3001/
-2. Register a new user
-3. Create a personal access token in Gitea (Settings > Applications > Generate New Token)
-4. Run Gitea Mirror with the local Gitea configuration:
+> [!TIP]
+> After Gitea is running:
+> 1. Access Gitea at http://localhost:3001/
+> 2. Register a new user
+> 3. Create a personal access token in Gitea (Settings > Applications > Generate New Token)
+> 4. Run Gitea Mirror with the local Gitea configuration:
 
 ```bash
 # Run Gitea Mirror connected to the local Gitea instance
@@ -336,9 +314,11 @@ docker run -d \
   arunavo4/gitea-mirror:latest
 ```
 
-This setup allows you to test the full mirroring functionality with a local Gitea instance.
+> [!NOTE]
+> This setup allows you to test the full mirroring functionality with a local Gitea instance.
 
 ### Using Docker Compose for Development
+
 
 For convenience, a dedicated development docker-compose file is provided that sets up both Gitea Mirror and a local Gitea instance:
 
@@ -347,17 +327,19 @@ For convenience, a dedicated development docker-compose file is provided that se
 docker compose -f docker-compose.dev.yml up -d
 ```
 
-You can also create a `.env` file with your GitHub and Gitea credentials:
 
-```
-# GitHub credentials
-GITHUB_TOKEN=your-github-token
-GITHUB_USERNAME=your-github-username
-
-# Gitea credentials (will be set up after you create a user in the local Gitea instance)
-GITEA_TOKEN=your-local-gitea-token
-GITEA_USERNAME=your-local-gitea-username
-```
+> [!TIP]
+> You can also create a `.env` file with your GitHub and Gitea credentials:
+> 
+> ```env
+> # GitHub credentials
+> GITHUB_TOKEN=your-github-token
+> GITHUB_USERNAME=your-github-username
+> 
+> # Gitea credentials (will be set up after you create a user in the local Gitea instance)
+> GITEA_TOKEN=your-local-gitea-token
+> GITEA_USERNAME=your-local-gitea-username
+> ```
 
 ## Technologies Used
 
@@ -401,18 +383,19 @@ This project is now complete and ready for production use with version 1.0.0. Al
 
 ### Docker Compose Network Issues
 
-If you encounter network-related warnings or errors when running Docker Compose, such as:
-
-```
-WARN[0095] a network with name gitea-network exists but was not created by compose.
-Set `external: true` to use an existing network
-```
-
-or
-
-```
-network gitea-network was found but has incorrect label com.docker.compose.network set to "" (expected: "gitea-network")
-```
+> [!WARNING]
+> If you encounter network-related warnings or errors when running Docker Compose, such as:
+> 
+> ```
+> WARN[0095] a network with name gitea-network exists but was not created by compose.
+> Set `external: true` to use an existing network
+> ```
+> 
+> or
+> 
+> ```
+> network gitea-network was found but has incorrect label com.docker.compose.network set to "" (expected: "gitea-network")
+> ```
 
 Try the following steps:
 
@@ -431,42 +414,42 @@ Try the following steps:
    docker compose -f docker-compose.dev.yml up -d
    ```
 
-If you need to share the network with other Docker Compose projects, you can modify the `docker-compose.dev.yml` file to mark the network as external:
-
-```yaml
-networks:
-  gitea-network:
-    name: gitea-network
-    external: true
-```
+> [!TIP]
+> If you need to share the network with other Docker Compose projects, you can modify the `docker-compose.dev.yml` file to mark the network as external:
+> 
+> ```yaml
+> networks:
+>   gitea-network:
+>     name: gitea-network
+>     external: true
+> ```
 
 ### Redis Connection Issues
 
-If the application fails to connect to Redis with errors like `ECONNREFUSED 127.0.0.1:6379`, ensure:
+> [!CAUTION]
+> If the application fails to connect to Redis with errors like `ECONNREFUSED 127.0.0.1:6379`, ensure:
+> 
+> 1. The Redis container is running:
+>    ```bash
+>    docker ps | grep redis
+>    ```
+> 2. The `REDIS_URL` environment variable is correctly set to `redis://redis:6379` in your Docker Compose file.
+> 3. Both the application and Redis containers are on the same Docker network.
+> 4. If running without Docker Compose, ensure you've started a Redis container and linked it properly:
+>    ```bash
+>    # Start Redis container
+>    docker run -d --name gitea-mirror-redis redis:alpine
+>    # Run application with link to Redis
+>    docker run -d -p 4321:4321 --link gitea-mirror-redis:redis \
+>      -e REDIS_URL=redis://redis:6379 \
+>      ghcr.io/arunavo4/gitea-mirror:latest
+>    ```
 
-1. The Redis container is running:
-   ```bash
-   docker ps | grep redis
-   ```
-
-2. The `REDIS_URL` environment variable is correctly set to `redis://redis:6379` in your Docker Compose file.
-
-3. Both the application and Redis containers are on the same Docker network.
-
-4. If running without Docker Compose, ensure you've started a Redis container and linked it properly:
-   ```bash
-   # Start Redis container
-   docker run -d --name gitea-mirror-redis redis:alpine
-
-   # Run application with link to Redis
-   docker run -d -p 4321:4321 --link gitea-mirror-redis:redis \
-     -e REDIS_URL=redis://redis:6379 \
-     ghcr.io/arunavo4/gitea-mirror:latest
-   ```
 
 #### Improving Redis Connection Resilience
 
-For better Redis connection handling, you can modify the `src/lib/redis.ts` file to include retry logic and better error handling:
+> [!TIP]
+> For better Redis connection handling, you can modify the `src/lib/redis.ts` file to include retry logic and better error handling:
 
 ```typescript
 import Redis from "ioredis";
@@ -498,25 +481,29 @@ redis.on('connect', () => console.log('Redis client connected'));
 redis.on('error', (err) => console.error('Redis client error:', err));
 ```
 
-This implementation provides:
-- Automatic retry with exponential backoff
-- Better error logging
-- Connection event handling
-- Proper timeout settings
+
+> [!NOTE]
+> This implementation provides:
+> - Automatic retry with exponential backoff
+> - Better error logging
+> - Connection event handling
+> - Proper timeout settings
+
 
 ### Container Health Checks
 
-If containers are not starting properly, check their health status:
-
-```bash
-docker ps --format "{{.Names}}: {{.Status}}"
-```
-
-For more detailed logs:
-
-```bash
-docker logs gitea-mirror-dev
-```
+> [!TIP]
+> If containers are not starting properly, check their health status:
+> 
+> ```bash
+> docker ps --format "{{.Names}}: {{.Status}}"
+> ```
+> 
+> For more detailed logs:
+> 
+> ```bash
+> docker logs gitea-mirror-dev
+> ```
 
 ## Acknowledgements
 
