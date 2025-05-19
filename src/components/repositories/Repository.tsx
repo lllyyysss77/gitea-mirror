@@ -27,10 +27,12 @@ import type { SyncRepoRequest, SyncRepoResponse } from "@/types/sync";
 import { OwnerCombobox, OrganizationCombobox } from "./RepositoryComboboxes";
 import type { RetryRepoRequest, RetryRepoResponse } from "@/types/retry";
 import AddRepositoryDialog from "./AddRepositoryDialog";
+import type { ConfigApiResponse } from "@/types/config";
 
 export default function Repository() {
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGitHubConfigured, setIsGitHubConfigured] = useState<boolean>(true);
   const { user } = useAuth();
   const { filter, setFilter } = useFilterParams({
     searchTerm: "",
@@ -76,8 +78,27 @@ export default function Repository() {
   const fetchRepositories = useCallback(async () => {
     if (!user) return;
 
-    setIsLoading(true);
+    // First, check if GitHub is configured by fetching the user's config
     try {
+      const configResponse = await apiRequest<ConfigApiResponse>(
+        `/config?userId=${user.id}`,
+        {
+          method: "GET",
+        }
+      );
+
+      // Check if GitHub credentials are configured
+      if (!configResponse?.githubConfig?.username || !configResponse?.githubConfig?.token) {
+        setIsLoading(false);
+        setIsGitHubConfigured(false);
+        // Don't show error toast for unconfigured GitHub - just return silently
+        return false;
+      }
+
+      // GitHub is configured
+      setIsGitHubConfigured(true);
+      setIsLoading(true);
+
       const response = await apiRequest<RepositoryApiResponse>(
         `/github/repositories?userId=${user.id}`,
         {
@@ -436,16 +457,31 @@ export default function Repository() {
         </Button>
       </div>
 
-      <RepositoryTable
-        repositories={repositories}
-        isLoading={isLoading || !connected}
-        filter={filter}
-        setFilter={setFilter}
-        onMirror={handleMirrorRepo}
-        onSync={handleSyncRepo}
-        onRetry={handleRetryRepoAction}
-        loadingRepoIds={loadingRepoIds}
-      />
+      {!isGitHubConfigured ? (
+        <div className="flex flex-col items-center justify-center p-8 border border-dashed rounded-md">
+          <h3 className="text-xl font-semibold mb-2">GitHub Not Configured</h3>
+          <p className="text-muted-foreground text-center mb-4">
+            You need to configure your GitHub credentials before you can fetch and mirror repositories.
+          </p>
+          <Button
+            variant="default"
+            onClick={() => window.location.href = "/config"}
+          >
+            Go to Configuration
+          </Button>
+        </div>
+      ) : (
+        <RepositoryTable
+          repositories={repositories}
+          isLoading={isLoading || !connected}
+          filter={filter}
+          setFilter={setFilter}
+          onMirror={handleMirrorRepo}
+          onSync={handleSyncRepo}
+          onRetry={handleRetryRepoAction}
+          loadingRepoIds={loadingRepoIds}
+        />
+      )}
 
       <AddRepositoryDialog
         onAddRepository={handleAddRepository}
