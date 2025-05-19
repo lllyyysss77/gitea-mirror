@@ -31,6 +31,11 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 RUN pnpm build
+# Compile TypeScript scripts to JavaScript
+RUN mkdir -p dist/scripts && \
+    for script in scripts/*.ts; do \
+      node_modules/.bin/tsc --outDir dist/scripts --module commonjs --target es2020 --esModuleInterop $script || true; \
+    done
 
 # -----------------------------------
 FROM deps AS pruner
@@ -55,14 +60,14 @@ COPY --from=builder /app/data ./data
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=4321
-ENV DATABASE_URL=sqlite://data/gitea-mirror.db
+ENV DATABASE_URL=file:data/gitea-mirror.db
 
 # Make entrypoint executable
 RUN chmod +x /app/docker-entrypoint.sh
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
-RUN apk add --no-cache wget && \
+RUN apk add --no-cache wget sqlite && \
   mkdir -p /app/data && \
   addgroup --system --gid 1001 nodejs && \
   adduser --system --uid 1001 gitea-mirror && \

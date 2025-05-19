@@ -71,18 +71,6 @@ This will create the necessary tables. On first launch, you'll be guided through
 
 Gitea Mirror provides multi-architecture Docker images that work on both ARM64 (e.g., Apple Silicon, Raspberry Pi) and x86_64 (Intel/AMD) platforms.
 
-##### Using Pre-built Images from GitHub Container Registry
-
-```bash
-# Pull the latest multi-architecture image
-docker pull ghcr.io/arunavo4/gitea-mirror:latest
-
-# Run the application
-docker run -d \\
-  -p 4321:4321 \\
-  ghcr.io/arunavo4/gitea-mirror:latest
-```
-
 ##### Using Docker Compose (Recommended)
 
 ```bash
@@ -92,6 +80,25 @@ docker-compose --profile production up -d
 # For development mode (requires configuration)
 # Ensure you have run pnpm setup first
 docker-compose -f docker-compose.dev.yml up -d
+```
+
+> **Important**: Docker Compose is the recommended method for running Gitea Mirror as it automatically sets up the required Redis sidecar service that the application depends on.
+
+##### Using Pre-built Images from GitHub Container Registry
+
+If you want to run the container directly without Docker Compose, you'll need to set up a Redis instance separately:
+
+```bash
+# First, start a Redis container
+docker run -d --name gitea-mirror-redis redis:alpine
+
+# Pull the latest multi-architecture image
+docker pull ghcr.io/arunavo4/gitea-mirror:latest
+
+# Run the application with a link to the Redis container
+docker run -d -p 4321:4321 --link gitea-mirror-redis:redis \
+  -e REDIS_URL=redis://redis:6379 \
+  ghcr.io/arunavo4/gitea-mirror:latest
 ```
 
 ##### Building Docker Images Manually
@@ -145,10 +152,11 @@ docker volume create gitea-mirror-data
 
 The Docker container can be configured with the following environment variables:
 
-- `DATABASE_URL`: SQLite database URL (default: `sqlite://data/gitea-mirror.db`)
+- `DATABASE_URL`: SQLite database URL (default: `file:data/gitea-mirror.db`)
 - `HOST`: Host to bind to (default: `0.0.0.0`)
 - `PORT`: Port to listen on (default: `4321`)
 - `JWT_SECRET`: Secret key for JWT token generation (important for security)
+- `REDIS_URL`: URL for Redis connection (required, default: none)
 
 
 #### Manual Installation
@@ -227,8 +235,14 @@ Gitea Mirror follows a modular architecture with clear separation of concerns. S
 │  │             │     │             │     │                 │   │
 │  │  Frontend   │◄───►│   Backend   │◄───►│    Database     │   │
 │  │  (Astro)    │     │  (Node.js)  │     │    (SQLite)     │   │
-│  │             │     │             │     │                 │   │
-│  └─────────────┘     └──────┬──────┘     └─────────────────┘   │
+│  │             │     │      │      │     │                 │   │
+│  └─────────────┘     └──────┼──────┘     └─────────────────┘   │
+│                             │                                   │
+│                      ┌──────┴──────┐                            │
+│                      │             │                            │
+│                      │    Redis    │                            │
+│                      │             │                            │
+│                      └──────┬──────┘                            │
 │                             │                                   │
 └─────────────────────────────┼───────────────────────────────────┘
                               │
@@ -245,6 +259,8 @@ Gitea Mirror follows a modular architecture with clear separation of concerns. S
           │                                         │
           └─────────────────────────────────────────┘
 ```
+
+> **Note**: Redis is a required component for Gitea Mirror as it's used for job queuing and caching.
 
 ## Development
 
@@ -344,6 +360,7 @@ GITEA_USERNAME=your-local-gitea-username
 - **Frontend**: Astro, React, Shadcn UI, Tailwind CSS v4
 - **Backend**: Node.js
 - **Database**: SQLite (default) or PostgreSQL
+- **Caching/Queue**: Redis
 - **API Integration**: GitHub API (Octokit), Gitea API
 
 ## Contributing
