@@ -283,7 +283,8 @@ For full end-to-end testing, you can set up a local Gitea instance using Docker:
 
 ```bash
 # Create a Docker network for Gitea and Gitea Mirror to communicate
-docker network create gitea-network
+# Using the --label flag ensures proper Docker Compose compatibility
+docker network create --label com.docker.compose.network=gitea-network gitea-network
 
 # Create volumes for Gitea data persistence
 docker volume create gitea-data
@@ -395,6 +396,127 @@ This project is now complete and ready for production use with version 1.0.0. Al
 - ✅ Multi-architecture support (ARM64 and x86_64)
 - ✅ Light/dark mode toggle
 - ✅ Persistent configuration storage
+
+## Troubleshooting
+
+### Docker Compose Network Issues
+
+If you encounter network-related warnings or errors when running Docker Compose, such as:
+
+```
+WARN[0095] a network with name gitea-network exists but was not created by compose.
+Set `external: true` to use an existing network
+```
+
+or
+
+```
+network gitea-network was found but has incorrect label com.docker.compose.network set to "" (expected: "gitea-network")
+```
+
+Try the following steps:
+
+1. Stop the current Docker Compose stack:
+   ```bash
+   docker compose -f docker-compose.dev.yml down
+   ```
+
+2. Remove the existing network:
+   ```bash
+   docker network rm gitea-network
+   ```
+
+3. Restart the Docker Compose stack:
+   ```bash
+   docker compose -f docker-compose.dev.yml up -d
+   ```
+
+If you need to share the network with other Docker Compose projects, you can modify the `docker-compose.dev.yml` file to mark the network as external:
+
+```yaml
+networks:
+  gitea-network:
+    name: gitea-network
+    external: true
+```
+
+### Redis Connection Issues
+
+If the application fails to connect to Redis with errors like `ECONNREFUSED 127.0.0.1:6379`, ensure:
+
+1. The Redis container is running:
+   ```bash
+   docker ps | grep redis
+   ```
+
+2. The `REDIS_URL` environment variable is correctly set to `redis://redis:6379` in your Docker Compose file.
+
+3. Both the application and Redis containers are on the same Docker network.
+
+4. If running without Docker Compose, ensure you've started a Redis container and linked it properly:
+   ```bash
+   # Start Redis container
+   docker run -d --name gitea-mirror-redis redis:alpine
+
+   # Run application with link to Redis
+   docker run -d -p 4321:4321 --link gitea-mirror-redis:redis \
+     -e REDIS_URL=redis://redis:6379 \
+     ghcr.io/arunavo4/gitea-mirror:latest
+   ```
+
+#### Improving Redis Connection Resilience
+
+For better Redis connection handling, you can modify the `src/lib/redis.ts` file to include retry logic and better error handling:
+
+```typescript
+import Redis from "ioredis";
+
+// Connect to Redis using REDIS_URL environment variable or default to redis://redis:6379
+const redisUrl = process.env.REDIS_URL ?? 'redis://redis:6379';
+
+console.log(`Connecting to Redis at: ${redisUrl}`);
+
+// Configure Redis client with connection options
+const redisOptions = {
+  retryStrategy: (times) => {
+    // Retry with exponential backoff up to 30 seconds
+    const delay = Math.min(times * 100, 3000);
+    console.log(`Redis connection attempt ${times} failed. Retrying in ${delay}ms...`);
+    return delay;
+  },
+  maxRetriesPerRequest: 5,
+  enableReadyCheck: true,
+  connectTimeout: 10000,
+};
+
+export const redis = new Redis(redisUrl, redisOptions);
+export const redisPublisher = new Redis(redisUrl, redisOptions);
+export const redisSubscriber = new Redis(redisUrl, redisOptions);
+
+// Log connection events
+redis.on('connect', () => console.log('Redis client connected'));
+redis.on('error', (err) => console.error('Redis client error:', err));
+```
+
+This implementation provides:
+- Automatic retry with exponential backoff
+- Better error logging
+- Connection event handling
+- Proper timeout settings
+
+### Container Health Checks
+
+If containers are not starting properly, check their health status:
+
+```bash
+docker ps --format "{{.Names}}: {{.Status}}"
+```
+
+For more detailed logs:
+
+```bash
+docker logs gitea-mirror-dev
+```
 
 ## Acknowledgements
 

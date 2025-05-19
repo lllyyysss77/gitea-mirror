@@ -108,3 +108,6 @@ volumes:
 networks:
   gitea-network:
     name: gitea-network
+    # Let Docker Compose manage this network
+    # If you need to use an existing network, uncomment the line below
+    # external: true
