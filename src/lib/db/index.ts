@@ -66,6 +66,18 @@ export const users = sqliteTable("users", {
     .default(new Date()),
 });
 
+// New table for event notifications (replacing Redis pub/sub)
+export const events = sqliteTable("events", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id),
+  channel: text("channel").notNull(),
+  payload: text("payload", { mode: "json" }).notNull(),
+  read: integer("read", { mode: "boolean" }).notNull().default(false),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(new Date()),
+});
+
 const githubSchema = configSchema.shape.githubConfig;
 const giteaSchema = configSchema.shape.giteaConfig;
 const scheduleSchema = configSchema.shape.scheduleConfig;

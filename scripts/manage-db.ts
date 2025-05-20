@@ -35,6 +35,7 @@ async function ensureTablesExist() {
     "repositories",
     "organizations",
     "mirror_jobs",
+    "events",
   ];
 
   for (const table of requiredTables) {
@@ -146,6 +147,24 @@ async function ensureTablesExist() {
                 timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id)
               )
+            `);
+            break;
+          case "events":
+            db.exec(`
+              CREATE TABLE events (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                channel TEXT NOT NULL,
+                payload TEXT NOT NULL,
+                read INTEGER NOT NULL DEFAULT 0,
+                created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+                FOREIGN KEY (user_id) REFERENCES users(id)
+              )
+            `);
+            db.exec(`
+              CREATE INDEX idx_events_user_channel ON events(user_id, channel);
+              CREATE INDEX idx_events_created_at ON events(created_at);
+              CREATE INDEX idx_events_read ON events(read);
             `);
             break;
         }
@@ -360,6 +379,24 @@ async function initializeDatabase() {
         timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id)
       )
+    `);
+
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS events (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        channel TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        read INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      )
+    `);
+
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_events_user_channel ON events(user_id, channel);
+      CREATE INDEX IF NOT EXISTS idx_events_created_at ON events(created_at);
+      CREATE INDEX IF NOT EXISTS idx_events_read ON events(read);
     `);
 
     // Insert default config if none exists

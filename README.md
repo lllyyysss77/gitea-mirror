@@ -124,19 +124,15 @@ docker compose -f docker-compose.dev.yml up -d
 
 ##### Using Pre-built Images from GitHub Container Registry
 
-If you want to run the container directly without Docker Compose, you'll need to set up a Redis instance separately:
+If you want to run the container directly without Docker Compose:
 
 ```bash
-# First, start a Redis container
-docker run -d --name gitea-mirror-redis redis:alpine
-
 # Pull the latest multi-architecture image
 docker pull ghcr.io/arunavo4/gitea-mirror:latest
 
-# Run the application with a link to the Redis container
-# Note: The REDIS_URL environment variable is required and must point to the Redis container
-docker run -d -p 4321:4321 --link gitea-mirror-redis:redis \
-  -e REDIS_URL=redis://redis:6379 \
+# Run the application with a volume for persistent data
+docker run -d -p 4321:4321 \
+  -v gitea-mirror-data:/app/data \
   ghcr.io/arunavo4/gitea-mirror:latest
 ```
 
@@ -254,7 +250,7 @@ Key configuration options include:
 - Scheduling options for automatic mirroring
 
 > [!IMPORTANT]
-> **Redis is a required component for Gitea Mirror** as it's used for job queuing and caching.
+> **SQLite is the only database required for Gitea Mirror**, handling both data storage and real-time event notifications.
 
 ## 🚀 Development
 
@@ -360,8 +356,7 @@ docker compose -f docker-compose.dev.yml up -d
 
 - **Frontend**: Astro, React, Shadcn UI, Tailwind CSS v4
  - **Backend**: Bun
-- **Database**: SQLite (default) or PostgreSQL
-- **Caching/Queue**: Redis
+- **Database**: SQLite (handles both data storage and event notifications)
 - **API Integration**: GitHub API (Octokit), Gitea API
 
 ## Contributing
@@ -439,48 +434,34 @@ Try the following steps:
 >     external: true
 > ```
 
-### Redis Connection Issues
-
-> [!CAUTION]
-> If the application fails to connect to Redis with errors like `ECONNREFUSED 127.0.0.1:6379`, ensure:
->
-> 1. The Redis container is running:
->    ```bash
->    docker ps | grep redis
->    ```
-> 2. The `REDIS_URL` environment variable is correctly set to `redis://redis:6379` in your Docker Compose file.
-> 3. Both the application and Redis containers are on the same Docker network.
-> 4. If running without Docker Compose, ensure you've started a Redis container and linked it properly:
->    ```bash
->    # Start Redis container
->    docker run -d --name gitea-mirror-redis redis:alpine
->    # Run application with link to Redis
->    docker run -d -p 4321:4321 --link gitea-mirror-redis:redis \
->      -e REDIS_URL=redis://redis:6379 \
->      ghcr.io/arunavo4/gitea-mirror:latest
->    ```
-
-
-#### Improving Redis Connection Resilience
+### Database Persistence
 
 > [!TIP]
-> For better Redis connection handling, you can modify the `src/lib/redis.ts` file to include retry logic and better error handling:
+> The application uses SQLite for all data storage and event notifications. Make sure the database file is properly mounted when using Docker:
+>
+> ```bash
+> # Run with a volume for persistent data storage
+> docker run -d -p 4321:4321 \
+>   -v gitea-mirror-data:/app/data \
+>   ghcr.io/arunavo4/gitea-mirror:latest
+> ```
 
-```typescript
-import { RedisClient } from "bun";
 
-// Connect to Redis using REDIS_URL environment variable or default to redis://redis:6379
-const redisUrl = process.env.REDIS_URL ?? "redis://redis:6379";
+#### Database Maintenance
 
-console.log(`Connecting to Redis at: ${redisUrl}`);
-
-const redis = new RedisClient(redisUrl, { autoReconnect: true });
-
-redis.onconnect = () => console.log("Redis client connected");
-redis.onclose = err => {
-  if (err) console.error("Redis client error:", err);
-};
-```
+> [!TIP]
+> For database maintenance, you can use the provided scripts:
+>
+> ```bash
+> # Check database integrity
+> bun run check-db
+>
+> # Fix database issues
+> bun run fix-db
+>
+> # Reset user accounts (for development)
+> bun run reset-users
+> ```
 
 
 > [!NOTE]

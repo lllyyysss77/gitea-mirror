@@ -140,3 +140,15 @@ export const organizationSchema = z.object({
 });
 
 export type Organization = z.infer<typeof organizationSchema>;
+
+// Event schema (for SQLite-based pub/sub)
+export const eventSchema = z.object({
+  id: z.string().uuid().optional(),
+  userId: z.string().uuid(),
+  channel: z.string().min(1),
+  payload: z.any(),
+  read: z.boolean().default(false),
+  createdAt: z.date().default(() => new Date()),
+});
+
+export type Event = z.infer<typeof eventSchema>;

@@ -1,7 +1,7 @@
 import type { RepoStatus } from "@/types/Repository";
 import { db, mirrorJobs } from "./db";
 import { v4 as uuidv4 } from "uuid";
-import { redisPublisher } from "./redis";
+import { publishEvent } from "./events";
 
 export async function createMirrorJob({
   userId,
@@ -40,10 +40,16 @@ export async function createMirrorJob({
   };
 
   try {
+    // Insert the job into the database
     await db.insert(mirrorJobs).values(job);
 
+    // Publish the event using SQLite instead of Redis
     const channel = `mirror-status:${userId}`;
-    await redisPublisher.publish(channel, JSON.stringify(job));
+    await publishEvent({
+      userId,
+      channel,
+      payload: job
+    });
 
     return jobId;
   } catch (error) {

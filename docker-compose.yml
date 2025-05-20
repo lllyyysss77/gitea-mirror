@@ -19,8 +19,6 @@ services:
       - "4321:4321"
     volumes:
       - gitea-mirror-data:/app/data
-    depends_on:
-      - redis
     environment:
       - NODE_ENV=production
       - DATABASE_URL=file:data/gitea-mirror.db
@@ -44,7 +42,6 @@ services:
       - GITEA_ORGANIZATION=${GITEA_ORGANIZATION:-github-mirrors}
       - GITEA_ORG_VISIBILITY=${GITEA_ORG_VISIBILITY:-public}
       - DELAY=${DELAY:-3600}
-      - REDIS_URL=redis://redis:6379
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=3", "--spider", "http://localhost:4321/"]
       interval: 30s
@@ -53,16 +50,6 @@ services:
       start_period: 15s
     profiles: ["production"]
 
-  redis:
-    image: redis:7-alpine
-    container_name: redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-
 # Define named volumes for database persistence
 volumes:
   gitea-mirror-data:    # Database volume
-  redis-data:

@@ -113,6 +113,20 @@ if [ ! -f "/app/data/gitea-mirror.db" ]; then
       timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
+
+    CREATE TABLE IF NOT EXISTS events (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      channel TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      read INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_events_user_channel ON events(user_id, channel);
+    CREATE INDEX IF NOT EXISTS idx_events_created_at ON events(created_at);
+    CREATE INDEX IF NOT EXISTS idx_events_read ON events(read);
 EOF
     echo "Database initialized with required tables."
   fi
