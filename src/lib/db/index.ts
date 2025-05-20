@@ -1,7 +1,7 @@
 import { z } from "zod";
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 import { Database } from "bun:sqlite";
 import { drizzle } from "drizzle-orm/bun-sqlite";
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 import fs from "fs";
 import path from "path";
 import { configSchema } from "./schema";
@@ -13,37 +13,44 @@ if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
-const dbUrl =
-  process.env.DATABASE_URL || `file:${path.join(dataDir, "gitea-mirror.db")}`;
+const dbPath = path.join(dataDir, "gitea-mirror.db");
 
-// Create a SQLite database instance using Bun's native driver
+// Create an empty database file if it doesn't exist
+if (!fs.existsSync(dbPath)) {
+  fs.writeFileSync(dbPath, "");
+}
+
+// Create SQLite database instance using Bun's native driver
 let sqlite: Database;
 try {
-  // Create an empty database file if it doesn't exist
-  if (!fs.existsSync(path.join(dataDir, "gitea-mirror.db"))) {
-    fs.writeFileSync(path.join(dataDir, "gitea-mirror.db"), "");
-  }
-  sqlite = new Database(dbUrl);
+  sqlite = new Database(dbPath);
+  console.log("Successfully connected to SQLite database using Bun's native driver");
 } catch (error) {
   console.error("Error opening database:", error);
   throw error;
 }
 
-// Simple async wrapper around Bun's SQLite API for compatibility
+// Create drizzle instance with the SQLite client
+export const db = drizzle({ client: sqlite });
+
+// Simple async wrapper around SQLite API for compatibility
+// This maintains backward compatibility with existing code
 export const client = {
   async execute(sql: string, params?: any[]) {
-    const stmt = sqlite.query(sql);
-    if (/^\s*select/i.test(sql)) {
-      const rows = stmt.all(params ?? []);
-      return { rows } as { rows: any[] };
+    try {
+      const stmt = sqlite.query(sql);
+      if (/^\s*select/i.test(sql)) {
+        const rows = stmt.all(params ?? []);
+        return { rows } as { rows: any[] };
+      }
+      stmt.run(params ?? []);
+      return { rows: [] } as { rows: any[] };
+    } catch (error) {
+      console.error(`Error executing SQL: ${sql}`, error);
+      throw error;
     }
-    stmt.run(params ?? []);
-    return { rows: [] } as { rows: any[] };
   },
 };
-
-// Create a drizzle instance
-export const db = drizzle(sqlite);
 
 // Define the tables
 export const users = sqliteTable("users", {
