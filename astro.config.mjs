@@ -11,7 +11,12 @@ export default defineConfig({
     mode: 'standalone',
   }),
   vite: {
-    plugins: [tailwindcss()]
+    plugins: [tailwindcss()],
+    build: {
+      rollupOptions: {
+        external: ['bun']
+      }
+    }
   },
   integrations: [react()]
 });
