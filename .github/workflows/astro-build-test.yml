@@ -21,26 +21,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v3
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          version: 10
-          run_install: false
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 'lts/*'
-          cache: 'pnpm'
+          bun-version: '1.2.9'
+          cache: true
 
       - name: Install dependencies
-        run: pnpm install
+        run: bun install
 
       - name: Run tests
-        run: pnpm test
+        run: bunx vitest run
 
       - name: Build Astro project
-        run: pnpm build
+        run: bunx astro build
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

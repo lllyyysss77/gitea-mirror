@@ -105,12 +105,12 @@ echo -e "${BLUE}                 Recommendations                     ${NC}"
 echo -e "${BLUE}=====================================================${NC}"
 
 echo -e "\n${YELLOW}For local development:${NC}"
-echo -e "1. ${GREEN}pnpm setup${NC} (initialize database and install dependencies)"
+echo -e "1. ${GREEN}bun run setup${NC} (initialize database and install dependencies)"
 echo -e "2. ${GREEN}./scripts/build-docker.sh --load${NC} (build and load into Docker)"
 echo -e "3. ${GREEN}docker-compose -f docker-compose.dev.yml up -d${NC} (start the development container)"
 
 echo -e "\n${YELLOW}For production deployment (using Docker Compose):${NC}"
-echo -e "1. ${GREEN}pnpm setup${NC} (if not already done, to ensure database schema is ready)"
+echo -e "1. ${GREEN}bun run setup${NC} (if not already done, to ensure database schema is ready)"
 echo -e "2. ${GREEN}docker-compose --profile production up -d${NC} (start the production container)"
 
 echo -e "\n${YELLOW}For CI/CD builds:${NC}"

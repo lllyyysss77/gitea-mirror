@@ -7,14 +7,14 @@ on:
       - 'Dockerfile'
       - '.dockerignore'
       - 'package.json'
-      - 'pnpm-lock.yaml'
+      - 'bun.lockb'
   pull_request:
     branches: [ main ]
     paths:
       - 'Dockerfile'
       - '.dockerignore'
       - 'package.json'
-      - 'pnpm-lock.yaml'
+      - 'bun.lockb'
   schedule:
     - cron: '0 0 * * 0'  # Run weekly on Sunday at midnight
 

@@ -5,19 +5,19 @@ set -e
 # Ensure data directory exists
 mkdir -p /app/data
 
-# If pnpm is available, run setup (for dev images), else run node init directly
-if command -v pnpm >/dev/null 2>&1; then
-  echo "Running pnpm setup (if needed)..."
-  pnpm setup || true
+# If bun is available, run setup (for dev images)
+if command -v bun >/dev/null 2>&1; then
+  echo "Running bun setup (if needed)..."
+  bun run setup || true
 fi
 
 # Initialize the database if it doesn't exist
 if [ ! -f "/app/data/gitea-mirror.db" ]; then
   echo "Initializing database..."
   if [ -f "dist/scripts/init-db.js" ]; then
-    node dist/scripts/init-db.js
+    bun dist/scripts/init-db.js
   elif [ -f "dist/scripts/manage-db.js" ]; then
-    node dist/scripts/manage-db.js init
+    bun dist/scripts/manage-db.js init
   else
     echo "Warning: Could not find database initialization scripts in dist/scripts."
     echo "Creating and initializing database manually..."
@@ -119,9 +119,9 @@ EOF
 else
   echo "Database already exists, checking for issues..."
   if [ -f "dist/scripts/fix-db-issues.js" ]; then
-    node dist/scripts/fix-db-issues.js
+    bun dist/scripts/fix-db-issues.js
   elif [ -f "dist/scripts/manage-db.js" ]; then
-    node dist/scripts/manage-db.js fix
+    bun dist/scripts/manage-db.js fix
   fi
 
   # Since the application is not used by anyone yet, we've removed the schema updates and migrations
@@ -130,4 +130,4 @@ fi
 
 # Start the application
 echo "Starting Gitea Mirror..."
-exec node ./dist/server/entry.mjs
+exec bun ./dist/server/entry.mjs

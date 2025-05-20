@@ -18,7 +18,7 @@
 ```bash
 docker compose --profile production up -d
 # or
-pnpm setup && pnpm dev
+bun run setup && bun run dev
 ```
 
 <p align="center">
@@ -63,9 +63,9 @@ Easily configure your GitHub and Gitea connections, set up automatic mirroring s
 
 See the [Quick Start Guide](docs/quickstart.md) for detailed instructions on getting up and running quickly.
 
-### Prerequisites
+-### Prerequisites
 
-- Node.js 22 or later
+- Bun 1.2.9 or later
 - A GitHub account with a personal access token
 - A Gitea instance with an access token
 
@@ -92,7 +92,7 @@ Before running the application in production mode for the first time, you need t
 
 ```bash
 # Initialize the database for production mode
-pnpm setup
+bun run setup
 ```
 
 This will create the necessary tables. On first launch, you'll be guided through creating your admin account with a secure password.
@@ -110,7 +110,7 @@ Gitea Mirror provides multi-architecture Docker images that work on both ARM64 (
 docker compose --profile production up -d
 
 # For development mode (requires configuration)
-# Ensure you have run pnpm setup first
+# Ensure you have run bun run setup first
 docker compose -f docker-compose.dev.yml up -d
 ```
 
@@ -206,40 +206,40 @@ git clone https://github.com/arunavo4/gitea-mirror.git
 cd gitea-mirror
 
 # Quick setup (installs dependencies and initializes the database)
-pnpm setup
+bun run setup
 
 # Development Mode Options
 
 # Run in development mode
-pnpm dev
+bun run dev
 
 # Run in development mode with clean database (removes existing DB first)
-pnpm dev:clean
+bun run dev:clean
 
 # Production Mode Options
 
 # Build the application
-pnpm build
+bun run build
 
 # Preview the production build
-pnpm preview
+bun run preview
 
 # Start the production server (default)
-pnpm start
+bun run start
 
 # Start the production server with a clean setup
-pnpm start:fresh
+bun run start:fresh
 
 # Database Management
 
 # Initialize the database
-pnpm init-db
+bun run init-db
 
 # Reset users for testing first-time signup
-pnpm reset-users
+bun run reset-users
 
 # Check database status
-pnpm check-db
+bun run check-db
 ```
 
 ### Configuration
@@ -262,10 +262,10 @@ Key configuration options include:
 
 ```bash
 # Install dependencies
-pnpm setup
+bun run setup
 
 # Start the development server
-pnpm dev
+bun run dev
 ```
 
 
@@ -359,7 +359,7 @@ docker compose -f docker-compose.dev.yml up -d
 ## Technologies Used
 
 - **Frontend**: Astro, React, Shadcn UI, Tailwind CSS v4
-- **Backend**: Node.js
+ - **Backend**: Bun
 - **Database**: SQLite (default) or PostgreSQL
 - **Caching/Queue**: Redis
 - **API Integration**: GitHub API (Octokit), Gitea API
@@ -467,33 +467,19 @@ Try the following steps:
 > For better Redis connection handling, you can modify the `src/lib/redis.ts` file to include retry logic and better error handling:
 
 ```typescript
-import Redis from "ioredis";
+import { RedisClient } from "bun";
 
 // Connect to Redis using REDIS_URL environment variable or default to redis://redis:6379
-const redisUrl = process.env.REDIS_URL ?? 'redis://redis:6379';
+const redisUrl = process.env.REDIS_URL ?? "redis://redis:6379";
 
 console.log(`Connecting to Redis at: ${redisUrl}`);
 
-// Configure Redis client with connection options
-const redisOptions = {
-  retryStrategy: (times) => {
-    // Retry with exponential backoff up to 30 seconds
-    const delay = Math.min(times * 100, 3000);
-    console.log(`Redis connection attempt ${times} failed. Retrying in ${delay}ms...`);
-    return delay;
-  },
-  maxRetriesPerRequest: 5,
-  enableReadyCheck: true,
-  connectTimeout: 10000,
+const redis = new RedisClient(redisUrl, { autoReconnect: true });
+
+redis.onconnect = () => console.log("Redis client connected");
+redis.onclose = err => {
+  if (err) console.error("Redis client error:", err);
 };
-
-export const redis = new Redis(redisUrl, redisOptions);
-export const redisPublisher = new Redis(redisUrl, redisOptions);
-export const redisSubscriber = new Redis(redisUrl, redisOptions);
-
-// Log connection events
-redis.on('connect', () => console.log('Redis client connected'));
-redis.on('error', (err) => console.error('Redis client error:', err));
 ```
 
 

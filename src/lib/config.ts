@@ -4,7 +4,7 @@
 
 // Environment variables
 export const ENV = {
-  // Node environment (development, production, test)
+  // Runtime environment (development, production, test)
   NODE_ENV: process.env.NODE_ENV || "development",
 
   // Database URL - use SQLite by default
