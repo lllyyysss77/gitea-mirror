@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import { db, events } from "./db";
-import { eq, and, gt } from "drizzle-orm";
+import { eq, and, gt, lt } from "drizzle-orm";
 
 /**
  * Publishes an event to a specific channel for a user
@@ -106,25 +106,56 @@ export async function getNewEvents({
 /**
  * Cleans up old events to prevent the database from growing too large
  * Should be called periodically (e.g., daily via a cron job)
+ *
+ * @param maxAgeInDays Number of days to keep events (default: 7)
+ * @param cleanupUnreadAfterDays Number of days after which to clean up unread events (default: 2x maxAgeInDays)
+ * @returns Object containing the number of read and unread events deleted
  */
-export async function cleanupOldEvents(maxAgeInDays: number = 7): Promise<number> {
+export async function cleanupOldEvents(
+  maxAgeInDays: number = 7,
+  cleanupUnreadAfterDays?: number
+): Promise<{ readEventsDeleted: number; unreadEventsDeleted: number }> {
   try {
+    console.log(`Cleaning up events older than ${maxAgeInDays} days...`);
+
+    // Calculate the cutoff date for read events
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - maxAgeInDays);
 
-    // Delete events older than the cutoff date
-    const result = await db
+    // Delete read events older than the cutoff date
+    const readResult = await db
       .delete(events)
       .where(
         and(
           eq(events.read, true),
-          gt(cutoffDate, events.createdAt)
+          lt(events.createdAt, cutoffDate)
         )
       );
 
-    return result.changes || 0;
+    const readEventsDeleted = readResult.changes || 0;
+    console.log(`Deleted ${readEventsDeleted} read events`);
+
+    // Calculate the cutoff date for unread events (default to 2x the retention period)
+    const unreadCutoffDate = new Date();
+    const unreadMaxAge = cleanupUnreadAfterDays || (maxAgeInDays * 2);
+    unreadCutoffDate.setDate(unreadCutoffDate.getDate() - unreadMaxAge);
+
+    // Delete unread events that are significantly older
+    const unreadResult = await db
+      .delete(events)
+      .where(
+        and(
+          eq(events.read, false),
+          lt(events.createdAt, unreadCutoffDate)
+        )
+      );
+
+    const unreadEventsDeleted = unreadResult.changes || 0;
+    console.log(`Deleted ${unreadEventsDeleted} unread events`);
+
+    return { readEventsDeleted, unreadEventsDeleted };
   } catch (error) {
     console.error("Error cleaning up old events:", error);
-    return 0;
+    return { readEventsDeleted: 0, unreadEventsDeleted: 0 };
   }
 }

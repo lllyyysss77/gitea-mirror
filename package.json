@@ -18,6 +18,7 @@
     "reset-users": "bun scripts/manage-db.ts reset-users",
     "migrate-db": "bun scripts/migrate-db.ts",
     "cleanup-redis": "bun scripts/cleanup-redis.ts",
+    "cleanup-events": "bun scripts/cleanup-events.ts",
     "preview": "bunx --bun astro preview",
     "start": "bun dist/server/entry.mjs",
     "start:fresh": "bun run cleanup-db && bun run manage-db init && bun dist/server/entry.mjs",

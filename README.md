@@ -445,6 +445,19 @@ Try the following steps:
 >   -v gitea-mirror-data:/app/data \
 >   ghcr.io/arunavo4/gitea-mirror:latest
 > ```
+>
+> For homelab/self-hosted setups, you can use the provided Docker Compose file with automatic event cleanup:
+>
+> ```bash
+> # Clone the repository
+> git clone https://github.com/arunavo4/gitea-mirror.git
+> cd gitea-mirror
+>
+> # Start the application with Docker Compose
+> docker-compose -f docker-compose.homelab.yml up -d
+> ```
+>
+> This setup includes a cron job that runs daily to clean up old events and prevent the database from growing too large.
 
 
 #### Database Maintenance
@@ -461,6 +474,19 @@ Try the following steps:
 >
 > # Reset user accounts (for development)
 > bun run reset-users
+>
+> # Clean up old events (keeps last 7 days by default)
+> bun run cleanup-events
+>
+> # Clean up old events with custom retention period (e.g., 30 days)
+> bun run cleanup-events 30
+> ```
+>
+> For automated maintenance, consider setting up a cron job to run the cleanup script periodically:
+>
+> ```bash
+> # Add this to your crontab (runs daily at 2 AM)
+> 0 2 * * * cd /path/to/gitea-mirror && bun run cleanup-events
 > ```
 
 

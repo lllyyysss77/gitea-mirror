@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  gitea-mirror:
+    image: ghcr.io/arunavo4/gitea-mirror:latest
+    container_name: gitea-mirror
+    restart: unless-stopped
+    ports:
+      - "4321:4321"
+    volumes:
+      - gitea-mirror-data:/app/data
+      # Mount the crontab file
+      - ./crontab:/etc/cron.d/gitea-mirror-cron
+    environment:
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=4321
+      - DATABASE_URL=sqlite://data/gitea-mirror.db
+      - DELAY=${DELAY:-3600}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4321/health"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    # Install cron in the container and set up the cron job
+    command: >
+      sh -c "
+        apt-get update && apt-get install -y cron curl &&
+        chmod 0644 /etc/cron.d/gitea-mirror-cron &&
+        crontab /etc/cron.d/gitea-mirror-cron &&
+        service cron start &&
+        bun dist/server/entry.mjs
+      "
+
+# Define named volumes for database persistence
+volumes:
+  gitea-mirror-data:    # Database volume

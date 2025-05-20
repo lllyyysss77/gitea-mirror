@@ -11,7 +11,7 @@ export const GET: APIRoute = async ({ request }) => {
 
   const channel = `mirror-status:${userId}`;
   let isClosed = false;
-  const POLL_INTERVAL = 2000; // Poll every 2 seconds
+  const POLL_INTERVAL = 5000; // Poll every 5 seconds (reduced from 2 seconds for low-traffic usage)
 
   const stream = new ReadableStream({
     start(controller) {
