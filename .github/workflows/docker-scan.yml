@@ -7,14 +7,14 @@ on:
       - 'Dockerfile'
       - '.dockerignore'
       - 'package.json'
-      - 'bun.lock'
+      - 'bun.lock*'
   pull_request:
     branches: [ main ]
     paths:
       - 'Dockerfile'
       - '.dockerignore'
       - 'package.json'
-      - 'bun.lock'
+      - 'bun.lock*'
   schedule:
     - cron: '0 0 * * 0'  # Run weekly on Sunday at midnight
 

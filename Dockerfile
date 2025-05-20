@@ -6,7 +6,8 @@ RUN apk add --no-cache libc6-compat python3 make g++ gcc wget sqlite
 
 # ----------------------------
 FROM base AS deps
-COPY package.json bun.lock ./
+COPY package.json ./
+COPY bun.lock* ./
 RUN bun install --frozen-lockfile
 
 # ----------------------------
