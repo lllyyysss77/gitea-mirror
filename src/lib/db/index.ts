@@ -2,17 +2,32 @@ import { z } from "zod";
 import { Database } from "bun:sqlite";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
-
+import fs from "fs";
 import path from "path";
 import { configSchema } from "./schema";
 
 // Define the database URL - for development we'll use a local SQLite file
 const dataDir = path.join(process.cwd(), "data");
+// Ensure data directory exists
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
+
 const dbUrl =
   process.env.DATABASE_URL || `file:${path.join(dataDir, "gitea-mirror.db")}`;
 
 // Create a SQLite database instance using Bun's native driver
-export const sqlite = new Database(dbUrl);
+let sqlite: Database;
+try {
+  // Create an empty database file if it doesn't exist
+  if (!fs.existsSync(path.join(dataDir, "gitea-mirror.db"))) {
+    fs.writeFileSync(path.join(dataDir, "gitea-mirror.db"), "");
+  }
+  sqlite = new Database(dbUrl);
+} catch (error) {
+  console.error("Error opening database:", error);
+  throw error;
+}
 
 // Simple async wrapper around Bun's SQLite API for compatibility
 export const client = {
