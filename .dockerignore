@@ -5,10 +5,10 @@
 
 # Node.js
 node_modules
+bun.lockb
 npm-debug.log
 yarn-debug.log
 yarn-error.log
-pnpm-debug.log
 
 # Build outputs
 dist
@@ -62,4 +62,3 @@ logs
 # Cache
 .cache
 .npm
-.pnpm-store

@@ -51,7 +51,7 @@ If you prefer to run the application directly on your system:
 
 2. Run the quick setup script:
    ```bash
-   pnpm setup
+   bun run setup
    ```
    This installs dependencies and initializes the database.
 
@@ -59,13 +59,13 @@ If you prefer to run the application directly on your system:
 
    **Development Mode:**
    ```bash
-   pnpm dev
+   bun run dev
    ```
 
    **Production Mode:**
    ```bash
-   pnpm build
-   pnpm start
+   bun run build
+   bun run start
    ```
 
 4. Access the application at [http://localhost:4321](http://localhost:4321)

@@ -43,7 +43,7 @@ The script uses environment variables from the `.env` file in the project root:
 3. Using with docker-compose:
    ```bash
    # Ensure dependencies are installed and database is initialized
-   pnpm setup
+   bun run setup
 
    # First build the image
    ./scripts/build-docker.sh --load

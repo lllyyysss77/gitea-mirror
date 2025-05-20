@@ -6,9 +6,9 @@
     "bun": ">=1.2.9"
   },
   "scripts": {
-    "setup": "pnpm install && pnpm manage-db init",
+    "setup": "bun install && bun run manage-db init",
     "dev": "bunx astro dev",
-    "dev:clean": "pnpm cleanup-db && pnpm manage-db init && bunx astro dev",
+    "dev:clean": "bun run cleanup-db && bun run manage-db init && bunx astro dev",
     "build": "bunx astro build",
     "cleanup-db": "rm -f gitea-mirror.db data/gitea-mirror.db",
     "manage-db": "bun scripts/manage-db.ts",
@@ -18,7 +18,7 @@
     "reset-users": "bun scripts/manage-db.ts reset-users",
     "preview": "bunx astro preview",
     "start": "bun dist/server/entry.mjs",
-    "start:fresh": "pnpm cleanup-db && pnpm manage-db init && bun dist/server/entry.mjs",
+    "start:fresh": "bun run cleanup-db && bun run manage-db init && bun dist/server/entry.mjs",
     "test": "bunx vitest run",
     "test:watch": "bunx vitest",
     "astro": "bunx astro"
@@ -79,5 +79,5 @@
     "tsx": "^4.19.3",
     "vitest": "^3.1.1"
   },
-  "packageManager": "pnpm@10.10.0"
+  "packageManager": "bun@1.2.9"
 }

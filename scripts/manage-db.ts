@@ -168,7 +168,7 @@ async function checkDatabase() {
     );
     console.warn("This file should be in the data directory.");
     console.warn(
-      'Run "pnpm manage-db fix" to fix this issue or "pnpm cleanup-db" to remove it.'
+      'Run "bun run manage-db fix" to fix this issue or "bun run cleanup-db" to remove it.'
     );
   }
 
@@ -215,12 +215,12 @@ async function checkDatabase() {
     } catch (error) {
       console.error("❌ Error connecting to the database:", error);
       console.warn(
-        'The database file might be corrupted. Consider running "pnpm manage-db init" to recreate it.'
+        'The database file might be corrupted. Consider running "bun run manage-db init" to recreate it.'
       );
     }
   } else {
     console.warn("⚠️  WARNING: Database file not found in data directory.");
-    console.warn('Run "pnpm manage-db init" to create it.');
+    console.warn('Run "bun run manage-db init" to create it.');
   }
 }
 
@@ -235,10 +235,10 @@ async function initializeDatabase() {
   if (fs.existsSync(dataDbFile)) {
     console.log("⚠️  Database already exists at data/gitea-mirror.db");
     console.log(
-      'If you want to recreate the database, run "pnpm cleanup-db" first.'
+      'If you want to recreate the database, run "bun run cleanup-db" first.'
     );
     console.log(
-      'Or use "pnpm manage-db reset-users" to just remove users without recreating tables.'
+      'Or use "bun run manage-db reset-users" to just remove users without recreating tables.'
     );
 
     // Check if we can connect to it
@@ -457,7 +457,7 @@ async function resetUsers() {
 
     if (!doesDbExist) {
       console.log(
-        "❌ Database file doesn't exist. Run 'pnpm manage-db init' first to create it."
+        "❌ Database file doesn't exist. Run 'bun run manage-db init' first to create it."
       );
       return;
     }
@@ -629,7 +629,7 @@ async function fixDatabaseIssues() {
     console.warn(
       "⚠️  WARNING: Production database file not found in data directory."
     );
-    console.warn('Run "pnpm manage-db init" to create it.');
+    console.warn('Run "bun run manage-db init" to create it.');
   } else {
     console.log("✅ Production database file found in data directory.");
 
@@ -641,7 +641,7 @@ async function fixDatabaseIssues() {
     } catch (error) {
       console.error("❌ Error connecting to the database:", error);
       console.warn(
-        'The database file might be corrupted. Consider running "pnpm manage-db init" to recreate it.'
+        'The database file might be corrupted. Consider running "bun run manage-db init" to recreate it.'
       );
     }
   }
@@ -692,7 +692,7 @@ Available commands:
   reset-users  - Remove all users and their data
   auto         - Automatic mode: check, fix, and initialize if needed
 
-Usage: pnpm manage-db [command]
+Usage: bun run manage-db [command]
 `);
   }
 }
