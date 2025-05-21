@@ -71,9 +71,15 @@ if command -v bun >/dev/null 2>&1; then
   bun --version
 else
   echo -e "${GREEN}Installing Bun...${NC}"
+  # Install Bun globally to make it accessible to all users
   curl -fsSL https://bun.sh/install | bash
   export BUN_INSTALL=${BUN_INSTALL:-"/root/.bun"}
   export PATH="$BUN_INSTALL/bin:$PATH"
+
+  # Make Bun accessible to all users by creating a symlink in /usr/local/bin
+  echo -e "${GREEN}Making Bun accessible to all users...${NC}"
+  ln -sf "$BUN_INSTALL/bin/bun" /usr/local/bin/bun
+
   echo -e "${GREEN}Bun installed successfully${NC}"
   bun --version
 fi
@@ -105,6 +111,11 @@ cd "$INSTALL_DIR"
 mkdir -p data
 chown -R "$SERVICE_USER:$SERVICE_USER" data
 
+# Ensure the application directory has the right permissions
+echo -e "${GREEN}Setting correct permissions for application directory...${NC}"
+chown -R "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR"
+chmod -R 755 "$INSTALL_DIR"
+
 # Install dependencies and build
 echo -e "${GREEN}Installing dependencies and building application...${NC}"
 bun install
@@ -124,8 +135,18 @@ JWT_SECRET=${JWT_SECRET:-$(openssl rand -hex 32)}
 echo -e "${BLUE}Step 6/7: Creating systemd service...${NC}"
 
 # Store Bun path in a variable for better maintainability
-BUN_PATH=$(command -v bun)
+# Use the global Bun path to ensure it's accessible to the service user
+BUN_PATH="/usr/local/bin/bun"
 echo -e "${GREEN}Using Bun from: $BUN_PATH${NC}"
+
+# Ensure the Bun executable is accessible to the service user
+if [ ! -f "$BUN_PATH" ]; then
+  echo -e "${YELLOW}Bun not found at $BUN_PATH, creating symlink...${NC}"
+  ln -sf "$(command -v bun)" "$BUN_PATH"
+fi
+
+# Make sure the Bun executable has the right permissions
+chmod 755 "$BUN_PATH"
 
 cat >/etc/systemd/system/gitea-mirror.service <<SERVICE
 [Unit]
@@ -149,6 +170,24 @@ Environment=JWT_SECRET=${JWT_SECRET}
 [Install]
 WantedBy=multi-user.target
 SERVICE
+
+# Verify that the service user can access Bun
+echo -e "${BLUE}Verifying Bun permissions...${NC}"
+if su - "$SERVICE_USER" -c "$BUN_PATH --version" &>/dev/null; then
+  echo -e "${GREEN}Bun is accessible to $SERVICE_USER user${NC}"
+else
+  echo -e "${YELLOW}Warning: $SERVICE_USER cannot access Bun. Fixing permissions...${NC}"
+  # Make sure the Bun binary and its directory are accessible
+  chmod -R 755 "$(dirname "$BUN_PATH")"
+  chmod 755 "$BUN_PATH"
+
+  # Check again
+  if su - "$SERVICE_USER" -c "$BUN_PATH --version" &>/dev/null; then
+    echo -e "${GREEN}Fixed: Bun is now accessible to $SERVICE_USER user${NC}"
+  else
+    echo -e "${RED}Warning: $SERVICE_USER still cannot access Bun. Service may fail to start.${NC}"
+  fi
+fi
 
 # Start service
 echo -e "${BLUE}Step 7/7: Starting service...${NC}"
@@ -184,5 +223,12 @@ echo
 echo -e "${BLUE}To check service status:${NC} systemctl status gitea-mirror"
 echo -e "${BLUE}To view logs:${NC} journalctl -u gitea-mirror -f"
 echo -e "${BLUE}Data directory:${NC} $INSTALL_DIR/data"
+echo
+echo -e "${YELLOW}Troubleshooting:${NC}"
+echo -e "If you encounter permission issues with Bun, try the following:"
+echo -e "1. Check if Bun is accessible: ${BLUE}su - $SERVICE_USER -c \"$BUN_PATH --version\"${NC}"
+echo -e "2. Fix permissions: ${BLUE}chmod 755 $BUN_PATH${NC}"
+echo -e "3. Create a symlink: ${BLUE}ln -sf \$(command -v bun) /usr/local/bin/bun${NC}"
+echo -e "4. Restart the service: ${BLUE}systemctl restart gitea-mirror${NC}"
 echo
 echo -e "${GREEN}Thank you for installing Gitea Mirror!${NC}"
