@@ -1,36 +1,29 @@
 <p align="center">
-  <img src=".github/assets/logo.png" alt="Gitea Mirror Logo" width="120"/>
-</p>
-
-<!-- Badges -->
-<p align="center">
-  <a href="https://github.com/arunavo4/gitea-mirror/releases/latest"><img src="https://img.shields.io/github/v/tag/arunavo4/gitea-mirror?label=release"/></a>
-  <a href="https://github.com/arunavo4/gitea-mirror/actions/workflows/astro-build-test.yml"><img src="https://img.shields.io/github/actions/workflow/status/arunavo4/gitea-mirror/astro-build-test.yml?branch=main"/></a>
-  <a href="https://github.com/arunavo4/gitea-mirror/pkgs/container/gitea-mirror"><img src="https://img.shields.io/badge/ghcr.io-container-blue?logo=github"/></a>
-  <a href="https://github.com/arunavo4/gitea-mirror/blob/main/LICENSE"><img src="https://img.shields.io/github/license/arunavo4/gitea-mirror"/></a>
-</p>
-
-# Gitea Mirror
-
-<p align="center">
-  <i>A modern web application for automatically mirroring repositories from GitHub to your self-hosted Gitea instance.</i><br>
-  <sub>Designed for developers, teams, and organizations who want to retain full control of their code while still collaborating on GitHub.</sub>
+  <img src=".github/assets/logo.png" alt="Gitea Mirror Logo" width="120" />
+  <h1>Gitea Mirror</h1>
+  <p><i>A modern web app for automatically mirroring repositories from GitHub to your self-hosted Gitea.</i></p>
+  <p align="center">
+    <a href="https://github.com/arunavo4/gitea-mirror/releases/latest"><img src="https://img.shields.io/github/v/tag/arunavo4/gitea-mirror?label=release" alt="release"/></a>
+    <a href="https://github.com/arunavo4/gitea-mirror/actions/workflows/astro-build-test.yml"><img src="https://img.shields.io/github/actions/workflow/status/arunavo4/gitea-mirror/astro-build-test.yml?branch=main" alt="build"/></a>
+    <a href="https://github.com/arunavo4/gitea-mirror/pkgs/container/gitea-mirror"><img src="https://img.shields.io/badge/ghcr.io-container-blue?logo=github" alt="container"/></a>
+    <a href="https://github.com/arunavo4/gitea-mirror/blob/main/LICENSE"><img src="https://img.shields.io/github/license/arunavo4/gitea-mirror" alt="license"/></a>
+  </p>
 </p>
 
 ## 🚀 Quick Start
 
 ```bash
-# Using Docker (recommended for most users)
+# Using Docker (recommended)
 docker compose --profile production up -d
 
-# Using Bun directly
+# Using Bun
 bun run setup && bun run dev
 
-# Using LXC container on Proxmox (for homelab setups)
+# Using LXC on Proxmox
 curl -fsSL https://raw.githubusercontent.com/arunavo4/gitea-mirror/main/scripts/gitea-mirror-lxc-installer.sh | bash
-```
+````
 
-See the [LXC Container Deployment Guide](scripts/README-lxc.md) for detailed instructions on deploying with Proxmox LXC containers.
+See the [LXC Container Deployment Guide](scripts/README-lxc.md).
 
 <p align="center">
   <img src=".github/assets/dashboard.png" alt="Dashboard" width="80%"/>
