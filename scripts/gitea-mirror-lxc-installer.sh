@@ -78,7 +78,19 @@ else
 
   # Make Bun accessible to all users by creating a symlink in /usr/local/bin
   echo -e "${GREEN}Making Bun accessible to all users...${NC}"
+
+  # Check if /usr/local/bin is writable
+  if [ ! -w /usr/local/bin ]; then
+    echo -e "${RED}Error: /usr/local/bin is not writable. Please run the script as root or with sufficient permissions.${NC}"
+    exit 1
+  fi
+
   ln -sf "$BUN_INSTALL/bin/bun" /usr/local/bin/bun
+
+  if [ $? -ne 0 ]; then
+    echo -e "${RED}Error: Failed to create symlink for Bun in /usr/local/bin.${NC}"
+    exit 1
+  fi
 
   echo -e "${GREEN}Bun installed successfully${NC}"
   bun --version
@@ -146,7 +158,9 @@ if [ ! -f "$BUN_PATH" ]; then
 fi
 
 # Make sure the Bun executable has the right permissions
-chmod 755 "$BUN_PATH"
+if [ -f "$BUN_PATH" ]; then
+  chmod 755 "$BUN_PATH"
+fi
 
 cat >/etc/systemd/system/gitea-mirror.service <<SERVICE
 [Unit]
@@ -178,8 +192,14 @@ if su - "$SERVICE_USER" -c "$BUN_PATH --version" &>/dev/null; then
 else
   echo -e "${YELLOW}Warning: $SERVICE_USER cannot access Bun. Fixing permissions...${NC}"
   # Make sure the Bun binary and its directory are accessible
-  chmod -R 755 "$(dirname "$BUN_PATH")"
-  chmod 755 "$BUN_PATH"
+  BUN_DIR="$(dirname "$BUN_PATH")"
+  if [ -d "$BUN_DIR" ]; then
+    chmod 755 "$BUN_DIR"
+  fi
+
+  if [ -f "$BUN_PATH" ]; then
+    chmod 755 "$BUN_PATH"
+  fi
 
   # Check again
   if su - "$SERVICE_USER" -c "$BUN_PATH --version" &>/dev/null; then
