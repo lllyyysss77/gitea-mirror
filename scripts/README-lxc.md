@@ -75,7 +75,28 @@ If you prefer to set up manually or the automatic script doesn't work for your e
 5. Create a systemd service manually:
    ```bash
    nano /etc/systemd/system/gitea-mirror.service
-   # Add the service configuration as shown in the setup-lxc.sh script
+   # Add the service configuration as shown below:
+
+   [Unit]
+   Description=Gitea Mirror
+   After=network.target
+
+   [Service]
+   Type=simple
+   WorkingDirectory=/opt/gitea-mirror
+   ExecStart=/root/.bun/bin/bun dist/server/entry.mjs
+   Restart=on-failure
+   RestartSec=10
+   User=gitea-mirror
+   Group=gitea-mirror
+   Environment=NODE_ENV=production
+   Environment=HOST=0.0.0.0
+   Environment=PORT=4321
+   Environment=DATABASE_URL=file:data/gitea-mirror.db
+   Environment=JWT_SECRET=your-secure-secret-key
+
+   [Install]
+   WantedBy=multi-user.target
 
    systemctl daemon-reload
    systemctl enable gitea-mirror.service

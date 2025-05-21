@@ -122,6 +122,11 @@ JWT_SECRET=${JWT_SECRET:-$(openssl rand -hex 32)}
 
 # Create systemd service
 echo -e "${BLUE}Step 6/7: Creating systemd service...${NC}"
+
+# Store Bun path in a variable for better maintainability
+BUN_PATH=$(command -v bun)
+echo -e "${GREEN}Using Bun from: $BUN_PATH${NC}"
+
 cat >/etc/systemd/system/gitea-mirror.service <<SERVICE
 [Unit]
 Description=Gitea Mirror
@@ -130,7 +135,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=$INSTALL_DIR
-ExecStart=$(command -v bun) dist/server/entry.mjs
+ExecStart=$BUN_PATH dist/server/entry.mjs
 Restart=on-failure
 RestartSec=10
 User=$SERVICE_USER
