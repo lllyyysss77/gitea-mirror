@@ -154,7 +154,19 @@ echo -e "${GREEN}Using Bun from: $BUN_PATH${NC}"
 # Ensure the Bun executable is accessible to the service user
 if [ ! -f "$BUN_PATH" ]; then
   echo -e "${YELLOW}Bun not found at $BUN_PATH, creating symlink...${NC}"
+
+  # Check if /usr/local/bin is writable
+  if [ ! -w "$(dirname "$BUN_PATH")" ]; then
+    echo -e "${RED}Error: $(dirname "$BUN_PATH") is not writable. Please run the script as root or with sufficient permissions.${NC}"
+    exit 1
+  fi
+
   ln -sf "$(command -v bun)" "$BUN_PATH"
+
+  if [ $? -ne 0 ]; then
+    echo -e "${RED}Error: Failed to create symlink for Bun in $(dirname "$BUN_PATH").${NC}"
+    exit 1
+  fi
 fi
 
 # Make sure the Bun executable has the right permissions
