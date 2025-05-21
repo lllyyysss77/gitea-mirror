@@ -1,21 +1,56 @@
 import { z } from "zod";
-import { createClient } from "@libsql/client";
-import { drizzle } from "drizzle-orm/libsql";
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
-
+import { Database } from "bun:sqlite";
+import { drizzle } from "drizzle-orm/bun-sqlite";
+import fs from "fs";
 import path from "path";
 import { configSchema } from "./schema";
 
 // Define the database URL - for development we'll use a local SQLite file
 const dataDir = path.join(process.cwd(), "data");
-const dbUrl =
-  process.env.DATABASE_URL || `file:${path.join(dataDir, "gitea-mirror.db")}`;
+// Ensure data directory exists
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir, { recursive: true });
+}
 
-// Create a client connection to the database
-export const client = createClient({ url: dbUrl });
+const dbPath = path.join(dataDir, "gitea-mirror.db");
 
-// Create a drizzle instance
-export const db = drizzle(client);
+// Create an empty database file if it doesn't exist
+if (!fs.existsSync(dbPath)) {
+  fs.writeFileSync(dbPath, "");
+}
+
+// Create SQLite database instance using Bun's native driver
+let sqlite: Database;
+try {
+  sqlite = new Database(dbPath);
+  console.log("Successfully connected to SQLite database using Bun's native driver");
+} catch (error) {
+  console.error("Error opening database:", error);
+  throw error;
+}
+
+// Create drizzle instance with the SQLite client
+export const db = drizzle({ client: sqlite });
+
+// Simple async wrapper around SQLite API for compatibility
+// This maintains backward compatibility with existing code
+export const client = {
+  async execute(sql: string, params?: any[]) {
+    try {
+      const stmt = sqlite.query(sql);
+      if (/^\s*select/i.test(sql)) {
+        const rows = stmt.all(params ?? []);
+        return { rows } as { rows: any[] };
+      }
+      stmt.run(params ?? []);
+      return { rows: [] } as { rows: any[] };
+    } catch (error) {
+      console.error(`Error executing SQL: ${sql}`, error);
+      throw error;
+    }
+  },
+};
 
 // Define the tables
 export const users = sqliteTable("users", {
@@ -27,6 +62,18 @@ export const users = sqliteTable("users", {
     .notNull()
     .default(new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(new Date()),
+});
+
+// New table for event notifications (replacing Redis pub/sub)
+export const events = sqliteTable("events", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id),
+  channel: text("channel").notNull(),
+  payload: text("payload", { mode: "json" }).notNull(),
+  read: integer("read", { mode: "boolean" }).notNull().default(false),
+  createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(new Date()),
 });

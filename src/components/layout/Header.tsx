@@ -4,9 +4,10 @@ import { SiGitea } from "react-icons/si";
 import { ModeToggle } from "@/components/theme/ModeToggle";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function Header() {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading } = useAuth();
 
   const handleLogout = async () => {
     toast.success("Logged out successfully");
@@ -14,6 +15,16 @@ export function Header() {
     await new Promise((resolve) => setTimeout(resolve, 500));
     logout();
   };
+
+  // Auth buttons skeleton loader
+  function AuthButtonsSkeleton() {
+    return (
+      <>
+        <Skeleton className="h-10 w-10 rounded-full" /> {/* Avatar placeholder */}
+        <Skeleton className="h-10 w-24" /> {/* Button placeholder */}
+      </>
+    );
+  }
 
   return (
     <header className="border-b bg-background">
@@ -25,7 +36,10 @@ export function Header() {
 
         <div className="flex items-center gap-4">
           <ModeToggle />
-          {user ? (
+
+          {isLoading ? (
+            <AuthButtonsSkeleton />
+          ) : user ? (
             <>
               <Avatar>
                 <AvatarImage src="" alt="@shadcn" />

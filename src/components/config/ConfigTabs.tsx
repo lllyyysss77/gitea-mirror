@@ -1,14 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { GitHubConfigForm } from "./GitHubConfigForm";
-import { GiteaConfigForm } from "./GiteaConfigForm";
-import { ScheduleConfigForm } from "./ScheduleConfigForm";
+} from '@/components/ui/card';
+import { GitHubConfigForm } from './GitHubConfigForm';
+import { GiteaConfigForm } from './GiteaConfigForm';
+import { ScheduleConfigForm } from './ScheduleConfigForm';
 import type {
   ConfigApiResponse,
   GiteaConfig,
@@ -16,12 +16,13 @@ import type {
   SaveConfigApiRequest,
   SaveConfigApiResponse,
   ScheduleConfig,
-} from "@/types/config";
-import { Button } from "../ui/button";
-import { useAuth } from "@/hooks/useAuth";
-import { apiRequest } from "@/lib/utils";
-import { Copy, CopyCheck, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
+} from '@/types/config';
+import { Button } from '../ui/button';
+import { useAuth } from '@/hooks/useAuth';
+import { apiRequest } from '@/lib/utils';
+import { Copy, CopyCheck, RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type ConfigState = {
   githubConfig: GitHubConfig;
@@ -32,8 +33,8 @@ type ConfigState = {
 export function ConfigTabs() {
   const [config, setConfig] = useState<ConfigState>({
     githubConfig: {
-      username: "",
-      token: "",
+      username: '',
+      token: '',
       skipForks: false,
       privateRepositories: false,
       mirrorIssues: false,
@@ -41,16 +42,14 @@ export function ConfigTabs() {
       preserveOrgStructure: false,
       skipStarredIssues: false,
     },
-
     giteaConfig: {
-      url: "",
-      username: "",
-      token: "",
-      organization: "github-mirrors",
-      visibility: "public",
-      starredReposOrg: "github",
+      url: '',
+      username: '',
+      token: '',
+      organization: 'github-mirrors',
+      visibility: 'public',
+      starredReposOrg: 'github',
     },
-
     scheduleConfig: {
       enabled: false,
       interval: 3600,
@@ -58,27 +57,21 @@ export function ConfigTabs() {
   });
   const { user, refreshUser } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
-  const [dockerCode, setDockerCode] = useState<string>("");
+  const [dockerCode, setDockerCode] = useState<string>('');
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [isConfigSaved, setIsConfigSaved] = useState<boolean>(false);
 
-  // Check if all required fields are filled to enable the Save Configuration button
   const isConfigFormValid = (): boolean => {
     const { githubConfig, giteaConfig } = config;
-
-    // Check GitHub required fields
     const isGitHubValid = !!(
-      githubConfig.username?.trim() && githubConfig.token?.trim()
+      githubConfig.username.trim() && githubConfig.token.trim()
     );
-
-    // Check Gitea required fields
     const isGiteaValid = !!(
-      giteaConfig.url?.trim() &&
-      giteaConfig.username?.trim() &&
-      giteaConfig.token?.trim()
+      giteaConfig.url.trim() &&
+      giteaConfig.username.trim() &&
+      giteaConfig.token.trim()
     );
-
     return isGitHubValid && isGiteaValid;
   };
 
@@ -86,11 +79,12 @@ export function ConfigTabs() {
     const updateLastAndNextRun = () => {
       const lastRun = config.scheduleConfig.lastRun
         ? new Date(config.scheduleConfig.lastRun)
-        : new Date(); // fallback to now if lastRun is null
+        : new Date();
       const intervalInSeconds = config.scheduleConfig.interval;
-      const nextRun = new Date(lastRun.getTime() + intervalInSeconds * 1000);
-
-      setConfig((prev) => ({
+      const nextRun = new Date(
+        lastRun.getTime() + intervalInSeconds * 1000,
+      );
+      setConfig(prev => ({
         ...prev,
         scheduleConfig: {
           ...prev.scheduleConfig,
@@ -99,37 +93,31 @@ export function ConfigTabs() {
         },
       }));
     };
-
     updateLastAndNextRun();
   }, [config.scheduleConfig.interval]);
 
   const handleImportGitHubData = async () => {
+    if (!user?.id) return;
+    setIsSyncing(true);
     try {
-      if (!user?.id) return;
-
-      setIsSyncing(true);
-
       const result = await apiRequest<{ success: boolean; message?: string }>(
         `/sync?userId=${user.id}`,
-        {
-          method: "POST",
-        }
+        { method: 'POST' },
       );
-
-      if (result.success) {
-        toast.success(
-          "GitHub data imported successfully! Head to the Dashboard to start mirroring repositories."
-        );
-      } else {
-        toast.error(
-          `Failed to import GitHub data: ${result.message || "Unknown error"}`
-        );
-      }
+      result.success
+        ? toast.success(
+            'GitHub data imported successfully! Head to the Dashboard to start mirroring repositories.',
+          )
+        : toast.error(
+            `Failed to import GitHub data: ${
+              result.message || 'Unknown error'
+            }`,
+          );
     } catch (error) {
       toast.error(
         `Error importing GitHub data: ${
           error instanceof Error ? error.message : String(error)
-        }`
+        }`,
       );
     } finally {
       setIsSyncing(false);
@@ -137,94 +125,76 @@ export function ConfigTabs() {
   };
 
   const handleSaveConfig = async () => {
+    if (!user?.id) return;
+    const reqPayload: SaveConfigApiRequest = {
+      userId: user.id,
+      githubConfig: config.githubConfig,
+      giteaConfig: config.giteaConfig,
+      scheduleConfig: config.scheduleConfig,
+    };
     try {
-      if (!user || !user.id) {
-        return;
-      }
-
-      const reqPyload: SaveConfigApiRequest = {
-        userId: user.id,
-        githubConfig: config.githubConfig,
-        giteaConfig: config.giteaConfig,
-        scheduleConfig: config.scheduleConfig,
-      };
-      const response = await fetch("/api/config", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(reqPyload),
+      const response = await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reqPayload),
       });
-
       const result: SaveConfigApiResponse = await response.json();
-
       if (result.success) {
         await refreshUser();
         setIsConfigSaved(true);
-
         toast.success(
-          "Configuration saved successfully! Now import your GitHub data to begin."
+          'Configuration saved successfully! Now import your GitHub data to begin.',
         );
       } else {
         toast.error(
-          `Failed to save configuration: ${result.message || "Unknown error"}`
+          `Failed to save configuration: ${result.message || 'Unknown error'}`,
         );
       }
     } catch (error) {
       toast.error(
         `An error occurred while saving the configuration: ${
           error instanceof Error ? error.message : String(error)
-        }`
+        }`,
       );
     }
   };
 
   useEffect(() => {
+    if (!user) return;
+
     const fetchConfig = async () => {
+      setIsLoading(true);
       try {
-        if (!user) {
-          return;
-        }
-
-        setIsLoading(true);
-
         const response = await apiRequest<ConfigApiResponse>(
           `/config?userId=${user.id}`,
-          {
-            method: "GET",
-          }
+          { method: 'GET' },
         );
-
-        // Check if we have a valid config response
         if (response && !response.error) {
           setConfig({
-            githubConfig: response.githubConfig || config.githubConfig,
-            giteaConfig: response.giteaConfig || config.giteaConfig,
-            scheduleConfig: response.scheduleConfig || config.scheduleConfig,
+            githubConfig:
+              response.githubConfig || config.githubConfig,
+            giteaConfig:
+              response.giteaConfig || config.giteaConfig,
+            scheduleConfig:
+              response.scheduleConfig || config.scheduleConfig,
           });
-
-          // If we got a valid config from the server, it means it was previously saved
-          if (response.id) {
-            setIsConfigSaved(true);
-          }
+          if (response.id) setIsConfigSaved(true);
         }
-        // If there's an error, we'll just use the default config defined in state
-
-        setIsLoading(false);
       } catch (error) {
-        // Don't show error for first-time users, just use the default config
-        console.warn("Could not fetch configuration, using defaults:", error);
-      } finally {
-        setIsLoading(false);
+        console.warn(
+          'Could not fetch configuration, using defaults:',
+          error,
+        );
       }
+      setIsLoading(false);
     };
 
     fetchConfig();
   }, [user]);
 
   useEffect(() => {
-    const generateDockerCode = () => {
-      return `services:
+    const generateDockerCode = () => `
+services:
   gitea-mirror:
     image: arunavo4/gitea-mirror:latest
     restart: unless-stopped
@@ -243,27 +213,93 @@ export function ConfigTabs() {
       - GITEA_ORGANIZATION=${config.giteaConfig.organization}
       - GITEA_ORG_VISIBILITY=${config.giteaConfig.visibility}
       - DELAY=${config.scheduleConfig.interval}`;
-    };
-
-    const code = generateDockerCode();
-    setDockerCode(code);
+    setDockerCode(generateDockerCode());
   }, [config]);
 
   const handleCopyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text).then(
       () => {
         setIsCopied(true);
-        toast.success("Docker configuration copied to clipboard!");
+        toast.success('Docker configuration copied to clipboard!');
         setTimeout(() => setIsCopied(false), 2000);
       },
-      (err) => {
-        toast.error("Could not copy text to clipboard.");
-      }
+      () => toast.error('Could not copy text to clipboard.'),
     );
   };
 
+  function ConfigCardSkeleton() {
+    return (
+      <Card>
+        <CardHeader className="flex-row justify-between">
+          <div className="flex flex-col gap-y-1.5 m-0">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-72" />
+          </div>
+          <div className="flex gap-x-4">
+            <Skeleton className="h-10 w-36" />
+            <Skeleton className="h-10 w-36" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-y-4">
+            <div className="flex gap-x-4">
+              <div className="w-1/2 border rounded-lg p-4">
+                <div className="flex justify-between items-center mb-4">
+                  <Skeleton className="h-6 w-40" />
+                  <Skeleton className="h-9 w-32" />
+                </div>
+                <div className="space-y-4">
+                  <Skeleton className="h-20 w-full" />
+                  <Skeleton className="h-20 w-full" />
+                  <Skeleton className="h-32 w-full" />
+                </div>
+              </div>
+              <div className="w-1/2 border rounded-lg p-4">
+                <div className="flex justify-between items-center mb-4">
+                  <Skeleton className="h-6 w-40" />
+                  <Skeleton className="h-9 w-32" />
+                </div>
+                <div className="space-y-4">
+                  <Skeleton className="h-20 w-full" />
+                  <Skeleton className="h-20 w-full" />
+                  <Skeleton className="h-20 w-full" />
+                  <Skeleton className="h-20 w-full" />
+                </div>
+              </div>
+            </div>
+            <div className="border rounded-lg p-4">
+              <div className="space-y-4">
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-8 w-32" />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  function DockerConfigSkeleton() {
+    return (
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="h-4 w-64" />
+        </CardHeader>
+        <CardContent className="relative">
+          <Skeleton className="h-8 w-8 absolute top-4 right-10 rounded-md" />
+          <Skeleton className="h-48 w-full rounded-md" />
+        </CardContent>
+      </Card>
+    );
+  }
+
   return isLoading ? (
-    <div>loading...</div>
+    <div className="flex flex-col gap-y-6">
+      <ConfigCardSkeleton />
+      <DockerConfigSkeleton />
+    </div>
   ) : (
     <div className="flex flex-col gap-y-6">
       <Card>
@@ -275,17 +311,16 @@ export function ConfigTabs() {
               mirroring.
             </CardDescription>
           </div>
-
           <div className="flex gap-x-4">
             <Button
               onClick={handleImportGitHubData}
               disabled={isSyncing || !isConfigSaved}
               title={
                 !isConfigSaved
-                  ? "Save configuration first"
+                  ? 'Save configuration first'
                   : isSyncing
-                  ? "Import in progress"
-                  : "Import GitHub Data"
+                  ? 'Import in progress'
+                  : 'Import GitHub Data'
               }
             >
               {isSyncing ? (
@@ -305,66 +340,57 @@ export function ConfigTabs() {
               disabled={!isConfigFormValid()}
               title={
                 !isConfigFormValid()
-                  ? "Please fill all required fields"
-                  : "Save Configuration"
+                  ? 'Please fill all required fields'
+                  : 'Save Configuration'
               }
             >
               Save Configuration
             </Button>
           </div>
         </CardHeader>
-
         <CardContent>
           <div className="flex flex-col gap-y-4">
             <div className="flex gap-x-4">
               <GitHubConfigForm
                 config={config.githubConfig}
-                setConfig={(update) =>
-                  setConfig((prev) => ({
+                setConfig={update =>
+                  setConfig(prev => ({
                     ...prev,
                     githubConfig:
-                      typeof update === "function"
+                      typeof update === 'function'
                         ? update(prev.githubConfig)
                         : update,
                   }))
                 }
               />
-
               <GiteaConfigForm
-                config={config?.giteaConfig ?? ({} as GiteaConfig)}
-                setConfig={(update) =>
-                  setConfig((prev) => ({
+                config={config.giteaConfig}
+                setConfig={update =>
+                  setConfig(prev => ({
                     ...prev,
                     giteaConfig:
-                      typeof update === "function"
+                      typeof update === 'function'
                         ? update(prev.giteaConfig)
                         : update,
-                    githubConfig: prev?.githubConfig ?? ({} as GitHubConfig),
-                    scheduleConfig:
-                      prev?.scheduleConfig ?? ({} as ScheduleConfig),
                   }))
                 }
               />
             </div>
-
             <ScheduleConfigForm
-              config={config?.scheduleConfig ?? ({} as ScheduleConfig)}
-              setConfig={(update) =>
-                setConfig((prev) => ({
+              config={config.scheduleConfig}
+              setConfig={update =>
+                setConfig(prev => ({
                   ...prev,
                   scheduleConfig:
-                    typeof update === "function"
+                    typeof update === 'function'
                       ? update(prev.scheduleConfig)
                       : update,
-                  githubConfig: prev?.githubConfig ?? ({} as GitHubConfig),
-                  giteaConfig: prev?.giteaConfig ?? ({} as GiteaConfig),
                 }))
               }
             />
           </div>
         </CardContent>
       </Card>
-
       <Card>
         <CardHeader>
           <CardTitle>Docker Configuration</CardTitle>
@@ -372,7 +398,6 @@ export function ConfigTabs() {
             Equivalent Docker configuration for your current settings.
           </CardDescription>
         </CardHeader>
-
         <CardContent className="relative">
           <Button
             variant="outline"
@@ -386,7 +411,6 @@ export function ConfigTabs() {
               <Copy className="text-muted-foreground" />
             )}
           </Button>
-
           <pre className="bg-muted p-4 rounded-md overflow-auto text-sm">
             {dockerCode}
           </pre>

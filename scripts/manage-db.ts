@@ -1,7 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { client, db } from "../src/lib/db";
-import { configs } from "../src/lib/db";
+import { Database } from "bun:sqlite";
 import { v4 as uuidv4 } from "uuid";
 
 // Command line arguments
@@ -21,61 +20,66 @@ const dataDbFile = path.join(dataDir, "gitea-mirror.db");
 const dataDevDbFile = path.join(dataDir, "gitea-mirror-dev.db");
 
 // Database path - ensure we use absolute path
-const dbPath =
-  process.env.DATABASE_URL || `file:${path.join(dataDir, "gitea-mirror.db")}`;
+const dbPath = path.join(dataDir, "gitea-mirror.db");
 
 /**
  * Ensure all required tables exist
  */
 async function ensureTablesExist() {
+  // Create or open the database
+  const db = new Database(dbPath);
+
   const requiredTables = [
     "users",
     "configs",
     "repositories",
     "organizations",
     "mirror_jobs",
+    "events",
   ];
 
   for (const table of requiredTables) {
     try {
-      await client.execute(`SELECT 1 FROM ${table} LIMIT 1`);
-    } catch (error) {
-      if (error instanceof Error && error.message.includes("SQLITE_ERROR")) {
+      // Check if table exists
+      const result = db.query(`SELECT name FROM sqlite_master WHERE type='table' AND name='${table}'`).get();
+
+      if (!result) {
         console.warn(`⚠️  Table '${table}' is missing. Creating it now...`);
+
         switch (table) {
           case "users":
-            await client.execute(
-              `CREATE TABLE users (
+            db.exec(`
+              CREATE TABLE users (
                 id TEXT PRIMARY KEY,
                 username TEXT NOT NULL,
                 password TEXT NOT NULL,
                 email TEXT NOT NULL,
                 created_at INTEGER NOT NULL,
                 updated_at INTEGER NOT NULL
-              )`
-            );
+              )
+            `);
             break;
           case "configs":
-            await client.execute(
-              `CREATE TABLE configs (
+            db.exec(`
+              CREATE TABLE configs (
                 id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL,
                 name TEXT NOT NULL,
                 is_active INTEGER NOT NULL DEFAULT 1,
                 github_config TEXT NOT NULL,
                 gitea_config TEXT NOT NULL,
-                include TEXT NOT NULL DEFAULT '[]',
+                include TEXT NOT NULL DEFAULT '["*"]',
                 exclude TEXT NOT NULL DEFAULT '[]',
                 schedule_config TEXT NOT NULL,
                 created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
                 updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
                 FOREIGN KEY (user_id) REFERENCES users(id)
-              )`
-            );
+              )
+            `);
             break;
           case "repositories":
-            await client.execute(
-              `CREATE TABLE repositories (
+            db.exec(`
+              CREATE TABLE repositories (
                 id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL,
                 config_id TEXT NOT NULL,
@@ -104,12 +108,12 @@ async function ensureTablesExist() {
                 updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
                 FOREIGN KEY (user_id) REFERENCES users(id),
                 FOREIGN KEY (config_id) REFERENCES configs(id)
-              )`
-            );
+              )
+            `);
             break;
           case "organizations":
-            await client.execute(
-              `CREATE TABLE organizations (
+            db.exec(`
+              CREATE TABLE organizations (
                 id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL,
                 config_id TEXT NOT NULL,
@@ -125,12 +129,12 @@ async function ensureTablesExist() {
                 updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
                 FOREIGN KEY (user_id) REFERENCES users(id),
                 FOREIGN KEY (config_id) REFERENCES configs(id)
-              )`
-            );
+              )
+            `);
             break;
           case "mirror_jobs":
-            await client.execute(
-              `CREATE TABLE mirror_jobs (
+            db.exec(`
+              CREATE TABLE mirror_jobs (
                 id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL,
                 repository_id TEXT,
@@ -142,15 +146,33 @@ async function ensureTablesExist() {
                 message TEXT NOT NULL,
                 timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id)
-              )`
-            );
+              )
+            `);
+            break;
+          case "events":
+            db.exec(`
+              CREATE TABLE events (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                channel TEXT NOT NULL,
+                payload TEXT NOT NULL,
+                read INTEGER NOT NULL DEFAULT 0,
+                created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+                FOREIGN KEY (user_id) REFERENCES users(id)
+              )
+            `);
+            db.exec(`
+              CREATE INDEX idx_events_user_channel ON events(user_id, channel);
+              CREATE INDEX idx_events_created_at ON events(created_at);
+              CREATE INDEX idx_events_read ON events(read);
+            `);
             break;
         }
         console.log(`✅ Table '${table}' created successfully.`);
-      } else {
-        console.error(`❌ Error checking table '${table}':`, error);
-        process.exit(1);
       }
+    } catch (error) {
+      console.error(`❌ Error checking table '${table}':`, error);
+      process.exit(1);
     }
   }
 }
@@ -168,7 +190,7 @@ async function checkDatabase() {
     );
     console.warn("This file should be in the data directory.");
     console.warn(
-      'Run "pnpm manage-db fix" to fix this issue or "pnpm cleanup-db" to remove it.'
+      'Run "bun run manage-db fix" to fix this issue or "bun run cleanup-db" to remove it.'
     );
   }
 
@@ -180,10 +202,11 @@ async function checkDatabase() {
 
     // Check for users
     try {
-      const userCountResult = await client.execute(
-        `SELECT COUNT(*) as count FROM users`
-      );
-      const userCount = userCountResult.rows[0].count;
+      const db = new Database(dbPath);
+
+      // Check for users
+      const userCountResult = db.query(`SELECT COUNT(*) as count FROM users`).get();
+      const userCount = userCountResult?.count || 0;
 
       if (userCount === 0) {
         console.log("ℹ️  No users found in the database.");
@@ -197,10 +220,8 @@ async function checkDatabase() {
       }
 
       // Check for configurations
-      const configCountResult = await client.execute(
-        `SELECT COUNT(*) as count FROM configs`
-      );
-      const configCount = configCountResult.rows[0].count;
+      const configCountResult = db.query(`SELECT COUNT(*) as count FROM configs`).get();
+      const configCount = configCountResult?.count || 0;
 
       if (configCount === 0) {
         console.log("ℹ️  No configurations found in the database.");
@@ -215,12 +236,12 @@ async function checkDatabase() {
     } catch (error) {
       console.error("❌ Error connecting to the database:", error);
       console.warn(
-        'The database file might be corrupted. Consider running "pnpm manage-db init" to recreate it.'
+        'The database file might be corrupted. Consider running "bun run manage-db init" to recreate it.'
       );
     }
   } else {
     console.warn("⚠️  WARNING: Database file not found in data directory.");
-    console.warn('Run "pnpm manage-db init" to create it.');
+    console.warn('Run "bun run manage-db init" to create it.');
   }
 }
 
@@ -235,15 +256,16 @@ async function initializeDatabase() {
   if (fs.existsSync(dataDbFile)) {
     console.log("⚠️  Database already exists at data/gitea-mirror.db");
     console.log(
-      'If you want to recreate the database, run "pnpm cleanup-db" first.'
+      'If you want to recreate the database, run "bun run cleanup-db" first.'
     );
     console.log(
-      'Or use "pnpm manage-db reset-users" to just remove users without recreating tables.'
+      'Or use "bun run manage-db reset-users" to just remove users without recreating tables.'
     );
 
     // Check if we can connect to it
     try {
-      await client.execute(`SELECT COUNT(*) as count FROM users`);
+      const db = new Database(dbPath);
+      db.query(`SELECT COUNT(*) as count FROM users`).get();
       console.log("✅ Database is valid and accessible.");
       return;
     } catch (error) {
@@ -257,135 +279,136 @@ async function initializeDatabase() {
   console.log(`Initializing database at ${dbPath}...`);
 
   try {
+    const db = new Database(dbPath);
+
     // Create tables if they don't exist
-    await client.execute(
-      `CREATE TABLE IF NOT EXISTS users (
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         username TEXT NOT NULL,
         password TEXT NOT NULL,
         email TEXT NOT NULL,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
-      )`
-    );
+      )
+    `);
 
     // NOTE: We no longer create a default admin user - user will create one via signup page
 
-    await client.execute(
-      `CREATE TABLE IF NOT EXISTS configs (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  name TEXT NOT NULL,
-  is_active INTEGER NOT NULL DEFAULT 1,
-  github_config TEXT NOT NULL,
-  gitea_config TEXT NOT NULL,
-  include TEXT NOT NULL DEFAULT '["*"]',
-  exclude TEXT NOT NULL DEFAULT '[]',
-  schedule_config TEXT NOT NULL,
-  created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
-  updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
-  FOREIGN KEY (user_id) REFERENCES users(id)
-);
-`
-    );
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS configs (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        github_config TEXT NOT NULL,
+        gitea_config TEXT NOT NULL,
+        include TEXT NOT NULL DEFAULT '["*"]',
+        exclude TEXT NOT NULL DEFAULT '[]',
+        schedule_config TEXT NOT NULL,
+        created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+        updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      )
+    `);
 
-    await client.execute(
-      `CREATE TABLE IF NOT EXISTS repositories (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  config_id TEXT NOT NULL,
-  name TEXT NOT NULL,
-  full_name TEXT NOT NULL,
-  url TEXT NOT NULL,
-  clone_url TEXT NOT NULL,
-  owner TEXT NOT NULL,
-  organization TEXT,
-  mirrored_location TEXT DEFAULT '',
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS repositories (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        config_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        full_name TEXT NOT NULL,
+        url TEXT NOT NULL,
+        clone_url TEXT NOT NULL,
+        owner TEXT NOT NULL,
+        organization TEXT,
+        mirrored_location TEXT DEFAULT '',
+        is_private INTEGER NOT NULL DEFAULT 0,
+        is_fork INTEGER NOT NULL DEFAULT 0,
+        forked_from TEXT,
+        has_issues INTEGER NOT NULL DEFAULT 0,
+        is_starred INTEGER NOT NULL DEFAULT 0,
+        is_archived INTEGER NOT NULL DEFAULT 0,
+        size INTEGER NOT NULL DEFAULT 0,
+        has_lfs INTEGER NOT NULL DEFAULT 0,
+        has_submodules INTEGER NOT NULL DEFAULT 0,
+        default_branch TEXT NOT NULL,
+        visibility TEXT NOT NULL DEFAULT 'public',
+        status TEXT NOT NULL DEFAULT 'imported',
+        last_mirrored INTEGER,
+        error_message TEXT,
+        created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+        updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (config_id) REFERENCES configs(id)
+      )
+    `);
 
-  is_private INTEGER NOT NULL DEFAULT 0,
-  is_fork INTEGER NOT NULL DEFAULT 0,
-  forked_from TEXT,
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS organizations (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        config_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        avatar_url TEXT NOT NULL,
+        membership_role TEXT NOT NULL DEFAULT 'member',
+        is_included INTEGER NOT NULL DEFAULT 1,
+        status TEXT NOT NULL DEFAULT 'imported',
+        last_mirrored INTEGER,
+        error_message TEXT,
+        repository_count INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+        updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (config_id) REFERENCES configs(id)
+      )
+    `);
 
-  has_issues INTEGER NOT NULL DEFAULT 0,
-  is_starred INTEGER NOT NULL DEFAULT 0,
-  is_archived INTEGER NOT NULL DEFAULT 0,
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS mirror_jobs (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        repository_id TEXT,
+        repository_name TEXT,
+        organization_id TEXT,
+        organization_name TEXT,
+        details TEXT,
+        status TEXT NOT NULL DEFAULT 'imported',
+        message TEXT NOT NULL,
+        timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      )
+    `);
 
-  size INTEGER NOT NULL DEFAULT 0,
-  has_lfs INTEGER NOT NULL DEFAULT 0,
-  has_submodules INTEGER NOT NULL DEFAULT 0,
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS events (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        channel TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        read INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      )
+    `);
 
-  default_branch TEXT NOT NULL,
-  visibility TEXT NOT NULL DEFAULT 'public',
-
-  status TEXT NOT NULL DEFAULT 'imported',
-  last_mirrored INTEGER,
-  error_message TEXT,
-
-  created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
-  updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
-
-  FOREIGN KEY (user_id) REFERENCES users(id),
-  FOREIGN KEY (config_id) REFERENCES configs(id)
-);
-`
-    );
-
-    await client.execute(
-      `CREATE TABLE IF NOT EXISTS organizations (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  config_id TEXT NOT NULL,
-  name TEXT NOT NULL,
-
-  avatar_url TEXT NOT NULL,
-  membership_role TEXT NOT NULL DEFAULT 'member',
-
-  is_included INTEGER NOT NULL DEFAULT 1,
-
-  status TEXT NOT NULL DEFAULT 'imported',
-  last_mirrored INTEGER,
-  error_message TEXT,
-
-  repository_count INTEGER NOT NULL DEFAULT 0,
-
-  created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
-  updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
-
-  FOREIGN KEY (user_id) REFERENCES users(id),
-  FOREIGN KEY (config_id) REFERENCES configs(id)
-);
-`
-    );
-
-    await client.execute(
-      `CREATE TABLE IF NOT EXISTS mirror_jobs (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  repository_id TEXT,
-  repository_name TEXT,
-  organization_id TEXT,
-  organization_name TEXT,
-  details TEXT,
-  status TEXT NOT NULL DEFAULT 'imported',
-  message TEXT NOT NULL,
-  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id)
-);
-`
-    );
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_events_user_channel ON events(user_id, channel);
+      CREATE INDEX IF NOT EXISTS idx_events_created_at ON events(created_at);
+      CREATE INDEX IF NOT EXISTS idx_events_read ON events(read);
+    `);
 
     // Insert default config if none exists
-    const configCountResult = await client.execute(
-      `SELECT COUNT(*) as count FROM configs`
-    );
-    const configCount = configCountResult.rows[0].count;
+    const configCountResult = db.query(`SELECT COUNT(*) as count FROM configs`).get();
+    const configCount = configCountResult?.count || 0;
+
     if (configCount === 0) {
       // Get the first user
-      const firstUserResult = await client.execute(
-        `SELECT id FROM users LIMIT 1`
-      );
-      if (firstUserResult.rows.length > 0) {
-        const userId = firstUserResult.rows[0].id;
+      const firstUserResult = db.query(`SELECT id FROM users LIMIT 1`).get();
+
+      if (firstUserResult) {
+        const userId = firstUserResult.id;
         const configId = uuidv4();
         const githubConfig = JSON.stringify({
           username: process.env.GITHUB_USERNAME || "",
@@ -415,24 +438,23 @@ async function initializeDatabase() {
           nextRun: null,
         });
 
-        await client.execute(
-          `
+        const stmt = db.prepare(`
           INSERT INTO configs (id, user_id, name, is_active, github_config, gitea_config, include, exclude, schedule_config, created_at, updated_at)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `,
-          [
-            configId,
-            userId,
-            "Default Configuration",
-            1,
-            githubConfig,
-            giteaConfig,
-            include,
-            exclude,
-            scheduleConfig,
-            Date.now(),
-            Date.now(),
-          ]
+        `);
+
+        stmt.run(
+          configId,
+          userId,
+          "Default Configuration",
+          1,
+          githubConfig,
+          giteaConfig,
+          include,
+          exclude,
+          scheduleConfig,
+          Date.now(),
+          Date.now()
         );
       }
     }
@@ -452,21 +474,20 @@ async function resetUsers() {
 
   try {
     // Check if the database exists
-    const dbFilePath = dbPath.replace("file:", "");
-    const doesDbExist = fs.existsSync(dbFilePath);
+    const doesDbExist = fs.existsSync(dbPath);
 
     if (!doesDbExist) {
       console.log(
-        "❌ Database file doesn't exist. Run 'pnpm manage-db init' first to create it."
+        "❌ Database file doesn't exist. Run 'bun run manage-db init' first to create it."
       );
       return;
     }
 
+    const db = new Database(dbPath);
+
     // Count existing users
-    const userCountResult = await client.execute(
-      `SELECT COUNT(*) as count FROM users`
-    );
-    const userCount = userCountResult.rows[0].count;
+    const userCountResult = db.query(`SELECT COUNT(*) as count FROM users`).get();
+    const userCount = userCountResult?.count || 0;
 
     if (userCount === 0) {
       console.log("ℹ️  No users found in the database. Nothing to reset.");
@@ -474,63 +495,43 @@ async function resetUsers() {
     }
 
     // Delete all users
-    await client.execute(`DELETE FROM users`);
+    db.exec(`DELETE FROM users`);
     console.log(`✅ Deleted ${userCount} users from the database.`);
 
     // Check dependent configurations that need to be removed
-    const configCount = await client.execute(
-      `SELECT COUNT(*) as count FROM configs`
-    );
+    const configCountResult = db.query(`SELECT COUNT(*) as count FROM configs`).get();
+    const configCount = configCountResult?.count || 0;
 
-    if (
-      configCount.rows &&
-      configCount.rows[0] &&
-      Number(configCount.rows[0].count) > 0
-    ) {
-      await client.execute(`DELETE FROM configs`);
-      console.log(`✅ Deleted ${configCount.rows[0].count} configurations.`);
+    if (configCount > 0) {
+      db.exec(`DELETE FROM configs`);
+      console.log(`✅ Deleted ${configCount} configurations.`);
     }
 
     // Check for dependent repositories
-    const repoCount = await client.execute(
-      `SELECT COUNT(*) as count FROM repositories`
-    );
+    const repoCountResult = db.query(`SELECT COUNT(*) as count FROM repositories`).get();
+    const repoCount = repoCountResult?.count || 0;
 
-    if (
-      repoCount.rows &&
-      repoCount.rows[0] &&
-      Number(repoCount.rows[0].count) > 0
-    ) {
-      await client.execute(`DELETE FROM repositories`);
-      console.log(`✅ Deleted ${repoCount.rows[0].count} repositories.`);
+    if (repoCount > 0) {
+      db.exec(`DELETE FROM repositories`);
+      console.log(`✅ Deleted ${repoCount} repositories.`);
     }
 
     // Check for dependent organizations
-    const orgCount = await client.execute(
-      `SELECT COUNT(*) as count FROM organizations`
-    );
+    const orgCountResult = db.query(`SELECT COUNT(*) as count FROM organizations`).get();
+    const orgCount = orgCountResult?.count || 0;
 
-    if (
-      orgCount.rows &&
-      orgCount.rows[0] &&
-      Number(orgCount.rows[0].count) > 0
-    ) {
-      await client.execute(`DELETE FROM organizations`);
-      console.log(`✅ Deleted ${orgCount.rows[0].count} organizations.`);
+    if (orgCount > 0) {
+      db.exec(`DELETE FROM organizations`);
+      console.log(`✅ Deleted ${orgCount} organizations.`);
     }
 
     // Check for dependent mirror jobs
-    const jobCount = await client.execute(
-      `SELECT COUNT(*) as count FROM mirror_jobs`
-    );
+    const jobCountResult = db.query(`SELECT COUNT(*) as count FROM mirror_jobs`).get();
+    const jobCount = jobCountResult?.count || 0;
 
-    if (
-      jobCount.rows &&
-      jobCount.rows[0] &&
-      Number(jobCount.rows[0].count) > 0
-    ) {
-      await client.execute(`DELETE FROM mirror_jobs`);
-      console.log(`✅ Deleted ${jobCount.rows[0].count} mirror jobs.`);
+    if (jobCount > 0) {
+      db.exec(`DELETE FROM mirror_jobs`);
+      console.log(`✅ Deleted ${jobCount} mirror jobs.`);
     }
 
     console.log(
@@ -629,19 +630,20 @@ async function fixDatabaseIssues() {
     console.warn(
       "⚠️  WARNING: Production database file not found in data directory."
     );
-    console.warn('Run "pnpm manage-db init" to create it.');
+    console.warn('Run "bun run manage-db init" to create it.');
   } else {
     console.log("✅ Production database file found in data directory.");
 
     // Check if we can connect to the database
     try {
       // Try to query the database
-      await db.select().from(configs).limit(1);
+      const db = new Database(dbPath);
+      db.query(`SELECT 1 FROM sqlite_master LIMIT 1`).get();
       console.log(`✅ Successfully connected to the database.`);
     } catch (error) {
       console.error("❌ Error connecting to the database:", error);
       console.warn(
-        'The database file might be corrupted. Consider running "pnpm manage-db init" to recreate it.'
+        'The database file might be corrupted. Consider running "bun run manage-db init" to recreate it.'
       );
     }
   }
@@ -692,7 +694,7 @@ Available commands:
   reset-users  - Remove all users and their data
   auto         - Automatic mode: check, fix, and initialize if needed
 
-Usage: pnpm manage-db [command]
+Usage: bun run manage-db [command]
 `);
   }
 }

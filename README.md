@@ -18,7 +18,7 @@
 ```bash
 docker compose --profile production up -d
 # or
-pnpm setup && pnpm dev
+bun run setup && bun run dev
 ```
 
 <p align="center">
@@ -63,9 +63,9 @@ Easily configure your GitHub and Gitea connections, set up automatic mirroring s
 
 See the [Quick Start Guide](docs/quickstart.md) for detailed instructions on getting up and running quickly.
 
-### Prerequisites
+-### Prerequisites
 
-- Node.js 22 or later
+- Bun 1.2.9 or later
 - A GitHub account with a personal access token
 - A Gitea instance with an access token
 
@@ -92,7 +92,7 @@ Before running the application in production mode for the first time, you need t
 
 ```bash
 # Initialize the database for production mode
-pnpm setup
+bun run setup
 ```
 
 This will create the necessary tables. On first launch, you'll be guided through creating your admin account with a secure password.
@@ -110,7 +110,7 @@ Gitea Mirror provides multi-architecture Docker images that work on both ARM64 (
 docker compose --profile production up -d
 
 # For development mode (requires configuration)
-# Ensure you have run pnpm setup first
+# Ensure you have run bun run setup first
 docker compose -f docker-compose.dev.yml up -d
 ```
 
@@ -124,19 +124,15 @@ docker compose -f docker-compose.dev.yml up -d
 
 ##### Using Pre-built Images from GitHub Container Registry
 
-If you want to run the container directly without Docker Compose, you'll need to set up a Redis instance separately:
+If you want to run the container directly without Docker Compose:
 
 ```bash
-# First, start a Redis container
-docker run -d --name gitea-mirror-redis redis:alpine
-
 # Pull the latest multi-architecture image
 docker pull ghcr.io/arunavo4/gitea-mirror:latest
 
-# Run the application with a link to the Redis container
-# Note: The REDIS_URL environment variable is required and must point to the Redis container
-docker run -d -p 4321:4321 --link gitea-mirror-redis:redis \
-  -e REDIS_URL=redis://redis:6379 \
+# Run the application with a volume for persistent data
+docker run -d -p 4321:4321 \
+  -v gitea-mirror-data:/app/data \
   ghcr.io/arunavo4/gitea-mirror:latest
 ```
 
@@ -206,40 +202,40 @@ git clone https://github.com/arunavo4/gitea-mirror.git
 cd gitea-mirror
 
 # Quick setup (installs dependencies and initializes the database)
-pnpm setup
+bun run setup
 
 # Development Mode Options
 
 # Run in development mode
-pnpm dev
+bun run dev
 
 # Run in development mode with clean database (removes existing DB first)
-pnpm dev:clean
+bun run dev:clean
 
 # Production Mode Options
 
 # Build the application
-pnpm build
+bun run build
 
 # Preview the production build
-pnpm preview
+bun run preview
 
 # Start the production server (default)
-pnpm start
+bun run start
 
 # Start the production server with a clean setup
-pnpm start:fresh
+bun run start:fresh
 
 # Database Management
 
 # Initialize the database
-pnpm init-db
+bun run init-db
 
 # Reset users for testing first-time signup
-pnpm reset-users
+bun run reset-users
 
 # Check database status
-pnpm check-db
+bun run check-db
 ```
 
 ### Configuration
@@ -254,7 +250,7 @@ Key configuration options include:
 - Scheduling options for automatic mirroring
 
 > [!IMPORTANT]
-> **Redis is a required component for Gitea Mirror** as it's used for job queuing and caching.
+> **SQLite is the only database required for Gitea Mirror**, handling both data storage and real-time event notifications.
 
 ## 🚀 Development
 
@@ -262,10 +258,10 @@ Key configuration options include:
 
 ```bash
 # Install dependencies
-pnpm setup
+bun run setup
 
 # Start the development server
-pnpm dev
+bun run dev
 ```
 
 
@@ -359,9 +355,8 @@ docker compose -f docker-compose.dev.yml up -d
 ## Technologies Used
 
 - **Frontend**: Astro, React, Shadcn UI, Tailwind CSS v4
-- **Backend**: Node.js
-- **Database**: SQLite (default) or PostgreSQL
-- **Caching/Queue**: Redis
+ - **Backend**: Bun
+- **Database**: SQLite (handles both data storage and event notifications)
 - **API Integration**: GitHub API (Octokit), Gitea API
 
 ## Contributing
@@ -439,62 +434,60 @@ Try the following steps:
 >     external: true
 > ```
 
-### Redis Connection Issues
-
-> [!CAUTION]
-> If the application fails to connect to Redis with errors like `ECONNREFUSED 127.0.0.1:6379`, ensure:
->
-> 1. The Redis container is running:
->    ```bash
->    docker ps | grep redis
->    ```
-> 2. The `REDIS_URL` environment variable is correctly set to `redis://redis:6379` in your Docker Compose file.
-> 3. Both the application and Redis containers are on the same Docker network.
-> 4. If running without Docker Compose, ensure you've started a Redis container and linked it properly:
->    ```bash
->    # Start Redis container
->    docker run -d --name gitea-mirror-redis redis:alpine
->    # Run application with link to Redis
->    docker run -d -p 4321:4321 --link gitea-mirror-redis:redis \
->      -e REDIS_URL=redis://redis:6379 \
->      ghcr.io/arunavo4/gitea-mirror:latest
->    ```
-
-
-#### Improving Redis Connection Resilience
+### Database Persistence
 
 > [!TIP]
-> For better Redis connection handling, you can modify the `src/lib/redis.ts` file to include retry logic and better error handling:
+> The application uses SQLite for all data storage and event notifications. Make sure the database file is properly mounted when using Docker:
+>
+> ```bash
+> # Run with a volume for persistent data storage
+> docker run -d -p 4321:4321 \
+>   -v gitea-mirror-data:/app/data \
+>   ghcr.io/arunavo4/gitea-mirror:latest
+> ```
+>
+> For homelab/self-hosted setups, you can use the provided Docker Compose file with automatic event cleanup:
+>
+> ```bash
+> # Clone the repository
+> git clone https://github.com/arunavo4/gitea-mirror.git
+> cd gitea-mirror
+>
+> # Start the application with Docker Compose
+> docker-compose -f docker-compose.homelab.yml up -d
+> ```
+>
+> This setup includes a cron job that runs daily to clean up old events and prevent the database from growing too large.
 
-```typescript
-import Redis from "ioredis";
 
-// Connect to Redis using REDIS_URL environment variable or default to redis://redis:6379
-const redisUrl = process.env.REDIS_URL ?? 'redis://redis:6379';
+#### Database Maintenance
 
-console.log(`Connecting to Redis at: ${redisUrl}`);
-
-// Configure Redis client with connection options
-const redisOptions = {
-  retryStrategy: (times) => {
-    // Retry with exponential backoff up to 30 seconds
-    const delay = Math.min(times * 100, 3000);
-    console.log(`Redis connection attempt ${times} failed. Retrying in ${delay}ms...`);
-    return delay;
-  },
-  maxRetriesPerRequest: 5,
-  enableReadyCheck: true,
-  connectTimeout: 10000,
-};
-
-export const redis = new Redis(redisUrl, redisOptions);
-export const redisPublisher = new Redis(redisUrl, redisOptions);
-export const redisSubscriber = new Redis(redisUrl, redisOptions);
-
-// Log connection events
-redis.on('connect', () => console.log('Redis client connected'));
-redis.on('error', (err) => console.error('Redis client error:', err));
-```
+> [!TIP]
+> For database maintenance, you can use the provided scripts:
+>
+> ```bash
+> # Check database integrity
+> bun run check-db
+>
+> # Fix database issues
+> bun run fix-db
+>
+> # Reset user accounts (for development)
+> bun run reset-users
+>
+> # Clean up old events (keeps last 7 days by default)
+> bun run cleanup-events
+>
+> # Clean up old events with custom retention period (e.g., 30 days)
+> bun run cleanup-events 30
+> ```
+>
+> For automated maintenance, consider setting up a cron job to run the cleanup script periodically:
+>
+> ```bash
+> # Add this to your crontab (runs daily at 2 AM)
+> 0 2 * * * cd /path/to/gitea-mirror && bun run cleanup-events
+> ```
 
 
 > [!NOTE]
