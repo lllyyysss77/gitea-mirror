@@ -97,8 +97,10 @@ If you prefer to set up manually or the automatic script doesn't work for your e
 
    [Install]
    WantedBy=multi-user.target
+   ```
 
-   systemctl daemon-reload
+   6. Enable and start the service:
+   ```bash
    systemctl enable gitea-mirror.service
    systemctl start gitea-mirror.service
    ```
