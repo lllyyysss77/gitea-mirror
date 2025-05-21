@@ -63,7 +63,7 @@ Easily configure your GitHub and Gitea connections, set up automatic mirroring s
 
 See the [Quick Start Guide](docs/quickstart.md) for detailed instructions on getting up and running quickly.
 
--### Prerequisites
+### Prerequisites
 
 - Bun 1.2.9 or later
 - A GitHub account with a personal access token
@@ -116,7 +116,7 @@ docker compose -f docker-compose.dev.yml up -d
 
 
 > [!IMPORTANT]
-> **Docker Compose is the recommended method for running Gitea Mirror** as it automatically sets up the required Redis sidecar service that the application depends on.
+> **Docker Compose is the recommended method for running Gitea Mirror** as it provides a consistent environment with proper volume management for the SQLite database.
 
 
 > [!NOTE]
@@ -191,7 +191,6 @@ The Docker container can be configured with the following environment variables:
 - `HOST`: Host to bind to (default: `0.0.0.0`)
 - `PORT`: Port to listen on (default: `4321`)
 - `JWT_SECRET`: Secret key for JWT token generation (important for security)
-- `REDIS_URL`: URL for Redis connection (required, default: none). When using Docker Compose, this should be set to `redis://redis:6379` to connect to the Redis container.
 
 
 #### Manual Installation
@@ -355,7 +354,7 @@ docker compose -f docker-compose.dev.yml up -d
 ## Technologies Used
 
 - **Frontend**: Astro, React, Shadcn UI, Tailwind CSS v4
- - **Backend**: Bun
+- **Backend**: Bun
 - **Database**: SQLite (handles both data storage and event notifications)
 - **API Integration**: GitHub API (Octokit), Gitea API
 
