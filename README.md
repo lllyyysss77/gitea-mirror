@@ -1,3 +1,7 @@
+<p align="center">
+  <img src=".github/assets/logo.png" alt="Gitea Mirror Logo" width="120"/>
+</p>
+
 <!-- Badges -->
 <p align="center">
   <a href="https://github.com/arunavo4/gitea-mirror/releases/latest"><img src="https://img.shields.io/github/v/tag/arunavo4/gitea-mirror?label=release"/></a>
@@ -16,10 +20,17 @@
 ## 🚀 Quick Start
 
 ```bash
+# Using Docker (recommended for most users)
 docker compose --profile production up -d
-# or
+
+# Using Bun directly
 bun run setup && bun run dev
+
+# Using LXC container on Proxmox (for homelab setups)
+curl -fsSL https://raw.githubusercontent.com/arunavo4/gitea-mirror/main/scripts/gitea-mirror-lxc-installer.sh | bash
 ```
+
+See the [LXC Container Deployment Guide](scripts/README-lxc.md) for detailed instructions on deploying with Proxmox LXC containers.
 
 <p align="center">
   <img src=".github/assets/dashboard.png" alt="Dashboard" width="80%"/>
@@ -158,6 +169,24 @@ docker compose --profile production up -d
 ```
 
 See [Docker build documentation](./scripts/README-docker.md) for more details.
+
+##### Using LXC Containers (for Proxmox Homelab Setups)
+
+Gitea Mirror can be deployed on Proxmox LXC containers, which is ideal for homelab setups:
+
+```bash
+# One-command installation on an Ubuntu 22.04 LXC container
+curl -fsSL https://raw.githubusercontent.com/arunavo4/gitea-mirror/main/scripts/gitea-mirror-lxc-installer.sh | bash
+```
+
+The installer script:
+- Downloads the Gitea Mirror repository
+- Installs all dependencies including Bun
+- Builds the application
+- Sets up a systemd service
+- Starts the application
+
+See the [LXC Container Deployment Guide](scripts/README-lxc.md) for detailed instructions.
 
 ##### Building Your Own Image
 
@@ -357,6 +386,7 @@ docker compose -f docker-compose.dev.yml up -d
 - **Backend**: Bun
 - **Database**: SQLite (handles both data storage and event notifications)
 - **API Integration**: GitHub API (Octokit), Gitea API
+- **Deployment Options**: Docker containers, Proxmox LXC containers
 
 ## Contributing
 
