@@ -2,7 +2,7 @@
 title: "Quick Start Guide"
 description: "Get started with Gitea Mirror quickly."
 order: 3
-updatedDate: 2023-10-15
+updatedDate: 2025-05-22
 ---
 
 <div class="mb-6">
@@ -16,13 +16,16 @@ Before you begin, make sure you have:
 
 1. <span class="font-semibold text-foreground">A GitHub account with a personal access token</span>
 2. <span class="font-semibold text-foreground">A Gitea instance with an access token</span>
-3. <span class="font-semibold text-foreground">Docker and docker-compose (recommended) or Bun 1.2.9+ installed</span>
+3. <span class="font-semibold text-foreground">One of the following:</span>
+   - Docker and docker-compose (for Docker deployment)
+   - Bun 1.2.9+ (for native deployment)
+   - Proxmox VE or LXD (for LXC container deployment)
 
 ## Installation Options
 
 Choose the installation method that works best for your environment.
 
-### Using Docker (Recommended)
+### Using Docker (Recommended for most users)
 
 Docker provides the easiest way to get started with minimal configuration.
 
@@ -39,7 +42,7 @@ Docker provides the easiest way to get started with minimal configuration.
 
 3. Access the application at [http://localhost:4321](http://localhost:4321)
 
-### Manual Installation
+### Using Bun (Native Installation)
 
 If you prefer to run the application directly on your system:
 
@@ -62,6 +65,11 @@ If you prefer to run the application directly on your system:
    bun run dev
    ```
 
+   Note: For Bun-specific features, use:
+   ```bash
+   bunx --bun astro dev
+   ```
+
    **Production Mode:**
    ```bash
    bun run build
@@ -69,6 +77,44 @@ If you prefer to run the application directly on your system:
    ```
 
 4. Access the application at [http://localhost:4321](http://localhost:4321)
+
+### Using LXC Containers (Recommended for server deployments)
+
+#### Proxmox VE (Online Installation)
+
+For deploying on a Proxmox VE host with internet access:
+
+```bash
+# Optional env overrides: CTID HOSTNAME STORAGE DISK_SIZE CORES MEMORY BRIDGE IP_CONF
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/arunavo4/gitea-mirror/main/scripts/gitea-mirror-lxc-proxmox.sh)"
+```
+
+This script:
+- Creates a privileged LXC container
+- Installs Bun and dependencies
+- Clones and builds the application
+- Sets up a systemd service
+
+#### Local LXD (Offline-friendly Installation)
+
+For testing on a local workstation or in environments without internet access:
+
+1. Clone the repository locally:
+   ```bash
+   git clone https://github.com/arunavo4/gitea-mirror.git
+   ```
+
+2. Download the Bun installer once:
+   ```bash
+   curl -L -o /tmp/bun-linux-x64.zip https://github.com/oven-sh/bun/releases/latest/download/bun-linux-x64.zip
+   ```
+
+3. Run the local LXC installer:
+   ```bash
+   sudo LOCAL_REPO_DIR=~/path/to/gitea-mirror ./gitea-mirror/scripts/gitea-mirror-lxc-local.sh
+   ```
+
+For more details on LXC deployment, see the [LXC Container Deployment Guide](https://github.com/arunavo4/gitea-mirror/blob/main/scripts/README-lxc.md).
 
 ## Initial Configuration
 
@@ -116,7 +162,12 @@ If you encounter any issues:
 - Check the Activity Log for detailed error messages
 - Verify your GitHub and Gitea tokens have the correct permissions
 - Ensure your Gitea instance is accessible from the machine running Gitea Mirror
-- For Docker installations, check container logs with `docker logs gitea-mirror`
+- Check logs based on your deployment method:
+  - Docker: `docker logs gitea-mirror`
+  - Native: Check the terminal output or system logs
+  - LXC: `systemctl status gitea-mirror` or `journalctl -u gitea-mirror -f`
+- Use the health check endpoint to verify system status: `curl http://your-server:4321/api/health`
+- For database issues, try the database management tools: `bun run check-db` or `bun run fix-db`
 
 ## Next Steps
 
@@ -125,3 +176,7 @@ After your initial setup:
 - Explore the dashboard for an overview of your mirroring status
 - Set up automatic mirroring schedules for hands-off operation
 - Configure organization mirroring for team repositories
+- Check out the [Configuration Guide](/configuration) for advanced settings
+- Review the [Architecture Documentation](/architecture) to understand the system
+- For server deployments, set up monitoring using the health check endpoint
+- Consider setting up a cron job to clean up old events: `bun scripts/cleanup-events.ts`

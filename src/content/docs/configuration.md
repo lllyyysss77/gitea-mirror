@@ -2,7 +2,7 @@
 title: "Configuration"
 description: "Guide to configuring Gitea Mirror for your environment."
 order: 2
-updatedDate: 2023-10-15
+updatedDate: 2025-05-22
 ---
 
 <div class="mb-6">
@@ -24,10 +24,10 @@ The following environment variables can be used to configure Gitea Mirror:
 | Variable | Description | Default Value | Example |
 |----------|-------------|---------------|---------|
 | `NODE_ENV` | Runtime environment (development, production, test) | `development` | `production` |
-| `DATABASE_URL` | SQLite database URL | `sqlite://data/gitea-mirror.db` | `sqlite://path/to/your/database.db` |
+| `DATABASE_URL` | SQLite database URL | `file:data/gitea-mirror.db` | `file:path/to/your/database.db` |
 | `JWT_SECRET` | Secret key for JWT authentication | `your-secret-key-change-this-in-production` | `your-secure-random-string` |
 | `HOST` | Server host | `localhost` | `0.0.0.0` |
-| `PORT` | Server port | `3000` | `8080` |
+| `PORT` | Server port | `4321` | `8080` |
 
 ### Important Security Note
 
@@ -118,3 +118,58 @@ Example patterns:
 - `*` - All repositories
 - `org-name/*` - All repositories in a specific organization
 - `username/repo-name` - A specific repository
+
+### Database Management
+
+Gitea Mirror includes several database management tools that can be run from the command line:
+
+```bash
+# Initialize the database (only if it doesn't exist)
+bun run init-db
+
+# Check database status
+bun run check-db
+
+# Fix database location issues
+bun run fix-db
+
+# Reset all users (for testing signup flow)
+bun run reset-users
+
+# Remove database files completely
+bun run cleanup-db
+```
+
+### Event Management
+
+Events in Gitea Mirror (such as repository mirroring operations) are stored in the SQLite database. You can manage these events using the following scripts:
+
+```bash
+# View all events in the database
+bun scripts/check-events.ts
+
+# Clean up old events (default: older than 7 days)
+bun scripts/cleanup-events.ts
+
+# Mark all events as read
+bun scripts/mark-events-read.ts
+```
+
+### Health Check Endpoint
+
+Gitea Mirror includes a built-in health check endpoint at `/api/health` that provides:
+
+- System status and uptime
+- Database connectivity check
+- Memory usage statistics
+- Environment information
+
+You can use this endpoint for monitoring your deployment:
+
+```bash
+# Basic check (returns 200 OK if healthy)
+curl -I http://your-server:port/api/health
+
+# Detailed health information (JSON)
+curl http://your-server:port/api/health
+```
