@@ -5,11 +5,8 @@ set -e
 # Ensure data directory exists
 mkdir -p /app/data
 
-# If bun is available, run setup (for dev images)
-if command -v bun >/dev/null 2>&1; then
-  echo "Running bun setup (if needed)..."
-  bun run setup || true
-fi
+# Skip dependency installation entirely for pre-built images
+# Dependencies are already installed during the Docker build process
 
 # Initialize the database if it doesn't exist
 if [ ! -f "/app/data/gitea-mirror.db" ]; then
@@ -18,6 +15,8 @@ if [ ! -f "/app/data/gitea-mirror.db" ]; then
     bun dist/scripts/init-db.js
   elif [ -f "dist/scripts/manage-db.js" ]; then
     bun dist/scripts/manage-db.js init
+  elif [ -f "scripts/manage-db.ts" ]; then
+    bun scripts/manage-db.ts init
   else
     echo "Warning: Could not find database initialization scripts in dist/scripts."
     echo "Creating and initializing database manually..."
@@ -155,6 +154,8 @@ else
     bun dist/scripts/fix-db-issues.js
   elif [ -f "dist/scripts/manage-db.js" ]; then
     bun dist/scripts/manage-db.js fix
+  elif [ -f "scripts/manage-db.ts" ]; then
+    bun scripts/manage-db.ts fix
   fi
 
   # Run database migrations
