@@ -5,6 +5,12 @@ All notable changes to the Gitea Mirror project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.3] - 2025-05-22
+
+### Added
+- Enhanced JWT_SECRET handling with auto-generation and persistence for improved security
+- Updated Proxmox LXC deployment instructions and replaced deprecated script
+
 ## [2.5.2] - 2024-11-22
 
 ### Fixed
