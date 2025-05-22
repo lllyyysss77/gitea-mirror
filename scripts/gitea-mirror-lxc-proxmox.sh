@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# gitea-mirror-proxmox.sh
+# gitea-mirror-lxc-proxmox.sh
 # Fully online installer for a Proxmox LXC guest running Gitea Mirror + Bun.
 
 set -euo pipefail

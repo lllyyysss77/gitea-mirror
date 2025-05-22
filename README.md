@@ -21,7 +21,7 @@ bun run setup && bun run dev
 
 # Using LXC Containers
 # For Proxmox VE (online)
-curl -fsSL https://raw.githubusercontent.com/arunavo4/gitea-mirror/main/scripts/gitea-mirror-lxc-installer.sh | bash
+curl -fsSL https://raw.githubusercontent.com/arunavo4/gitea-mirror/main/scripts/gitea-mirror-lxc-proxmox.sh | bash
 
 # For local testing (offline-friendly)
 sudo LOCAL_REPO_DIR=~/Development/gitea-mirror ./scripts/gitea-mirror-lxc-local.sh
@@ -176,7 +176,7 @@ Gitea Mirror offers two deployment options for LXC containers:
 ```bash
 # One-command installation on Proxmox VE
 # Optional env overrides: CTID HOSTNAME STORAGE DISK_SIZE CORES MEMORY BRIDGE IP_CONF
-curl -fsSL https://raw.githubusercontent.com/arunavo4/gitea-mirror/main/scripts/gitea-mirror-lxc-installer.sh | bash
+curl -fsSL https://raw.githubusercontent.com/arunavo4/gitea-mirror/main/scripts/gitea-mirror-lxc-proxmox.sh | bash
 ```
 
 **2. Local testing (offline-friendly, works on developer laptops)**

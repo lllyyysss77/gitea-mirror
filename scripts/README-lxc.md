@@ -19,7 +19,7 @@ Run **Gitea Mirror** in an isolated LXC container, either:
 
 ```bash
 # optional env overrides:  CTID HOSTNAME STORAGE DISK_SIZE CORES MEMORY BRIDGE IP_CONF
-sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/arunavo4/gitea-mirror/main/scripts/gitea-mirror-lxc-installer.sh)"
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/arunavo4/gitea-mirror/main/scripts/gitea-mirror-lxc-proxmox.sh)"
 ```
 
 What it does:
