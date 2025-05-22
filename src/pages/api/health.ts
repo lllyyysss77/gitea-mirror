@@ -3,15 +3,25 @@ import { jsonResponse } from "@/lib/utils";
 import { db } from "@/lib/db";
 import { ENV } from "@/lib/config";
 import os from "os";
+import axios from "axios";
 
 // Track when the server started
 const serverStartTime = new Date();
+
+// Cache for the latest version to avoid frequent GitHub API calls
+interface VersionCache {
+  latestVersion: string;
+  timestamp: number;
+}
+
+let versionCache: VersionCache | null = null;
+const CACHE_TTL = 3600000; // 1 hour in milliseconds
 
 export const GET: APIRoute = async () => {
   try {
     // Check database connection by running a simple query
     const dbStatus = await checkDatabaseConnection();
-    
+
     // Get system information
     const systemInfo = {
       uptime: getUptime(),
@@ -23,28 +33,39 @@ export const GET: APIRoute = async () => {
       },
       env: ENV.NODE_ENV,
     };
-    
+
+    // Get current and latest versions
+    const currentVersion = process.env.npm_package_version || "unknown";
+    const latestVersion = await checkLatestVersion();
+
     // Build response
     const healthData = {
       status: "ok",
       timestamp: new Date().toISOString(),
-      version: process.env.npm_package_version || "unknown",
+      version: currentVersion,
+      latestVersion: latestVersion,
+      updateAvailable: latestVersion !== "unknown" &&
+                       currentVersion !== "unknown" &&
+                       latestVersion !== currentVersion,
       database: dbStatus,
       system: systemInfo,
     };
-    
+
     return jsonResponse({
       data: healthData,
       status: 200,
     });
   } catch (error) {
     console.error("Health check failed:", error);
-    
+
     return jsonResponse({
       data: {
         status: "error",
         timestamp: new Date().toISOString(),
         error: error instanceof Error ? error.message : "Unknown error",
+        version: process.env.npm_package_version || "unknown",
+        latestVersion: "unknown",
+        updateAvailable: false,
       },
       status: 503, // Service Unavailable
     });
@@ -58,14 +79,14 @@ async function checkDatabaseConnection() {
   try {
     // Run a simple query to check if the database is accessible
     const result = await db.select({ test: sql`1` }).from(sql`sqlite_master`).limit(1);
-    
+
     return {
       connected: true,
       message: "Database connection successful",
     };
   } catch (error) {
     console.error("Database connection check failed:", error);
-    
+
     return {
       connected: false,
       message: error instanceof Error ? error.message : "Database connection failed",
@@ -79,13 +100,13 @@ async function checkDatabaseConnection() {
 function getUptime() {
   const now = new Date();
   const uptimeMs = now.getTime() - serverStartTime.getTime();
-  
+
   // Convert to human-readable format
   const seconds = Math.floor(uptimeMs / 1000);
   const minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
   const days = Math.floor(hours / 24);
-  
+
   return {
     startTime: serverStartTime.toISOString(),
     uptimeMs,
@@ -98,7 +119,7 @@ function getUptime() {
  */
 function getMemoryUsage() {
   const memoryUsage = process.memoryUsage();
-  
+
   return {
     rss: formatBytes(memoryUsage.rss),
     heapTotal: formatBytes(memoryUsage.heapTotal),
@@ -114,12 +135,44 @@ function getMemoryUsage() {
  */
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 Bytes';
-  
+
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
+
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+/**
+ * Check for the latest version from GitHub releases
+ */
+async function checkLatestVersion(): Promise<string> {
+  // Return cached version if available and not expired
+  if (versionCache && (Date.now() - versionCache.timestamp) < CACHE_TTL) {
+    return versionCache.latestVersion;
+  }
+
+  try {
+    // Fetch the latest release from GitHub
+    const response = await axios.get(
+      'https://api.github.com/repos/arunavo4/gitea-mirror/releases/latest',
+      { headers: { 'Accept': 'application/vnd.github.v3+json' } }
+    );
+
+    // Extract version from tag_name (remove 'v' prefix if present)
+    const latestVersion = response.data.tag_name.replace(/^v/, '');
+
+    // Update cache
+    versionCache = {
+      latestVersion,
+      timestamp: Date.now()
+    };
+
+    return latestVersion;
+  } catch (error) {
+    console.error('Failed to check for latest version:', error);
+    return 'unknown';
+  }
 }
 
 // Import sql tag for raw SQL queries

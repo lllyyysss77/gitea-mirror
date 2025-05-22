@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { ExternalLink } from "lucide-react";
 import { links } from "@/data/Sidebar";
+import { VersionInfo } from "./VersionInfo";
 
 interface SidebarProps {
   className?: string;
@@ -19,7 +20,7 @@ export function Sidebar({ className }: SidebarProps) {
 
   return (
     <aside className={cn("w-64 border-r bg-background", className)}>
-      <div className="flex flex-col h-full py-4">
+      <div className="flex flex-col h-full pt-4">
         <nav className="flex flex-col gap-y-1 pl-2 pr-3">
           {links.map((link, index) => {
             const isActive = currentPath === link.href;
@@ -59,6 +60,7 @@ export function Sidebar({ className }: SidebarProps) {
               <ExternalLink className="h-3 w-3" />
             </a>
           </div>
+          <VersionInfo />
         </div>
       </div>
     </aside>

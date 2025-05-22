@@ -94,6 +94,8 @@ export interface HealthResponse {
   status: "ok" | "error";
   timestamp: string;
   version: string;
+  latestVersion: string;
+  updateAvailable: boolean;
   database: {
     connected: boolean;
     message: string;
@@ -147,6 +149,8 @@ export const healthApi = {
         timestamp: new Date().toISOString(),
         error: error instanceof Error ? error.message : "Unknown error checking health",
         version: "unknown",
+        latestVersion: "unknown",
+        updateAvailable: false,
         database: { connected: false, message: "Failed to connect to API" },
         system: {
           uptime: { startTime: "", uptimeMs: 0, formatted: "N/A" },
