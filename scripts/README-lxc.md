@@ -18,17 +18,18 @@ Run **Gitea Mirror** in an isolated LXC container, either:
 ### One-command install
 
 ```bash
-# optional env overrides:  CTID HOSTNAME STORAGE DISK_SIZE CORES MEMORY BRIDGE IP_CONF
-sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/arunavo4/gitea-mirror/main/scripts/gitea-mirror-lxc-proxmox.sh)"
+# Community-maintained script for Proxmox VE by Tobias ([CrazyWolf13](https://github.com/CrazyWolf13))
+# at [community-scripts/ProxmoxVED](https://github.com/community-scripts/ProxmoxVED)
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/gitea-mirror-install.sh)"
 ```
 
 What it does:
 
-* Creates **privileged** CT `$CTID` with nesting enabled
-* Installs curl / git / Bun (official installer)
+* Uses the community-maintained script from ProxmoxVED
+* Installs dependencies and Bun runtime
 * Clones & builds `arunavo4/gitea-mirror`
-* Writes a root-run systemd service and starts it
-* Prints the container IP + random `JWT_SECRET`
+* Creates a systemd service and starts it
+* Sets up a random `JWT_SECRET` for security
 
 Browse to:
 

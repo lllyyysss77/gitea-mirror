@@ -107,9 +107,11 @@ bun scripts/make-events-old.ts
 
 ### LXC Container Deployment
 
-Two scripts are provided for deploying Gitea Mirror in LXC containers:
+Two deployment options are available for LXC containers:
 
-1. **gitea-mirror-lxc-proxmox.sh**: For online deployment on a Proxmox VE host
+1. **Proxmox VE (online)**: Using the community-maintained script by Tobias ([CrazyWolf13](https://github.com/CrazyWolf13))
+   - Author: Tobias ([CrazyWolf13](https://github.com/CrazyWolf13))
+   - Available at: [community-scripts/ProxmoxVED](https://github.com/community-scripts/ProxmoxVED/blob/main/install/gitea-mirror-install.sh)
    - Pulls everything from GitHub
    - Creates a privileged container with the application
    - Sets up systemd service

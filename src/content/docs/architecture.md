@@ -104,7 +104,6 @@ gitea-mirror/
 ├── data/                 # Database and persistent data
 ├── docker/               # Docker configuration
 └── scripts/              # Utility scripts for deployment and maintenance
-    ├── gitea-mirror-lxc-proxmox.sh  # Proxmox LXC deployment script
     ├── gitea-mirror-lxc-local.sh    # Local LXC deployment script
     └── manage-db.ts                 # Database management tool
 ```
@@ -114,7 +113,7 @@ gitea-mirror/
 Gitea Mirror supports multiple deployment options:
 
 1. **Docker**: Run as a containerized application using Docker and docker-compose
-2. **LXC Containers**: Deploy in Linux Containers (LXC) on Proxmox VE or local workstations
+2. **LXC Containers**: Deploy in Linux Containers (LXC) on Proxmox VE (using community script by [Tobias/CrazyWolf13](https://github.com/CrazyWolf13)) or local workstations
 3. **Native**: Run directly on the host system using Bun runtime
 
 Each deployment method has its own advantages:
