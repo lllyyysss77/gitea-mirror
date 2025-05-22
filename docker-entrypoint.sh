@@ -173,6 +173,12 @@ else
   fi
 fi
 
+# Extract version from package.json and set as environment variable
+if [ -f "package.json" ]; then
+  export npm_package_version=$(grep -o '"version": *"[^"]*"' package.json | cut -d'"' -f4)
+  echo "Setting application version: $npm_package_version"
+fi
+
 # Start the application
 echo "Starting Gitea Mirror..."
 exec bun ./dist/server/entry.mjs
