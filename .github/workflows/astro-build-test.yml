@@ -38,10 +38,10 @@ jobs:
           bun install
 
       - name: Run tests
-        run: bunx vitest run
+        run: bunx --bun vitest run
 
       - name: Build Astro project
-        run: bunx astro build
+        run: bunx --bun astro build
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
