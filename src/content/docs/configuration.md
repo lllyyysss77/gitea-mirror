@@ -25,13 +25,15 @@ The following environment variables can be used to configure Gitea Mirror:
 |----------|-------------|---------------|---------|
 | `NODE_ENV` | Runtime environment (development, production, test) | `development` | `production` |
 | `DATABASE_URL` | SQLite database URL | `file:data/gitea-mirror.db` | `file:path/to/your/database.db` |
-| `JWT_SECRET` | Secret key for JWT authentication | `your-secret-key-change-this-in-production` | `your-secure-random-string` |
+| `JWT_SECRET` | Secret key for JWT authentication | Auto-generated secure random string | `your-secure-random-string` |
 | `HOST` | Server host | `localhost` | `0.0.0.0` |
 | `PORT` | Server port | `4321` | `8080` |
 
 ### Important Security Note
 
-In production environments, you should always set a strong, unique `JWT_SECRET` to ensure secure authentication.
+The application will automatically generate a secure random `JWT_SECRET` on first run if one isn't provided or if the default value is used. This generated secret is stored in the data directory for persistence across container restarts.
+
+While this auto-generation feature provides good security by default, you can still explicitly set your own `JWT_SECRET` for complete control over your deployment.
 
 ## Web UI Configuration
 

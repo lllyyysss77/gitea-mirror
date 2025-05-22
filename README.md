@@ -233,8 +233,10 @@ The Docker container can be configured with the following environment variables:
 - `DATABASE_URL`: SQLite database URL (default: `file:data/gitea-mirror.db`)
 - `HOST`: Host to bind to (default: `0.0.0.0`)
 - `PORT`: Port to listen on (default: `4321`)
-- `JWT_SECRET`: Secret key for JWT token generation (important for security)
+- `JWT_SECRET`: Secret key for JWT token generation (auto-generated if not provided)
 
+> [!TIP]
+> For security, Gitea Mirror will automatically generate a secure random JWT secret on first run if one isn't provided or if the default value is used. This generated secret is stored in the data directory for persistence across container restarts.
 
 #### Manual Installation
 

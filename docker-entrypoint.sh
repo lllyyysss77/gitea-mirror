@@ -5,6 +5,31 @@ set -e
 # Ensure data directory exists
 mkdir -p /app/data
 
+# Generate a secure JWT secret if one isn't provided or is using the default value
+JWT_SECRET_FILE="/app/data/.jwt_secret"
+if [ "$JWT_SECRET" = "your-secret-key-change-this-in-production" ] || [ -z "$JWT_SECRET" ]; then
+  # Check if we have a previously generated secret
+  if [ -f "$JWT_SECRET_FILE" ]; then
+    echo "Using previously generated JWT secret"
+    export JWT_SECRET=$(cat "$JWT_SECRET_FILE")
+  else
+    echo "Generating a secure random JWT secret"
+    # Try to generate a secure random string using OpenSSL
+    if command -v openssl >/dev/null 2>&1; then
+      GENERATED_SECRET=$(openssl rand -hex 32)
+    else
+      # Fallback to using /dev/urandom if openssl is not available
+      echo "OpenSSL not found, using fallback method for random generation"
+      GENERATED_SECRET=$(head -c 32 /dev/urandom | sha256sum | cut -d' ' -f1)
+    fi
+    export JWT_SECRET="$GENERATED_SECRET"
+    # Save the secret to a file for persistence across container restarts
+    echo "$GENERATED_SECRET" > "$JWT_SECRET_FILE"
+    chmod 600 "$JWT_SECRET_FILE"
+  fi
+  echo "JWT_SECRET has been set to a secure random value"
+fi
+
 # Skip dependency installation entirely for pre-built images
 # Dependencies are already installed during the Docker build process
 
