@@ -38,7 +38,7 @@ jobs:
           bun install
 
       - name: Run tests
-        run: bunx --bun vitest run
+        run: bun test --coverage
 
       - name: Build Astro project
         run: bunx --bun astro build
