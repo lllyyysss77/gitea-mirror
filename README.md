@@ -27,7 +27,7 @@ curl -fsSL https://raw.githubusercontent.com/arunavo4/gitea-mirror/main/scripts/
 sudo LOCAL_REPO_DIR=~/Development/gitea-mirror ./scripts/gitea-mirror-lxc-local.sh
 ````
 
-See the [LXC Container Deployment Guide](docs/LXC.md).
+See the [LXC Container Deployment Guide](scripts/README-lxc.md).
 
 <p align="center">
   <img src=".github/assets/dashboard.png" alt="Dashboard" width="80%"/>
@@ -199,7 +199,7 @@ Both scripts:
 
 The application includes a health check endpoint at `/api/health` for monitoring.
 
-See the [LXC Container Deployment Guide](docs/LXC.md) for detailed instructions.
+See the [LXC Container Deployment Guide](scripts/README-lxc.md) for detailed instructions.
 
 ##### Building Your Own Image
 
