@@ -1,266 +1,97 @@
-#!/bin/bash
-# Gitea Mirror LXC Container Installer
-# This is a self-contained script to install Gitea Mirror in an LXC container
-# Usage: curl -fsSL https://raw.githubusercontent.com/arunavo4/gitea-mirror/main/scripts/gitea-mirror-lxc-installer.sh | bash
+#!/usr/bin/env bash
+# gitea-mirror-proxmox.sh
+# Fully online installer for a Proxmox LXC guest running Gitea Mirror + Bun.
 
-set -e
+set -euo pipefail
 
-# Configuration variables - change these as needed
-INSTALL_DIR="/opt/gitea-mirror"
-REPO_URL="https://github.com/arunavo4/gitea-mirror.git"
-SERVICE_USER="gitea-mirror"
+# ────── adjustable defaults ──────────────────────────────────────────────
+CTID=${CTID:-106}                       # container ID
+HOSTNAME=${HOSTNAME:-gitea-mirror}
+STORAGE=${STORAGE:-local-lvm}           # where rootfs lives
+DISK_SIZE=${DISK_SIZE:-8G}
+CORES=${CORES:-2}
+MEMORY=${MEMORY:-2048}                  # MiB
+BRIDGE=${BRIDGE:-vmbr0}
+IP_CONF=${IP_CONF:-dhcp}                # or "192.168.1.240/24,gw=192.168.1.1"
+
 PORT=4321
+JWT_SECRET=$(openssl rand -hex 32)
 
-# Color codes for better readability
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+REPO="https://github.com/arunavo4/gitea-mirror.git"
+# ─────────────────────────────────────────────────────────────────────────
 
-# Print banner
-echo -e "${BLUE}"
-echo "╔════════════════════════════════════════════════════════════╗"
-echo "║                                                            ║"
-echo "║              Gitea Mirror LXC Container Installer          ║"
-echo "║                                                            ║"
-echo "╚════════════════════════════════════════════════════════════╝"
-echo -e "${NC}"
+TEMPLATE='ubuntu-22.04-standard_22.04-1_amd64.tar.zst'
+TEMPLATE_PATH="/var/lib/vz/template/cache/${TEMPLATE}"
 
-# Ensure script is run as root
-if [ "$(id -u)" -ne 0 ]; then
-  echo -e "${RED}This script must be run as root${NC}" >&2
-  exit 1
+echo "▶️  Ensuring template exists…"
+if [[ ! -f $TEMPLATE_PATH ]]; then
+  pveam update >/dev/null
+  pveam download "$STORAGE" "$TEMPLATE"
 fi
 
-echo -e "${GREEN}Starting Gitea Mirror installation...${NC}"
-
-# Check if we're in an LXC container
-if [ -d /proc/vz ] && [ ! -d /proc/bc ]; then
-  echo -e "${YELLOW}Running in an OpenVZ container. Some features may not work.${NC}"
-elif [ -f /proc/1/environ ] && grep -q container=lxc /proc/1/environ; then
-  echo -e "${GREEN}Running in an LXC container. Good!${NC}"
-else
-  echo -e "${YELLOW}Not running in a container. This script is designed for LXC containers.${NC}"
-  read -p "Continue anyway? (y/n) " -n 1 -r
-  echo
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo -e "${RED}Installation aborted.${NC}"
-    exit 1
-  fi
+echo "▶️  Creating container $CTID (if missing)…"
+if ! pct status "$CTID" &>/dev/null; then
+  pct create "$CTID" "$TEMPLATE_PATH" \
+    --rootfs "$STORAGE:$DISK_SIZE" \
+    --hostname "$HOSTNAME" \
+    --cores "$CORES" --memory "$MEMORY" \
+    --net0 "name=eth0,bridge=$BRIDGE,ip=$IP_CONF" \
+    --features nesting=1 \
+    --unprivileged 0
 fi
 
-# Install dependencies
-echo -e "${BLUE}Step 1/7: Installing dependencies...${NC}"
-apt update
-apt install -y curl git sqlite3 build-essential openssl
+pct start "$CTID"
 
-# Create service user
-echo -e "${BLUE}Step 2/7: Creating service user...${NC}"
-if id "$SERVICE_USER" &>/dev/null; then
-  echo -e "${YELLOW}User $SERVICE_USER already exists${NC}"
-else
-  useradd -m -s /bin/bash "$SERVICE_USER"
-  echo -e "${GREEN}Created user $SERVICE_USER${NC}"
-fi
+echo "▶️  Installing base packages inside CT $CTID…"
+pct exec "$CTID" -- bash -c 'apt update && apt install -y curl git build-essential openssl sqlite3 unzip'
 
-# Install Bun
-echo -e "${BLUE}Step 3/7: Installing Bun runtime...${NC}"
-if command -v bun >/dev/null 2>&1; then
-  echo -e "${YELLOW}Bun is already installed${NC}"
+echo "▶️  Installing Bun runtime…"
+pct exec "$CTID" -- bash -c '
+  export BUN_INSTALL=/opt/bun
+  curl -fsSL https://bun.sh/install | bash -s -- --yes
+  ln -sf /opt/bun/bin/bun /usr/local/bin/bun
+  ln -sf /opt/bun/bin/bun /usr/local/bin/bunx
   bun --version
-else
-  echo -e "${GREEN}Installing Bun...${NC}"
-  # Install Bun globally to make it accessible to all users
-  curl -fsSL https://bun.sh/install | bash
-  export BUN_INSTALL=${BUN_INSTALL:-"/root/.bun"}
-  export PATH="$BUN_INSTALL/bin:$PATH"
+'
 
-  # Make Bun accessible to all users by creating a symlink in /usr/local/bin
-  echo -e "${GREEN}Making Bun accessible to all users...${NC}"
-
-  # Check if /usr/local/bin is writable
-  if [ ! -w /usr/local/bin ]; then
-    echo -e "${RED}Error: /usr/local/bin is not writable. Please run the script as root or with sufficient permissions.${NC}"
-    exit 1
-  fi
-
-  ln -sf "$BUN_INSTALL/bin/bun" /usr/local/bin/bun
-
-  if [ $? -ne 0 ]; then
-    echo -e "${RED}Error: Failed to create symlink for Bun in /usr/local/bin.${NC}"
-    exit 1
-  fi
-
-  echo -e "${GREEN}Bun installed successfully${NC}"
-  bun --version
-fi
-
-# Clone repository
-echo -e "${BLUE}Step 4/7: Downloading Gitea Mirror...${NC}"
-if [ -d "$INSTALL_DIR" ]; then
-  echo -e "${YELLOW}Directory $INSTALL_DIR already exists${NC}"
-  read -p "Update existing installation? (y/n) " -n 1 -r
-  echo
-  if [[ $REPLY =~ ^[Yy]$ ]]; then
-    cd "$INSTALL_DIR"
-    git pull
-    echo -e "${GREEN}Repository updated${NC}"
-  else
-    echo -e "${YELLOW}Using existing installation${NC}"
-  fi
-else
-  echo -e "${GREEN}Cloning repository...${NC}"
-  git clone "$REPO_URL" "$INSTALL_DIR"
-  echo -e "${GREEN}Repository cloned to $INSTALL_DIR${NC}"
-fi
-
-# Set up application
-echo -e "${BLUE}Step 5/7: Setting up application...${NC}"
-cd "$INSTALL_DIR"
-
-# Create data directory with proper permissions
-mkdir -p data
-chown -R "$SERVICE_USER:$SERVICE_USER" data
-
-# Ensure the application directory has the right permissions
-echo -e "${GREEN}Setting correct permissions for application directory...${NC}"
-chown -R "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR"
-chmod -R 755 "$INSTALL_DIR"
-
-# Install dependencies and build
-echo -e "${GREEN}Installing dependencies and building application...${NC}"
-bun install
-bun run build
-
-# Initialize database if it doesn't exist
-echo -e "${GREEN}Initializing database...${NC}"
-if [ ! -f "data/gitea-mirror.db" ]; then
+echo "▶️  Cloning & building Gitea Mirror…"
+pct exec "$CTID" -- bash -c "
+  git clone --depth=1 '$REPO' /opt/gitea-mirror || (cd /opt/gitea-mirror && git pull)
+  cd /opt/gitea-mirror
+  bun install
+  bun run build
   bun run manage-db init
-  chown "$SERVICE_USER:$SERVICE_USER" data/gitea-mirror.db
-fi
+"
 
-# Generate a random JWT secret if not provided
-JWT_SECRET=${JWT_SECRET:-$(openssl rand -hex 32)}
-
-# Create systemd service
-echo -e "${BLUE}Step 6/7: Creating systemd service...${NC}"
-
-# Store Bun path in a variable for better maintainability
-# Use the global Bun path to ensure it's accessible to the service user
-BUN_PATH="/usr/local/bin/bun"
-echo -e "${GREEN}Using Bun from: $BUN_PATH${NC}"
-
-# Ensure the Bun executable is accessible to the service user
-if [ ! -f "$BUN_PATH" ]; then
-  echo -e "${YELLOW}Bun not found at $BUN_PATH, creating symlink...${NC}"
-
-  # Check if /usr/local/bin is writable
-  if [ ! -w "$(dirname "$BUN_PATH")" ]; then
-    echo -e "${RED}Error: $(dirname "$BUN_PATH") is not writable. Please run the script as root or with sufficient permissions.${NC}"
-    exit 1
-  fi
-
-  ln -sf "$(command -v bun)" "$BUN_PATH"
-
-  if [ $? -ne 0 ]; then
-    echo -e "${RED}Error: Failed to create symlink for Bun in $(dirname "$BUN_PATH").${NC}"
-    exit 1
-  fi
-fi
-
-# Make sure the Bun executable has the right permissions
-if [ -f "$BUN_PATH" ]; then
-  chmod 755 "$BUN_PATH"
-fi
-
+echo "▶️  Creating systemd service…"
+pct exec "$CTID" -- bash -c "
 cat >/etc/systemd/system/gitea-mirror.service <<SERVICE
 [Unit]
 Description=Gitea Mirror
 After=network.target
-
 [Service]
 Type=simple
-WorkingDirectory=$INSTALL_DIR
-ExecStart=$BUN_PATH dist/server/entry.mjs
+WorkingDirectory=/opt/gitea-mirror
+ExecStart=/usr/local/bin/bun dist/server/entry.mjs
 Restart=on-failure
 RestartSec=10
-User=$SERVICE_USER
-Group=$SERVICE_USER
 Environment=NODE_ENV=production
 Environment=HOST=0.0.0.0
 Environment=PORT=$PORT
 Environment=DATABASE_URL=file:data/gitea-mirror.db
-Environment=JWT_SECRET=${JWT_SECRET}
-
+Environment=JWT_SECRET=$JWT_SECRET
 [Install]
 WantedBy=multi-user.target
 SERVICE
-
-# Verify that the service user can access Bun
-echo -e "${BLUE}Verifying Bun permissions...${NC}"
-if su - "$SERVICE_USER" -c "$BUN_PATH --version" &>/dev/null; then
-  echo -e "${GREEN}Bun is accessible to $SERVICE_USER user${NC}"
-else
-  echo -e "${YELLOW}Warning: $SERVICE_USER cannot access Bun. Fixing permissions...${NC}"
-  # Make sure the Bun binary and its directory are accessible
-  BUN_DIR="$(dirname "$BUN_PATH")"
-  if [ -d "$BUN_DIR" ]; then
-    chmod 755 "$BUN_DIR"
-  fi
-
-  if [ -f "$BUN_PATH" ]; then
-    chmod 755 "$BUN_PATH"
-  fi
-
-  # Check again
-  if su - "$SERVICE_USER" -c "$BUN_PATH --version" &>/dev/null; then
-    echo -e "${GREEN}Fixed: Bun is now accessible to $SERVICE_USER user${NC}"
-  else
-    echo -e "${RED}Warning: $SERVICE_USER still cannot access Bun. Service may fail to start.${NC}"
-  fi
-fi
-
-# Start service
-echo -e "${BLUE}Step 7/7: Starting service...${NC}"
 systemctl daemon-reload
-systemctl enable gitea-mirror.service
-systemctl start gitea-mirror.service
+systemctl enable gitea-mirror
+systemctl restart gitea-mirror
+"
 
-# Check if service started successfully
-if systemctl is-active --quiet gitea-mirror.service; then
-  echo -e "${GREEN}Gitea Mirror service started successfully!${NC}"
-else
-  echo -e "${RED}Failed to start Gitea Mirror service. Check logs with: journalctl -u gitea-mirror${NC}"
-  exit 1
-fi
+echo -e "\n🔍  Service status:"
+pct exec "$CTID" -- systemctl status gitea-mirror --no-pager | head -n15
 
-# Get IP address
-IP_ADDRESS=$(hostname -I | awk '{print $1}')
-
-# Print success message
-echo -e "${GREEN}"
-echo "╔════════════════════════════════════════════════════════════╗"
-echo "║                                                            ║"
-echo "║              Gitea Mirror Installation Complete            ║"
-echo "║                                                            ║"
-echo "╚════════════════════════════════════════════════════════════╝"
-echo -e "${NC}"
-echo -e "${GREEN}Gitea Mirror is now running at: http://$IP_ADDRESS:$PORT${NC}"
-echo
-echo -e "${YELLOW}Important security information:${NC}"
-echo -e "JWT_SECRET: ${JWT_SECRET}"
-echo -e "${YELLOW}Please save this JWT_SECRET in a secure location.${NC}"
-echo
-echo -e "${BLUE}To check service status:${NC} systemctl status gitea-mirror"
-echo -e "${BLUE}To view logs:${NC} journalctl -u gitea-mirror -f"
-echo -e "${BLUE}Data directory:${NC} $INSTALL_DIR/data"
-echo
-echo -e "${YELLOW}Troubleshooting:${NC}"
-echo -e "If you encounter permission issues with Bun, try the following:"
-echo -e "1. Check if Bun is accessible: ${BLUE}su - $SERVICE_USER -c \"$BUN_PATH --version\"${NC}"
-echo -e "2. Fix permissions: ${BLUE}chmod 755 $BUN_PATH${NC}"
-echo -e "3. Create a symlink: ${BLUE}ln -sf \$(command -v bun) /usr/local/bin/bun${NC}"
-echo -e "4. Restart the service: ${BLUE}systemctl restart gitea-mirror${NC}"
-echo
-echo -e "${GREEN}Thank you for installing Gitea Mirror!${NC}"
+GUEST_IP=$(pct exec "$CTID" -- hostname -I | awk '{print $1}')
+echo -e "\n🌐  Browse to:  http://$GUEST_IP:$PORT\n"
+echo "🗝️  JWT_SECRET = $JWT_SECRET"
+echo -e "\n✅  Done – Gitea Mirror is running in CT $CTID."
