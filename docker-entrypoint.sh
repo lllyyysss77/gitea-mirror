@@ -111,8 +111,27 @@ if [ ! -f "/app/data/gitea-mirror.db" ]; then
       status TEXT NOT NULL DEFAULT 'imported',
       message TEXT NOT NULL,
       timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+      -- New fields for job resilience
+      job_type TEXT NOT NULL DEFAULT 'mirror',
+      batch_id TEXT,
+      total_items INTEGER,
+      completed_items INTEGER DEFAULT 0,
+      item_ids TEXT, -- JSON array as text
+      completed_item_ids TEXT DEFAULT '[]', -- JSON array as text
+      in_progress INTEGER NOT NULL DEFAULT 0, -- Boolean as integer
+      started_at TIMESTAMP,
+      completed_at TIMESTAMP,
+      last_checkpoint TIMESTAMP,
+
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
+
+    CREATE INDEX IF NOT EXISTS idx_mirror_jobs_user_id ON mirror_jobs(user_id);
+    CREATE INDEX IF NOT EXISTS idx_mirror_jobs_batch_id ON mirror_jobs(batch_id);
+    CREATE INDEX IF NOT EXISTS idx_mirror_jobs_in_progress ON mirror_jobs(in_progress);
+    CREATE INDEX IF NOT EXISTS idx_mirror_jobs_job_type ON mirror_jobs(job_type);
+    CREATE INDEX IF NOT EXISTS idx_mirror_jobs_timestamp ON mirror_jobs(timestamp);
 
     CREATE TABLE IF NOT EXISTS events (
       id TEXT PRIMARY KEY,
@@ -138,8 +157,19 @@ else
     bun dist/scripts/manage-db.js fix
   fi
 
-  # Since the application is not used by anyone yet, we've removed the schema updates and migrations
-  echo "Database already exists, no migrations needed."
+  # Run database migrations
+  echo "Running database migrations..."
+
+  # Update mirror_jobs table with new columns for resilience
+  if [ -f "dist/scripts/update-mirror-jobs-table.js" ]; then
+    echo "Updating mirror_jobs table..."
+    bun dist/scripts/update-mirror-jobs-table.js
+  elif [ -f "scripts/update-mirror-jobs-table.ts" ]; then
+    echo "Updating mirror_jobs table using TypeScript script..."
+    bun scripts/update-mirror-jobs-table.ts
+  else
+    echo "Warning: Could not find mirror_jobs table update script."
+  fi
 fi
 
 # Start the application

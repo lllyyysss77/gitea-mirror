@@ -111,6 +111,18 @@ export const mirrorJobSchema = z.object({
   status: repoStatusEnum.default("imported"),
   message: z.string(),
   timestamp: z.date().default(() => new Date()),
+
+  // New fields for job resilience
+  jobType: z.enum(["mirror", "sync", "retry"]).default("mirror"),
+  batchId: z.string().uuid().optional(), // Group related jobs together
+  totalItems: z.number().optional(), // Total number of items to process
+  completedItems: z.number().optional(), // Number of items completed
+  itemIds: z.array(z.string()).optional(), // IDs of items to process
+  completedItemIds: z.array(z.string()).optional(), // IDs of completed items
+  inProgress: z.boolean().default(false), // Whether the job is currently running
+  startedAt: z.date().optional(), // When the job started
+  completedAt: z.date().optional(), // When the job completed
+  lastCheckpoint: z.date().optional(), // Last time progress was saved
 });
 
 export type MirrorJob = z.infer<typeof mirrorJobSchema>;

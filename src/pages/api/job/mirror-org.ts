@@ -6,8 +6,8 @@ import { createGitHubClient } from "@/lib/github";
 import { mirrorGitHubOrgToGitea } from "@/lib/gitea";
 import { repoStatusEnum } from "@/types/Repository";
 import { type MembershipRole } from "@/types/organizations";
-import { processWithRetry } from "@/lib/utils/concurrency";
-import { createMirrorJob } from "@/lib/helpers";
+import { processWithResilience } from "@/lib/utils/concurrency";
+import { v4 as uuidv4 } from "uuid";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -63,7 +63,7 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Fire async mirroring without blocking response, using parallel processing
+    // Fire async mirroring without blocking response, using parallel processing with resilience
     setTimeout(async () => {
       if (!config.githubConfig.token) {
         throw new Error("GitHub token is missing in config.");
@@ -76,8 +76,11 @@ export const POST: APIRoute = async ({ request }) => {
       // Using a lower concurrency for organizations since each org might contain many repos
       const CONCURRENCY_LIMIT = 2;
 
-      // Process organizations in parallel with retry capability
-      await processWithRetry(
+      // Generate a batch ID to group related organizations
+      const batchId = uuidv4();
+
+      // Process organizations in parallel with resilience to container restarts
+      await processWithResilience(
         orgs,
         async (org) => {
           // Prepare organization data
@@ -92,16 +95,6 @@ export const POST: APIRoute = async ({ request }) => {
           // Log the start of mirroring
           console.log(`Starting mirror for organization: ${org.name}`);
 
-          // Create a mirror job entry to track progress
-          await createMirrorJob({
-            userId: config.userId || "",
-            organizationId: org.id,
-            organizationName: org.name,
-            message: `Started mirroring organization: ${org.name}`,
-            details: `Organization ${org.name} is now in the mirroring queue.`,
-            status: "mirroring",
-          });
-
           // Mirror the organization
           await mirrorGitHubOrgToGitea({
             config,
@@ -112,9 +105,15 @@ export const POST: APIRoute = async ({ request }) => {
           return org;
         },
         {
+          userId: config.userId || "",
+          jobType: "mirror",
+          batchId,
+          getItemId: (org) => org.id,
+          getItemName: (org) => org.name,
           concurrencyLimit: CONCURRENCY_LIMIT,
           maxRetries: 2,
           retryDelay: 3000,
+          checkpointInterval: 1, // Checkpoint after each organization
           onProgress: (completed, total, result) => {
             const percentComplete = Math.round((completed / total) * 100);
             console.log(`Organization mirroring progress: ${percentComplete}% (${completed}/${total})`);

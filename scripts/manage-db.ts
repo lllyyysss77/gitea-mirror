@@ -145,8 +145,30 @@ async function ensureTablesExist() {
                 status TEXT NOT NULL DEFAULT 'imported',
                 message TEXT NOT NULL,
                 timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+                -- New fields for job resilience
+                job_type TEXT NOT NULL DEFAULT 'mirror',
+                batch_id TEXT,
+                total_items INTEGER,
+                completed_items INTEGER DEFAULT 0,
+                item_ids TEXT, -- JSON array as text
+                completed_item_ids TEXT DEFAULT '[]', -- JSON array as text
+                in_progress INTEGER NOT NULL DEFAULT 0, -- Boolean as integer
+                started_at TIMESTAMP,
+                completed_at TIMESTAMP,
+                last_checkpoint TIMESTAMP,
+
                 FOREIGN KEY (user_id) REFERENCES users(id)
               )
+            `);
+
+            // Create indexes for better performance
+            db.exec(`
+              CREATE INDEX IF NOT EXISTS idx_mirror_jobs_user_id ON mirror_jobs(user_id);
+              CREATE INDEX IF NOT EXISTS idx_mirror_jobs_batch_id ON mirror_jobs(batch_id);
+              CREATE INDEX IF NOT EXISTS idx_mirror_jobs_in_progress ON mirror_jobs(in_progress);
+              CREATE INDEX IF NOT EXISTS idx_mirror_jobs_job_type ON mirror_jobs(job_type);
+              CREATE INDEX IF NOT EXISTS idx_mirror_jobs_timestamp ON mirror_jobs(timestamp);
             `);
             break;
           case "events":

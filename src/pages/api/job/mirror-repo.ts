@@ -8,8 +8,8 @@ import {
   mirrorGitHubOrgRepoToGiteaOrg,
 } from "@/lib/gitea";
 import { createGitHubClient } from "@/lib/github";
-import { processWithRetry } from "@/lib/utils/concurrency";
-import { createMirrorJob } from "@/lib/helpers";
+import { processWithResilience } from "@/lib/utils/concurrency";
+import { v4 as uuidv4 } from "uuid";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -65,7 +65,7 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Start async mirroring in background with parallel processing
+    // Start async mirroring in background with parallel processing and resilience
     setTimeout(async () => {
       if (!config.githubConfig.token) {
         throw new Error("GitHub token is missing.");
@@ -77,8 +77,11 @@ export const POST: APIRoute = async ({ request }) => {
       // Define the concurrency limit - adjust based on API rate limits
       const CONCURRENCY_LIMIT = 3;
 
-      // Process repositories in parallel with retry capability
-      await processWithRetry(
+      // Generate a batch ID to group related repositories
+      const batchId = uuidv4();
+
+      // Process repositories in parallel with resilience to container restarts
+      await processWithResilience(
         repos,
         async (repo) => {
           // Prepare repository data
@@ -95,16 +98,6 @@ export const POST: APIRoute = async ({ request }) => {
 
           // Log the start of mirroring
           console.log(`Starting mirror for repository: ${repo.name}`);
-
-          // Create a mirror job entry to track progress
-          await createMirrorJob({
-            userId: config.userId || "",
-            repositoryId: repo.id,
-            repositoryName: repo.name,
-            message: `Started mirroring repository: ${repo.name}`,
-            details: `Repository ${repo.name} is now in the mirroring queue.`,
-            status: "mirroring",
-          });
 
           // Mirror the repository based on whether it's in an organization
           if (repo.organization && config.githubConfig.preserveOrgStructure) {
@@ -125,9 +118,15 @@ export const POST: APIRoute = async ({ request }) => {
           return repo;
         },
         {
+          userId: config.userId || "",
+          jobType: "mirror",
+          batchId,
+          getItemId: (repo) => repo.id,
+          getItemName: (repo) => repo.name,
           concurrencyLimit: CONCURRENCY_LIMIT,
           maxRetries: 2,
           retryDelay: 2000,
+          checkpointInterval: 1, // Checkpoint after each repository
           onProgress: (completed, total, result) => {
             const percentComplete = Math.round((completed / total) * 100);
             console.log(`Mirroring progress: ${percentComplete}% (${completed}/${total})`);
