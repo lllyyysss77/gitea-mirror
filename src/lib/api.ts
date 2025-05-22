@@ -88,3 +88,80 @@ export const giteaApi = {
       body: JSON.stringify({ url, token }),
     }),
 };
+
+// Health API
+export interface HealthResponse {
+  status: "ok" | "error";
+  timestamp: string;
+  version: string;
+  database: {
+    connected: boolean;
+    message: string;
+  };
+  system: {
+    uptime: {
+      startTime: string;
+      uptimeMs: number;
+      formatted: string;
+    };
+    memory: {
+      rss: string;
+      heapTotal: string;
+      heapUsed: string;
+      external: string;
+      systemTotal: string;
+      systemFree: string;
+    };
+    os: {
+      platform: string;
+      version: string;
+      arch: string;
+    };
+    env: string;
+  };
+  error?: string;
+}
+
+export const healthApi = {
+  check: async (): Promise<HealthResponse> => {
+    try {
+      const response = await fetch(`${API_BASE}/health`);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({
+          status: "error",
+          error: "Failed to parse error response",
+        }));
+
+        return {
+          ...errorData,
+          status: "error",
+          timestamp: new Date().toISOString(),
+        } as HealthResponse;
+      }
+
+      return await response.json();
+    } catch (error) {
+      return {
+        status: "error",
+        timestamp: new Date().toISOString(),
+        error: error instanceof Error ? error.message : "Unknown error checking health",
+        version: "unknown",
+        database: { connected: false, message: "Failed to connect to API" },
+        system: {
+          uptime: { startTime: "", uptimeMs: 0, formatted: "N/A" },
+          memory: {
+            rss: "N/A",
+            heapTotal: "N/A",
+            heapUsed: "N/A",
+            external: "N/A",
+            systemTotal: "N/A",
+            systemFree: "N/A",
+          },
+          os: { platform: "", version: "", arch: "" },
+          env: "",
+        },
+      };
+    }
+  },
+};
