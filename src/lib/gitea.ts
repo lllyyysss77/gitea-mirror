@@ -601,11 +601,22 @@ export async function mirrorGitHubOrgToGitea({
       .from(repositories)
       .where(eq(repositories.organization, organization.name));
 
-    for (const repo of orgRepos) {
-      await mirrorGitHubRepoToGiteaOrg({
-        octokit,
-        config,
-        repository: {
+    if (orgRepos.length === 0) {
+      console.log(`No repositories found for organization ${organization.name}`);
+      return;
+    }
+
+    console.log(`Mirroring ${orgRepos.length} repositories for organization ${organization.name}`);
+
+    // Import the processWithRetry function
+    const { processWithRetry } = await import("@/lib/utils/concurrency");
+
+    // Process repositories in parallel with concurrency control
+    await processWithRetry(
+      orgRepos,
+      async (repo) => {
+        // Prepare repository data
+        const repoData = {
           ...repo,
           status: repo.status as RepoStatus,
           visibility: repo.visibility as RepositoryVisibility,
@@ -614,11 +625,37 @@ export async function mirrorGitHubOrgToGitea({
           organization: repo.organization ?? undefined,
           forkedFrom: repo.forkedFrom ?? undefined,
           mirroredLocation: repo.mirroredLocation || "",
+        };
+
+        // Log the start of mirroring
+        console.log(`Starting mirror for repository: ${repo.name} in organization ${organization.name}`);
+
+        // Mirror the repository
+        await mirrorGitHubRepoToGiteaOrg({
+          octokit,
+          config,
+          repository: repoData,
+          giteaOrgId,
+          orgName: organization.name,
+        });
+
+        return repo;
+      },
+      {
+        concurrencyLimit: 3, // Process 3 repositories at a time
+        maxRetries: 2,
+        retryDelay: 2000,
+        onProgress: (completed, total, result) => {
+          const percentComplete = Math.round((completed / total) * 100);
+          if (result) {
+            console.log(`Mirrored repository "${result.name}" in organization ${organization.name} (${completed}/${total}, ${percentComplete}%)`);
+          }
         },
-        giteaOrgId,
-        orgName: organization.name,
-      });
-    }
+        onRetry: (repo, error, attempt) => {
+          console.log(`Retrying repository ${repo.name} in organization ${organization.name} (attempt ${attempt}): ${error.message}`);
+        }
+      }
+    );
 
     console.log(`Organization ${organization.name} mirrored successfully`);
 
@@ -837,7 +874,15 @@ export const mirrorGitRepoIssuesToGitea = async ({
     (res) => res.data
   );
 
-  console.log(`Mirroring ${issues.length} issues from ${repository.fullName}`);
+  // Filter out pull requests
+  const filteredIssues = issues.filter(issue => !(issue as any).pull_request);
+
+  console.log(`Mirroring ${filteredIssues.length} issues from ${repository.fullName}`);
+
+  if (filteredIssues.length === 0) {
+    console.log(`No issues to mirror for ${repository.fullName}`);
+    return;
+  }
 
   // Get existing labels from Gitea
   const giteaLabelsRes = await superagent
@@ -851,58 +896,60 @@ export const mirrorGitRepoIssuesToGitea = async ({
     giteaLabels.map((label: any) => [label.name, label.id])
   );
 
-  for (const issue of issues) {
-    if ((issue as any).pull_request) {
-      continue;
-    }
+  // Import the processWithRetry function
+  const { processWithRetry } = await import("@/lib/utils/concurrency");
 
-    const githubLabelNames =
-      issue.labels
-        ?.map((l) => (typeof l === "string" ? l : l.name))
-        .filter((l): l is string => !!l) || [];
+  // Process issues in parallel with concurrency control
+  await processWithRetry(
+    filteredIssues,
+    async (issue) => {
+      const githubLabelNames =
+        issue.labels
+          ?.map((l) => (typeof l === "string" ? l : l.name))
+          .filter((l): l is string => !!l) || [];
 
-    const giteaLabelIds: number[] = [];
+      const giteaLabelIds: number[] = [];
 
-    // Resolve or create labels in Gitea
-    for (const name of githubLabelNames) {
-      if (labelMap.has(name)) {
-        giteaLabelIds.push(labelMap.get(name)!);
-      } else {
-        try {
-          const created = await superagent
-            .post(
-              `${config.giteaConfig.url}/api/v1/repos/${repoOrigin}/${repository.name}/labels`
-            )
-            .set("Authorization", `token ${config.giteaConfig.token}`)
-            .send({ name, color: "#ededed" }); // Default color
+      // Resolve or create labels in Gitea
+      for (const name of githubLabelNames) {
+        if (labelMap.has(name)) {
+          giteaLabelIds.push(labelMap.get(name)!);
+        } else {
+          try {
+            const created = await superagent
+              .post(
+                `${config.giteaConfig.url}/api/v1/repos/${repoOrigin}/${repository.name}/labels`
+              )
+              .set("Authorization", `token ${config.giteaConfig.token}`)
+              .send({ name, color: "#ededed" }); // Default color
 
-          labelMap.set(name, created.body.id);
-          giteaLabelIds.push(created.body.id);
-        } catch (labelErr) {
-          console.error(
-            `Failed to create label "${name}" in Gitea: ${labelErr}`
-          );
+            labelMap.set(name, created.body.id);
+            giteaLabelIds.push(created.body.id);
+          } catch (labelErr) {
+            console.error(
+              `Failed to create label "${name}" in Gitea: ${labelErr}`
+            );
+          }
         }
       }
-    }
 
-    const originalAssignees =
-      issue.assignees && issue.assignees.length > 0
-        ? `\n\nOriginally assigned to: ${issue.assignees
-            .map((a) => `@${a.login}`)
-            .join(", ")} on GitHub.`
-        : "";
+      const originalAssignees =
+        issue.assignees && issue.assignees.length > 0
+          ? `\n\nOriginally assigned to: ${issue.assignees
+              .map((a) => `@${a.login}`)
+              .join(", ")} on GitHub.`
+          : "";
 
-    const issuePayload: any = {
-      title: issue.title,
-      body: `Originally created by @${
-        issue.user?.login
-      } on GitHub.${originalAssignees}\n\n${issue.body || ""}`,
-      closed: issue.state === "closed",
-      labels: giteaLabelIds,
-    };
+      const issuePayload: any = {
+        title: issue.title,
+        body: `Originally created by @${
+          issue.user?.login
+        } on GitHub.${originalAssignees}\n\n${issue.body || ""}`,
+        closed: issue.state === "closed",
+        labels: giteaLabelIds,
+      };
 
-    try {
+      // Create the issue in Gitea
       const createdIssue = await superagent
         .post(
           `${config.giteaConfig.url}/api/v1/repos/${repoOrigin}/${repository.name}/issues`
@@ -922,41 +969,49 @@ export const mirrorGitRepoIssuesToGitea = async ({
         (res) => res.data
       );
 
-      for (const comment of comments) {
-        try {
-          await superagent
-            .post(
-              `${config.giteaConfig.url}/api/v1/repos/${repoOrigin}/${repository.name}/issues/${createdIssue.body.number}/comments`
-            )
-            .set("Authorization", `token ${config.giteaConfig.token}`)
-            .send({
-              body: `@${comment.user?.login} commented on GitHub:\n\n${comment.body}`,
-            });
-        } catch (commentErr) {
-          console.error(
-            `Failed to copy comment to Gitea for issue "${issue.title}": ${
-              commentErr instanceof Error
-                ? commentErr.message
-                : String(commentErr)
-            }`
-          );
-        }
+      // Process comments in parallel with concurrency control
+      if (comments.length > 0) {
+        await processWithRetry(
+          comments,
+          async (comment) => {
+            await superagent
+              .post(
+                `${config.giteaConfig.url}/api/v1/repos/${repoOrigin}/${repository.name}/issues/${createdIssue.body.number}/comments`
+              )
+              .set("Authorization", `token ${config.giteaConfig.token}`)
+              .send({
+                body: `@${comment.user?.login} commented on GitHub:\n\n${comment.body}`,
+              });
+            return comment;
+          },
+          {
+            concurrencyLimit: 5,
+            maxRetries: 2,
+            retryDelay: 1000,
+            onRetry: (comment, error, attempt) => {
+              console.log(`Retrying comment (attempt ${attempt}): ${error.message}`);
+            }
+          }
+        );
       }
-    } catch (err) {
-      if (err instanceof Error && (err as any).response) {
-        console.error(
-          `Failed to create issue "${issue.title}" in Gitea: ${err.message}`
-        );
-        console.error(
-          `Response body: ${JSON.stringify((err as any).response.body)}`
-        );
-      } else {
-        console.error(
-          `Failed to create issue "${issue.title}" in Gitea: ${
-            err instanceof Error ? err.message : String(err)
-          }`
-        );
+
+      return issue;
+    },
+    {
+      concurrencyLimit: 3, // Process 3 issues at a time
+      maxRetries: 2,
+      retryDelay: 2000,
+      onProgress: (completed, total, result) => {
+        const percentComplete = Math.round((completed / total) * 100);
+        if (result) {
+          console.log(`Mirrored issue "${result.title}" (${completed}/${total}, ${percentComplete}%)`);
+        }
+      },
+      onRetry: (issue, error, attempt) => {
+        console.log(`Retrying issue "${issue.title}" (attempt ${attempt}): ${error.message}`);
       }
     }
-  }
+  );
+
+  console.log(`Completed mirroring ${filteredIssues.length} issues for ${repository.fullName}`);
 };
