@@ -6,6 +6,8 @@ import { createGitHubClient } from "@/lib/github";
 import { mirrorGitHubOrgToGitea } from "@/lib/gitea";
 import { repoStatusEnum } from "@/types/Repository";
 import { type MembershipRole } from "@/types/organizations";
+import { processWithResilience } from "@/lib/utils/concurrency";
+import { v4 as uuidv4 } from "uuid";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -61,31 +63,72 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Fire async mirroring without blocking response
+    // Fire async mirroring without blocking response, using parallel processing with resilience
     setTimeout(async () => {
-      for (const org of orgs) {
-        if (!config.githubConfig.token) {
-          throw new Error("GitHub token is missing in config.");
-        }
+      if (!config.githubConfig.token) {
+        throw new Error("GitHub token is missing in config.");
+      }
 
-        const octokit = createGitHubClient(config.githubConfig.token);
+      // Create a single Octokit instance to be reused
+      const octokit = createGitHubClient(config.githubConfig.token);
 
-        try {
+      // Define the concurrency limit - adjust based on API rate limits
+      // Using a lower concurrency for organizations since each org might contain many repos
+      const CONCURRENCY_LIMIT = 2;
+
+      // Generate a batch ID to group related organizations
+      const batchId = uuidv4();
+
+      // Process organizations in parallel with resilience to container restarts
+      await processWithResilience(
+        orgs,
+        async (org) => {
+          // Prepare organization data
+          const orgData = {
+            ...org,
+            status: repoStatusEnum.parse("imported"),
+            membershipRole: org.membershipRole as MembershipRole,
+            lastMirrored: org.lastMirrored ?? undefined,
+            errorMessage: org.errorMessage ?? undefined,
+          };
+
+          // Log the start of mirroring
+          console.log(`Starting mirror for organization: ${org.name}`);
+
+          // Mirror the organization
           await mirrorGitHubOrgToGitea({
             config,
             octokit,
-            organization: {
-              ...org,
-              status: repoStatusEnum.parse("imported"),
-              membershipRole: org.membershipRole as MembershipRole,
-              lastMirrored: org.lastMirrored ?? undefined,
-              errorMessage: org.errorMessage ?? undefined,
-            },
+            organization: orgData,
           });
-        } catch (error) {
-          console.error(`Mirror failed for organization ${org.name}:`, error);
+
+          return org;
+        },
+        {
+          userId: config.userId || "",
+          jobType: "mirror",
+          batchId,
+          getItemId: (org) => org.id,
+          getItemName: (org) => org.name,
+          concurrencyLimit: CONCURRENCY_LIMIT,
+          maxRetries: 2,
+          retryDelay: 3000,
+          checkpointInterval: 1, // Checkpoint after each organization
+          onProgress: (completed, total, result) => {
+            const percentComplete = Math.round((completed / total) * 100);
+            console.log(`Organization mirroring progress: ${percentComplete}% (${completed}/${total})`);
+
+            if (result) {
+              console.log(`Successfully mirrored organization: ${result.name}`);
+            }
+          },
+          onRetry: (org, error, attempt) => {
+            console.log(`Retrying organization ${org.name} (attempt ${attempt}): ${error.message}`);
+          }
         }
-      }
+      );
+
+      console.log("All organization mirroring tasks completed");
     }, 0);
 
     const responsePayload: MirrorOrgResponse = {

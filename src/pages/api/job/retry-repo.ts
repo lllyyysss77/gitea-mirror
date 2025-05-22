@@ -10,6 +10,8 @@ import {
 import { createGitHubClient } from "@/lib/github";
 import { repoStatusEnum, repositoryVisibilityEnum } from "@/types/Repository";
 import type { RetryRepoRequest, RetryRepoResponse } from "@/types/retry";
+import { processWithRetry } from "@/lib/utils/concurrency";
+import { createMirrorJob } from "@/lib/helpers";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -65,10 +67,21 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Start background retry
+    // Start background retry with parallel processing
     setTimeout(async () => {
-      for (const repo of repos) {
-        try {
+      // Create a single Octokit instance to be reused if needed
+      const octokit = config.githubConfig.token
+        ? createGitHubClient(config.githubConfig.token)
+        : null;
+
+      // Define the concurrency limit - adjust based on API rate limits
+      const CONCURRENCY_LIMIT = 3;
+
+      // Process repositories in parallel with retry capability
+      await processWithRetry(
+        repos,
+        async (repo) => {
+          // Prepare repository data
           const visibility = repositoryVisibilityEnum.parse(repo.visibility);
           const status = repoStatusEnum.parse(repo.status);
           const repoData = {
@@ -81,6 +94,20 @@ export const POST: APIRoute = async ({ request }) => {
             forkedFrom: repo.forkedFrom ?? undefined,
           };
 
+          // Log the start of retry operation
+          console.log(`Starting retry for repository: ${repo.name}`);
+
+          // Create a mirror job entry to track progress
+          await createMirrorJob({
+            userId: config.userId || "",
+            repositoryId: repo.id,
+            repositoryName: repo.name,
+            message: `Started retry operation for repository: ${repo.name}`,
+            details: `Repository ${repo.name} is now in the retry queue.`,
+            status: "imported",
+          });
+
+          // Determine if the repository exists in Gitea
           let owner = getGiteaRepoOwner({
             config,
             repository: repoData,
@@ -93,16 +120,21 @@ export const POST: APIRoute = async ({ request }) => {
           });
 
           if (present) {
+            // If the repository exists, sync it
             await syncGiteaRepo({ config, repository: repoData });
             console.log(`Synced existing repo: ${repo.name}`);
           } else {
+            // If the repository doesn't exist, mirror it
             if (!config.githubConfig.token) {
               throw new Error("GitHub token is missing.");
             }
 
+            if (!octokit) {
+              throw new Error("Octokit client is not initialized.");
+            }
+
             console.log(`Importing repo: ${repo.name} ${owner}`);
 
-            const octokit = createGitHubClient(config.githubConfig.token);
             if (repo.organization && config.githubConfig.preserveOrgStructure) {
               await mirrorGitHubOrgRepoToGiteaOrg({
                 config,
@@ -124,10 +156,28 @@ export const POST: APIRoute = async ({ request }) => {
               });
             }
           }
-        } catch (err) {
-          console.error(`Failed to retry repo ${repo.name}:`, err);
+
+          return repo;
+        },
+        {
+          concurrencyLimit: CONCURRENCY_LIMIT,
+          maxRetries: 2,
+          retryDelay: 2000,
+          onProgress: (completed, total, result) => {
+            const percentComplete = Math.round((completed / total) * 100);
+            console.log(`Retry progress: ${percentComplete}% (${completed}/${total})`);
+
+            if (result) {
+              console.log(`Successfully processed repository: ${result.name}`);
+            }
+          },
+          onRetry: (repo, error, attempt) => {
+            console.log(`Retrying repository ${repo.name} (attempt ${attempt}): ${error.message}`);
+          }
         }
-      }
+      );
+
+      console.log("All repository retry tasks completed");
     }, 0);
 
     const responsePayload: RetryRepoResponse = {

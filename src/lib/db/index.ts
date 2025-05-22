@@ -189,6 +189,18 @@ export const mirrorJobs = sqliteTable("mirror_jobs", {
   timestamp: integer("timestamp", { mode: "timestamp" })
     .notNull()
     .default(new Date()),
+
+  // New fields for job resilience
+  jobType: text("job_type").notNull().default("mirror"),
+  batchId: text("batch_id"),
+  totalItems: integer("total_items"),
+  completedItems: integer("completed_items").default(0),
+  itemIds: text("item_ids", { mode: "json" }).$type<string[]>(),
+  completedItemIds: text("completed_item_ids", { mode: "json" }).$type<string[]>().default([]),
+  inProgress: integer("in_progress", { mode: "boolean" }).notNull().default(false),
+  startedAt: integer("started_at", { mode: "timestamp" }),
+  completedAt: integer("completed_at", { mode: "timestamp" }),
+  lastCheckpoint: integer("last_checkpoint", { mode: "timestamp" }),
 });
 
 export const organizations = sqliteTable("organizations", {

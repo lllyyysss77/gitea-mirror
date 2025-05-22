@@ -5,6 +5,8 @@ import { eq, inArray } from "drizzle-orm";
 import { repositoryVisibilityEnum, repoStatusEnum } from "@/types/Repository";
 import { syncGiteaRepo } from "@/lib/gitea";
 import type { SyncRepoResponse } from "@/types/sync";
+import { processWithResilience } from "@/lib/utils/concurrency";
+import { v4 as uuidv4 } from "uuid";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -60,26 +62,65 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Start async mirroring in background
+    // Start async mirroring in background with parallel processing and resilience
     setTimeout(async () => {
-      for (const repo of repos) {
-        try {
+      // Define the concurrency limit - adjust based on API rate limits
+      const CONCURRENCY_LIMIT = 5;
+
+      // Generate a batch ID to group related repositories
+      const batchId = uuidv4();
+
+      // Process repositories in parallel with resilience to container restarts
+      await processWithResilience(
+        repos,
+        async (repo) => {
+          // Prepare repository data
+          const repoData = {
+            ...repo,
+            status: repoStatusEnum.parse(repo.status),
+            organization: repo.organization ?? undefined,
+            lastMirrored: repo.lastMirrored ?? undefined,
+            errorMessage: repo.errorMessage ?? undefined,
+            forkedFrom: repo.forkedFrom ?? undefined,
+            visibility: repositoryVisibilityEnum.parse(repo.visibility),
+          };
+
+          // Log the start of syncing
+          console.log(`Starting sync for repository: ${repo.name}`);
+
+          // Sync the repository
           await syncGiteaRepo({
             config,
-            repository: {
-              ...repo,
-              status: repoStatusEnum.parse(repo.status),
-              organization: repo.organization ?? undefined,
-              lastMirrored: repo.lastMirrored ?? undefined,
-              errorMessage: repo.errorMessage ?? undefined,
-              forkedFrom: repo.forkedFrom ?? undefined,
-              visibility: repositoryVisibilityEnum.parse(repo.visibility),
-            },
+            repository: repoData,
           });
-        } catch (error) {
-          console.error(`Sync failed for repo ${repo.name}:`, error);
+
+          return repo;
+        },
+        {
+          userId: config.userId || "",
+          jobType: "sync",
+          batchId,
+          getItemId: (repo) => repo.id,
+          getItemName: (repo) => repo.name,
+          concurrencyLimit: CONCURRENCY_LIMIT,
+          maxRetries: 2,
+          retryDelay: 2000,
+          checkpointInterval: 1, // Checkpoint after each repository
+          onProgress: (completed, total, result) => {
+            const percentComplete = Math.round((completed / total) * 100);
+            console.log(`Syncing progress: ${percentComplete}% (${completed}/${total})`);
+
+            if (result) {
+              console.log(`Successfully synced repository: ${result.name}`);
+            }
+          },
+          onRetry: (repo, error, attempt) => {
+            console.log(`Retrying sync for repository ${repo.name} (attempt ${attempt}): ${error.message}`);
+          }
         }
-      }
+      );
+
+      console.log("All repository syncing tasks completed");
     }, 0);
 
     const responsePayload: SyncRepoResponse = {

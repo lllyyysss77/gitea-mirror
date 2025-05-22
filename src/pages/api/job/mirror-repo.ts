@@ -8,6 +8,8 @@ import {
   mirrorGitHubOrgRepoToGiteaOrg,
 } from "@/lib/gitea";
 import { createGitHubClient } from "@/lib/github";
+import { processWithResilience } from "@/lib/utils/concurrency";
+import { v4 as uuidv4 } from "uuid";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -63,52 +65,83 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Start async mirroring in background
+    // Start async mirroring in background with parallel processing and resilience
     setTimeout(async () => {
-      for (const repo of repos) {
-        if (!config.githubConfig.token) {
-          throw new Error("GitHub token is missing.");
-        }
+      if (!config.githubConfig.token) {
+        throw new Error("GitHub token is missing.");
+      }
 
-        const octokit = createGitHubClient(config.githubConfig.token);
+      // Create a single Octokit instance to be reused
+      const octokit = createGitHubClient(config.githubConfig.token);
 
-        try {
+      // Define the concurrency limit - adjust based on API rate limits
+      const CONCURRENCY_LIMIT = 3;
+
+      // Generate a batch ID to group related repositories
+      const batchId = uuidv4();
+
+      // Process repositories in parallel with resilience to container restarts
+      await processWithResilience(
+        repos,
+        async (repo) => {
+          // Prepare repository data
+          const repoData = {
+            ...repo,
+            status: repoStatusEnum.parse("imported"),
+            organization: repo.organization ?? undefined,
+            lastMirrored: repo.lastMirrored ?? undefined,
+            errorMessage: repo.errorMessage ?? undefined,
+            forkedFrom: repo.forkedFrom ?? undefined,
+            visibility: repositoryVisibilityEnum.parse(repo.visibility),
+            mirroredLocation: repo.mirroredLocation || "",
+          };
+
+          // Log the start of mirroring
+          console.log(`Starting mirror for repository: ${repo.name}`);
+
+          // Mirror the repository based on whether it's in an organization
           if (repo.organization && config.githubConfig.preserveOrgStructure) {
             await mirrorGitHubOrgRepoToGiteaOrg({
               config,
               octokit,
               orgName: repo.organization,
-              repository: {
-                ...repo,
-                status: repoStatusEnum.parse("imported"),
-                organization: repo.organization ?? undefined,
-                lastMirrored: repo.lastMirrored ?? undefined,
-                errorMessage: repo.errorMessage ?? undefined,
-                forkedFrom: repo.forkedFrom ?? undefined,
-                visibility: repositoryVisibilityEnum.parse(repo.visibility),
-                mirroredLocation: repo.mirroredLocation || "",
-              },
+              repository: repoData,
             });
           } else {
             await mirrorGithubRepoToGitea({
               octokit,
-              repository: {
-                ...repo,
-                status: repoStatusEnum.parse("imported"),
-                organization: repo.organization ?? undefined,
-                lastMirrored: repo.lastMirrored ?? undefined,
-                errorMessage: repo.errorMessage ?? undefined,
-                forkedFrom: repo.forkedFrom ?? undefined,
-                visibility: repositoryVisibilityEnum.parse(repo.visibility),
-                mirroredLocation: repo.mirroredLocation || "",
-              },
+              repository: repoData,
               config,
             });
           }
-        } catch (error) {
-          console.error(`Mirror failed for repo ${repo.name}:`, error);
+
+          return repo;
+        },
+        {
+          userId: config.userId || "",
+          jobType: "mirror",
+          batchId,
+          getItemId: (repo) => repo.id,
+          getItemName: (repo) => repo.name,
+          concurrencyLimit: CONCURRENCY_LIMIT,
+          maxRetries: 2,
+          retryDelay: 2000,
+          checkpointInterval: 1, // Checkpoint after each repository
+          onProgress: (completed, total, result) => {
+            const percentComplete = Math.round((completed / total) * 100);
+            console.log(`Mirroring progress: ${percentComplete}% (${completed}/${total})`);
+
+            if (result) {
+              console.log(`Successfully mirrored repository: ${result.name}`);
+            }
+          },
+          onRetry: (repo, error, attempt) => {
+            console.log(`Retrying repository ${repo.name} (attempt ${attempt}): ${error.message}`);
+          }
         }
-      }
+      );
+
+      console.log("All repository mirroring tasks completed");
     }, 0);
 
     const responsePayload: MirrorRepoResponse = {
