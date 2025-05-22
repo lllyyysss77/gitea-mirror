@@ -5,6 +5,11 @@ All notable changes to the Gitea Mirror project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.2] - 2024-11-22
+
+### Fixed
+- Fixed version information in health API for Docker deployments by setting npm_package_version environment variable in entrypoint script
+
 ## [2.5.1] - 2024-10-01
 
 ### Fixed
