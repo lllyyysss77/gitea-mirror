@@ -1,109 +1,117 @@
 # LXC Container Deployment Guide
 
-This guide explains how to deploy the Gitea Mirror application on Proxmox LXC containers while keeping your existing Docker containers.
+## Overview
+Run **Gitea Mirror** in an isolated LXC container, either:
 
-## Prerequisites
+1. **Online, on a Proxmox VE host** – script pulls everything from GitHub
+2. **Offline / LAN-only, on a developer laptop** – script pushes your local checkout + Bun ZIP
 
-- Proxmox VE installed and configured
-- Basic knowledge of LXC containers and Proxmox
-- Access to Proxmox web interface or CLI
+---
 
-## Creating an LXC Container
+## 1. Proxmox VE (online, recommended for prod)
 
-1. In Proxmox web interface, create a new LXC container:
-   - Choose Ubuntu 22.04 as the template
-   - Allocate appropriate resources (2GB RAM, 2 CPU cores recommended)
-   - At least 10GB of disk space
-   - Configure networking as needed
+### Prerequisites
+* Proxmox VE node with the default `vmbr0` bridge
+* Root shell on the node
+* Ubuntu 22.04 LXC template present (`pveam update && pveam download ...`)
 
-2. Start the container and get a shell (either via Proxmox web console or SSH)
+### One-command install
 
-## Deploying Gitea Mirror
+```bash
+# optional env overrides:  CTID HOSTNAME STORAGE DISK_SIZE CORES MEMORY BRIDGE IP_CONF
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/arunavo4/gitea-mirror/main/scripts/gitea-mirror-lxc-proxmox.sh)"
+```
 
-### Option 1: One-Command Installation (Recommended)
+What it does:
 
-This method allows you to install Gitea Mirror with a single command, without having to copy files manually:
+* Creates **privileged** CT `$CTID` with nesting enabled
+* Installs curl / git / Bun (official installer)
+* Clones & builds `arunavo4/gitea-mirror`
+* Writes a root-run systemd service and starts it
+* Prints the container IP + random `JWT_SECRET`
 
-1. SSH into your LXC container:
-   ```bash
-   ssh root@lxc-container-ip
-   ```
+Browse to:
 
-2. Run the installer script directly:
-   ```bash
-   curl -fsSL https://raw.githubusercontent.com/arunavo4/gitea-mirror/main/scripts/gitea-mirror-lxc-installer.sh | bash
-   ```
+```
+http://<container-ip>:4321
+```
 
-3. The installer will:
-   - Download the Gitea Mirror repository
-   - Install all dependencies including Bun
-   - Build the application
-   - Set up a systemd service
-   - Start the application
-   - Display access information
+---
 
-### Option 2: Manual Setup
+## 2. Local testing (LXD on a workstation, works offline)
 
-If you prefer to set up manually or the automatic script doesn't work for your environment:
+### Prerequisites
 
-1. Install dependencies:
-   ```bash
-   apt update
-   apt install -y curl git sqlite3 build-essential
-   ```
+* `lxd` installed (`sudo apt install lxd`; `lxd init --auto`)
+* Your repo cloned locally – e.g. `~/Development/gitea-mirror`
+* Bun ZIP downloaded once:
+  `https://github.com/oven-sh/bun/releases/latest/download/bun-linux-x64.zip`
 
-2. Install Bun:
-   ```bash
-   curl -fsSL https://bun.sh/install | bash
-   export BUN_INSTALL="/root/.bun"
-   export PATH="$BUN_INSTALL/bin:$PATH"
-   ```
+### Offline installer script
 
-3. Clone or copy your project:
-   ```bash
-   git clone https://github.com/yourusername/gitea-mirror.git /opt/gitea-mirror
-   cd /opt/gitea-mirror
-   ```
+```bash
+git clone https://github.com/arunavo4/gitea-mirror.git   # if not already
+curl -fsSL https://raw.githubusercontent.com/arunavo4/gitea-mirror/main/scripts/gitea-mirror-lxc-local.sh -o gitea-mirror-lxc-local.sh
+chmod +x gitea-mirror-lxc-local.sh
 
-4. Build and initialize:
-   ```bash
-   bun install
-   bun run build
-   bun run manage-db init
-   ```
+sudo LOCAL_REPO_DIR=~/Development/gitea-mirror \
+     ./gitea-mirror-lxc-local.sh
+```
 
-5. Create a systemd service manually:
-   ```bash
-   nano /etc/systemd/system/gitea-mirror.service
-   # Add the service configuration as shown below:
+What it does:
 
-   [Unit]
-   Description=Gitea Mirror
-   After=network.target
+* Launches privileged LXC `gitea-test` (`lxc launch ubuntu:22.04 ...`)
+* Pushes **Bun ZIP** + tarred **local repo** into `/opt`
+* Unpacks, builds, initializes DB
+* Symlinks both `bun` and `bunx` → `/usr/local/bin`
+* Creates a root systemd unit and starts it
 
-   [Service]
-   Type=simple
-   WorkingDirectory=/opt/gitea-mirror
-   ExecStart=/root/.bun/bin/bun dist/server/entry.mjs
-   Restart=on-failure
-   RestartSec=10
-   User=gitea-mirror
-   Group=gitea-mirror
-   Environment=NODE_ENV=production
-   Environment=HOST=0.0.0.0
-   Environment=PORT=4321
-   Environment=DATABASE_URL=file:data/gitea-mirror.db
-   Environment=JWT_SECRET=your-secure-secret-key
+Access from host:
 
-   [Install]
-   WantedBy=multi-user.target
-   ```
+```
+http://$(lxc exec gitea-test -- hostname -I | awk '{print $1}'):4321
+```
 
-   6. Enable and start the service:
-   ```bash
-   systemctl enable gitea-mirror.service
-   systemctl start gitea-mirror.service
-   ```
+(Optional) forward to host localhost:
+
+```bash
+sudo lxc config device add gitea-test mirror proxy \
+  listen=tcp:0.0.0.0:4321 connect=tcp:127.0.0.1:4321
+```
+
+---
+
+## Health-check endpoint
+
+Gitea Mirror includes a built-in health check endpoint at `/api/health` that provides:
+
+- System status and uptime
+- Database connectivity check
+- Memory usage statistics
+- Environment information
+
+You can use this endpoint for monitoring your deployment:
+
+```bash
+# Basic check (returns 200 OK if healthy)
+curl -I http://<container-ip>:4321/api/health
+
+# Detailed health information (JSON)
+curl http://<container-ip>:4321/api/health
+```
+
+---
+
+## Troubleshooting
+
+| Check          | Command                                               |
+| -------------- | ----------------------------------------------------- |
+| Service status | `systemctl status gitea-mirror`                       |
+| Live logs      | `journalctl -u gitea-mirror -f`                       |
+| Verify Bun     | `bun --version && bunx --version`                     |
+| DB perms       | `chown -R root:root /opt/gitea-mirror/data` (Proxmox) |
+
+---
 
 ## Connecting LXC and Docker Containers
 
@@ -121,32 +129,3 @@ If you need your LXC container to communicate with Docker containers:
    ```
 
 3. In Proxmox, edit the LXC container's network configuration to use this bridge.
-
-## Accessing the Application
-
-Once deployed, you can access the Gitea Mirror application at:
-```
-http://lxc-container-ip:4321
-```
-
-## Troubleshooting
-
-- Check service status:
-  ```bash
-  systemctl status gitea-mirror
-  ```
-
-- View logs:
-  ```bash
-  journalctl -u gitea-mirror -f
-  ```
-
-- If the service fails to start, check permissions on the data directory:
-  ```bash
-  chown -R gitea-mirror:gitea-mirror /opt/gitea-mirror/data
-  ```
-
-- Verify Bun is installed correctly:
-  ```bash
-  bun --version
-  ```

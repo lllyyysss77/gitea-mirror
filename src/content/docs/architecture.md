@@ -2,7 +2,7 @@
 title: "Architecture"
 description: "Comprehensive overview of the Gitea Mirror application architecture."
 order: 1
-updatedDate: 2023-10-15
+updatedDate: 2025-05-22
 ---
 
 <div class="mb-6">
@@ -21,17 +21,18 @@ The application is built using:
 - <span class="font-semibold text-foreground">Astro</span>: Web framework for the frontend
 - <span class="font-semibold text-foreground">React</span>: Component library for interactive UI elements
 - <span class="font-semibold text-foreground">Shadcn UI</span>: UI component library built on Tailwind CSS
-- <span class="font-semibold text-foreground">SQLite</span>: Database for storing configuration and state
+- <span class="font-semibold text-foreground">SQLite</span>: Database for storing configuration, state, and events
 - <span class="font-semibold text-foreground">Bun</span>: Runtime environment for the backend
+- <span class="font-semibold text-foreground">Drizzle ORM</span>: Type-safe ORM for database interactions
 
 ## Architecture Diagram
 
 ```mermaid
 graph TD
     subgraph "Gitea Mirror"
-        Frontend["Frontend<br/>(Astro)"]
+        Frontend["Frontend<br/>(Astro + React)"]
         Backend["Backend<br/>(Bun)"]
-        Database["Database<br/>(SQLite)"]
+        Database["Database<br/>(SQLite + Drizzle)"]
 
         Frontend <--> Backend
         Backend <--> Database
@@ -70,14 +71,15 @@ The backend is built with Bun and provides API endpoints for the frontend to int
 - Mirroring operations
 - Database interactions
 
-### Database (SQLite)
+### Database (SQLite + Drizzle ORM)
 
-SQLite is used for data persistence, storing:
+SQLite with Bun's native SQLite driver is used for data persistence, with Drizzle ORM providing type-safe database interactions. The database stores:
 
 - User accounts and authentication data
 - GitHub and Gitea configuration
 - Repository and organization information
 - Mirroring job history and status
+- Event notifications and their read status
 
 ## Data Flow
 
@@ -93,11 +95,30 @@ SQLite is used for data persistence, storing:
 gitea-mirror/
 ├── src/                  # Source code
 │   ├── components/       # React components
+│   ├── content/          # Documentation and content
 │   ├── layouts/          # Astro layout components
 │   ├── lib/              # Utility functions and database
 │   ├── pages/            # Astro pages and API routes
 │   └── styles/           # CSS and Tailwind styles
 ├── public/               # Static assets
 ├── data/                 # Database and persistent data
-└── docker/               # Docker configuration
+├── docker/               # Docker configuration
+└── scripts/              # Utility scripts for deployment and maintenance
+    ├── gitea-mirror-lxc-proxmox.sh  # Proxmox LXC deployment script
+    ├── gitea-mirror-lxc-local.sh    # Local LXC deployment script
+    └── manage-db.ts                 # Database management tool
 ```
+
+## Deployment Options
+
+Gitea Mirror supports multiple deployment options:
+
+1. **Docker**: Run as a containerized application using Docker and docker-compose
+2. **LXC Containers**: Deploy in Linux Containers (LXC) on Proxmox VE or local workstations
+3. **Native**: Run directly on the host system using Bun runtime
+
+Each deployment method has its own advantages:
+
+- **Docker**: Isolation, easy updates, consistent environment
+- **LXC**: Lightweight virtualization, better performance than Docker, system-level isolation
+- **Native**: Best performance, direct access to system resources

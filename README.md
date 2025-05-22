@@ -19,8 +19,12 @@ docker compose --profile production up -d
 # Using Bun
 bun run setup && bun run dev
 
-# Using LXC on Proxmox
-curl -fsSL https://raw.githubusercontent.com/arunavo4/gitea-mirror/main/scripts/gitea-mirror-lxc-installer.sh | bash
+# Using LXC Containers
+# For Proxmox VE (online)
+curl -fsSL https://raw.githubusercontent.com/arunavo4/gitea-mirror/main/scripts/gitea-mirror-lxc-proxmox.sh | bash
+
+# For local testing (offline-friendly)
+sudo LOCAL_REPO_DIR=~/Development/gitea-mirror ./scripts/gitea-mirror-lxc-local.sh
 ````
 
 See the [LXC Container Deployment Guide](scripts/README-lxc.md).
@@ -163,21 +167,37 @@ docker compose --profile production up -d
 
 See [Docker build documentation](./scripts/README-docker.md) for more details.
 
-##### Using LXC Containers (for Proxmox Homelab Setups)
+##### Using LXC Containers
 
-Gitea Mirror can be deployed on Proxmox LXC containers, which is ideal for homelab setups:
+Gitea Mirror offers two deployment options for LXC containers:
+
+**1. Proxmox VE (online, recommended for production)**
 
 ```bash
-# One-command installation on an Ubuntu 22.04 LXC container
-curl -fsSL https://raw.githubusercontent.com/arunavo4/gitea-mirror/main/scripts/gitea-mirror-lxc-installer.sh | bash
+# One-command installation on Proxmox VE
+# Optional env overrides: CTID HOSTNAME STORAGE DISK_SIZE CORES MEMORY BRIDGE IP_CONF
+curl -fsSL https://raw.githubusercontent.com/arunavo4/gitea-mirror/main/scripts/gitea-mirror-lxc-proxmox.sh | bash
 ```
 
-The installer script:
-- Downloads the Gitea Mirror repository
-- Installs all dependencies including Bun
-- Builds the application
-- Sets up a systemd service
-- Starts the application
+**2. Local testing (offline-friendly, works on developer laptops)**
+
+```bash
+# Download the script
+curl -fsSL https://raw.githubusercontent.com/arunavo4/gitea-mirror/main/scripts/gitea-mirror-lxc-local.sh -o gitea-mirror-lxc-local.sh
+chmod +x gitea-mirror-lxc-local.sh
+
+# Run with your local repo directory
+sudo LOCAL_REPO_DIR=~/Development/gitea-mirror ./gitea-mirror-lxc-local.sh
+```
+
+Both scripts:
+- Set up a privileged Ubuntu 22.04 LXC container
+- Install Bun runtime environment
+- Build the application
+- Configure a systemd service
+- Start the service automatically
+
+The application includes a health check endpoint at `/api/health` for monitoring.
 
 See the [LXC Container Deployment Guide](scripts/README-lxc.md) for detailed instructions.
 
@@ -379,7 +399,7 @@ docker compose -f docker-compose.dev.yml up -d
 - **Backend**: Bun
 - **Database**: SQLite (handles both data storage and event notifications)
 - **API Integration**: GitHub API (Octokit), Gitea API
-- **Deployment Options**: Docker containers, Proxmox LXC containers
+- **Deployment Options**: Docker containers, LXC containers (Proxmox VE and local testing)
 
 ## Contributing
 
