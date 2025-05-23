@@ -2,7 +2,7 @@
 
 FROM oven/bun:1.2.9-alpine AS base
 WORKDIR /app
-RUN apk add --no-cache libc6-compat python3 make g++ gcc wget sqlite openssl
+RUN apk add --no-cache libc6-compat python3 make g++ gcc wget sqlite openssl cron
 
 # ----------------------------
 FROM base AS deps

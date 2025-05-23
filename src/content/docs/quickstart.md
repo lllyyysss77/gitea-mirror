@@ -37,7 +37,7 @@ Docker provides the easiest way to get started with minimal configuration.
 
 2. Start the application in production mode:
    ```bash
-   docker-compose --profile production up -d
+   docker compose up -d
    ```
 
 3. Access the application at [http://localhost:4321](http://localhost:4321)

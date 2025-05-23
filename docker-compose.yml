@@ -1,8 +1,7 @@
 # Gitea Mirror deployment configuration
-# - production: Standard deployment with real data
+# Standard deployment with automatic database maintenance
 
 services:
-  # Production service with real data
   gitea-mirror:
     image: ${DOCKER_REGISTRY:-ghcr.io}/${DOCKER_IMAGE:-arunavo4/gitea-mirror}:${DOCKER_TAG:-latest}
     build:
@@ -42,13 +41,15 @@ services:
       - GITEA_ORGANIZATION=${GITEA_ORGANIZATION:-github-mirrors}
       - GITEA_ORG_VISIBILITY=${GITEA_ORG_VISIBILITY:-public}
       - DELAY=${DELAY:-3600}
+      # Database maintenance settings
+      - EVENTS_RETENTION_DAYS=${EVENTS_RETENTION_DAYS:-7}
+      - JOBS_RETENTION_DAYS=${JOBS_RETENTION_DAYS:-7}
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=3", "--spider", "http://localhost:4321/api/health"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 15s
-    profiles: ["production"]
 
 # Define named volumes for database persistence
 volumes:

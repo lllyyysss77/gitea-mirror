@@ -80,7 +80,7 @@ bun scripts/cleanup-events.ts
 bun scripts/cleanup-events.ts 14
 ```
 
-This script can be scheduled to run periodically (e.g., daily) using cron or another scheduler.
+This script can be scheduled to run periodically (e.g., daily) using cron or another scheduler. When using Docker, this is automatically scheduled to run daily.
 
 ### Mark Events as Read (mark-events-read.ts)
 
@@ -93,6 +93,20 @@ bun scripts/mark-events-read.ts
 ### Make Events Appear Older (make-events-old.ts)
 
 For testing purposes, this script modifies event timestamps to make them appear older.
+
+### Mirror Jobs Cleanup (cleanup-mirror-jobs.ts)
+
+Removes old mirror jobs from the database to prevent it from growing too large.
+
+```bash
+# Remove mirror jobs older than 7 days (default)
+bun scripts/cleanup-mirror-jobs.ts
+
+# Remove mirror jobs older than X days
+bun scripts/cleanup-mirror-jobs.ts 14
+```
+
+This script can be scheduled to run periodically (e.g., daily) using cron or another scheduler. When using Docker, this is automatically scheduled to run daily.
 
 ```bash
 bun scripts/make-events-old.ts

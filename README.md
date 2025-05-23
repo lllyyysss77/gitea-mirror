@@ -14,7 +14,7 @@
 
 ```bash
 # Using Docker (recommended)
-docker compose --profile production up -d
+docker compose up -d
 
 # Using Bun
 bun run setup && bun run dev
@@ -115,7 +115,7 @@ Gitea Mirror provides multi-architecture Docker images that work on both ARM64 (
 
 ```bash
 # Start the application using Docker Compose
-docker compose --profile production up -d
+docker compose up -d
 
 # For development mode (requires configuration)
 # Ensure you have run bun run setup first
@@ -162,7 +162,7 @@ cp .env.example .env
 ./scripts/build-docker.sh --push
 
 # Then run with Docker Compose
-docker compose --profile production up -d
+docker compose up -d
 ```
 
 See [Docker build documentation](./scripts/README-docker.md) for more details.
@@ -470,7 +470,7 @@ Try the following steps:
 >   ghcr.io/arunavo4/gitea-mirror:latest
 > ```
 >
-> For homelab/self-hosted setups, you can use the provided Docker Compose file with automatic event cleanup:
+> For homelab/self-hosted setups, you can use the standard Docker Compose file which includes automatic database cleanup:
 >
 > ```bash
 > # Clone the repository
@@ -478,10 +478,10 @@ Try the following steps:
 > cd gitea-mirror
 >
 > # Start the application with Docker Compose
-> docker-compose -f docker-compose.homelab.yml up -d
+> docker compose up -d
 > ```
 >
-> This setup includes a cron job that runs daily to clean up old events and prevent the database from growing too large.
+> This setup includes automatic database maintenance that runs daily to clean up old events and mirror jobs, preventing the database from growing too large. You can customize the retention periods by setting the `EVENTS_RETENTION_DAYS` and `JOBS_RETENTION_DAYS` environment variables.
 
 
 #### Database Maintenance
@@ -504,14 +504,29 @@ Try the following steps:
 >
 > # Clean up old events with custom retention period (e.g., 30 days)
 > bun run cleanup-events 30
+>
+> # Clean up old mirror jobs (keeps last 7 days by default)
+> bun run cleanup-jobs
+>
+> # Clean up old mirror jobs with custom retention period (e.g., 30 days)
+> bun run cleanup-jobs 30
+>
+> # Clean up both events and mirror jobs
+> bun run cleanup-all
 > ```
 >
-> For automated maintenance, consider setting up a cron job to run the cleanup script periodically:
+> For automated maintenance, consider setting up cron jobs to run the cleanup scripts periodically:
 >
 > ```bash
-> # Add this to your crontab (runs daily at 2 AM)
+> # Add these to your crontab
+> # Clean up events daily at 2 AM
 > 0 2 * * * cd /path/to/gitea-mirror && bun run cleanup-events
+>
+> # Clean up mirror jobs daily at 3 AM
+> 0 3 * * * cd /path/to/gitea-mirror && bun run cleanup-jobs
 > ```
+>
+> **Note:** When using Docker, these cleanup jobs are automatically scheduled inside the container with the default retention period of 7 days. You can customize the retention periods by setting the `EVENTS_RETENTION_DAYS` and `JOBS_RETENTION_DAYS` environment variables in your docker-compose file.
 
 
 > [!NOTE]

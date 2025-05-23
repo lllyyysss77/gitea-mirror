@@ -18,6 +18,8 @@
     "fix-db": "bun scripts/manage-db.ts fix",
     "reset-users": "bun scripts/manage-db.ts reset-users",
     "cleanup-events": "bun scripts/cleanup-events.ts",
+    "cleanup-jobs": "bun scripts/cleanup-mirror-jobs.ts",
+    "cleanup-all": "bun scripts/cleanup-events.ts && bun scripts/cleanup-mirror-jobs.ts",
     "preview": "bunx --bun astro preview",
     "start": "bun dist/server/entry.mjs",
     "start:fresh": "bun run cleanup-db && bun run manage-db init && bun run update-db && bun dist/server/entry.mjs",

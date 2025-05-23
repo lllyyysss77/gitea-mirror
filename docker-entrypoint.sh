@@ -30,6 +30,25 @@ if [ "$JWT_SECRET" = "your-secret-key-change-this-in-production" ] || [ -z "$JWT
   echo "JWT_SECRET has been set to a secure random value"
 fi
 
+# Set up automatic database cleanup cron job
+# Default to 7 days retention for events and mirror jobs unless specified by environment variables
+EVENTS_RETENTION_DAYS=${EVENTS_RETENTION_DAYS:-7}
+JOBS_RETENTION_DAYS=${JOBS_RETENTION_DAYS:-7}
+
+# Create cron directory if it doesn't exist
+mkdir -p /app/data/cron
+
+# Create the cron job file
+cat > /app/data/cron/cleanup-cron <<EOF
+# Run event cleanup daily at 2 AM
+0 2 * * * cd /app && bun dist/scripts/cleanup-events.js ${EVENTS_RETENTION_DAYS} >> /app/data/cleanup-events.log 2>&1
+
+# Run mirror jobs cleanup daily at 3 AM
+0 3 * * * cd /app && bun dist/scripts/cleanup-mirror-jobs.js ${JOBS_RETENTION_DAYS} >> /app/data/cleanup-mirror-jobs.log 2>&1
+
+# Empty line at the end is required for cron to work properly
+EOF
+
 # Skip dependency installation entirely for pre-built images
 # Dependencies are already installed during the Docker build process
 
@@ -202,6 +221,33 @@ fi
 if [ -f "package.json" ]; then
   export npm_package_version=$(grep -o '"version": *"[^"]*"' package.json | cut -d'"' -f4)
   echo "Setting application version: $npm_package_version"
+fi
+
+# Set up cron if it's available
+if command -v crontab >/dev/null 2>&1; then
+  echo "Setting up automatic database cleanup cron jobs..."
+  # Install cron if not already installed
+  if ! command -v cron >/dev/null 2>&1; then
+    echo "Installing cron..."
+    apt-get update && apt-get install -y cron
+  fi
+
+  # Install the cron job
+  crontab /app/data/cron/cleanup-cron
+
+  # Start cron service
+  if command -v service >/dev/null 2>&1; then
+    service cron start
+    echo "Cron service started"
+  elif command -v cron >/dev/null 2>&1; then
+    cron
+    echo "Cron daemon started"
+  else
+    echo "Warning: Could not start cron service. Automatic database cleanup will not run."
+  fi
+else
+  echo "Warning: crontab command not found. Automatic database cleanup will not be set up."
+  echo "Consider setting up external scheduled tasks to run cleanup scripts."
 fi
 
 # Start the application

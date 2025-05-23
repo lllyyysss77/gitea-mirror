@@ -153,9 +153,17 @@ bun scripts/check-events.ts
 # Clean up old events (default: older than 7 days)
 bun scripts/cleanup-events.ts
 
+# Clean up old mirror jobs (default: older than 7 days)
+bun scripts/cleanup-mirror-jobs.ts
+
+# Clean up both events and mirror jobs
+bun run cleanup-all
+
 # Mark all events as read
 bun scripts/mark-events-read.ts
 ```
+
+When using Docker, database cleanup is automatically scheduled to run daily. You can customize the retention periods by setting the `EVENTS_RETENTION_DAYS` and `JOBS_RETENTION_DAYS` environment variables in your docker-compose file.
 
 ### Health Check Endpoint
 

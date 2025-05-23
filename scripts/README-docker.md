@@ -47,12 +47,12 @@ The script uses environment variables from the `.env` file in the project root:
 
    # First build the image
    ./scripts/build-docker.sh --load
-   
+
    # Then run using docker-compose for development
    docker-compose -f ../docker-compose.dev.yml up -d
 
    # Or for production
-   docker-compose --profile production up -d
+   docker compose up -d
    ```
 
 ## Diagnostics Script
