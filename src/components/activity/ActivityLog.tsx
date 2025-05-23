@@ -1,52 +1,70 @@
-import { useCallback, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Search, Download, RefreshCw, ChevronDown } from "lucide-react";
+import { useCallback, useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { ChevronDown, Download, RefreshCw, Search } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
-import { apiRequest, formatDate } from "@/lib/utils";
-import { useAuth } from "@/hooks/useAuth";
-import type { MirrorJob } from "@/lib/db/schema";
-import type { ActivityApiResponse } from "@/types/activities";
+} from '../ui/dropdown-menu';
+import { apiRequest, formatDate } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
+import type { MirrorJob } from '@/lib/db/schema';
+import type { ActivityApiResponse } from '@/types/activities';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../ui/select";
-import { repoStatusEnum, type RepoStatus } from "@/types/Repository";
-import ActivityList from "./ActivityList";
-import { ActivityNameCombobox } from "./ActivityNameCombobox";
-import { useSSE } from "@/hooks/useSEE";
-import { useFilterParams } from "@/hooks/useFilterParams";
-import { toast } from "sonner";
+} from '../ui/select';
+import { repoStatusEnum, type RepoStatus } from '@/types/Repository';
+import ActivityList from './ActivityList';
+import { ActivityNameCombobox } from './ActivityNameCombobox';
+import { useSSE } from '@/hooks/useSEE';
+import { useFilterParams } from '@/hooks/useFilterParams';
+import { toast } from 'sonner';
+
+type MirrorJobWithKey = MirrorJob & { _rowKey: string };
+
+function genKey(job: MirrorJob): string {
+  return `${
+    job.id ?? (typeof crypto !== 'undefined'
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2))
+  }-${job.timestamp}`;
+}
 
 export function ActivityLog() {
   const { user } = useAuth();
-  const [activities, setActivities] = useState<MirrorJob[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const [activities, setActivities] = useState<MirrorJobWithKey[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
   const { filter, setFilter } = useFilterParams({
-    searchTerm: "",
-    status: "",
-    type: "",
-    name: "",
+    searchTerm: '',
+    status: '',
+    type: '',
+    name: '',
   });
 
-  const handleNewMessage = useCallback((data: MirrorJob) => {
-    setActivities((prevActivities) => [data, ...prevActivities]);
+  /* ----------------------------- SSE hook ----------------------------- */
 
-    console.log("Received new log:", data);
+  const handleNewMessage = useCallback((data: MirrorJob) => {
+    const withKey: MirrorJobWithKey = {
+      ...structuredClone(data),
+      _rowKey: genKey(data),
+    };
+
+    setActivities((prev) => [withKey, ...prev]);
   }, []);
 
-  // Use the SSE hook
   const { connected } = useSSE({
     userId: user?.id,
     onMessage: handleNewMessage,
   });
+
+  /* ------------------------- initial fetch --------------------------- */
 
   const fetchActivities = useCallback(async () => {
     if (!user) return false;
@@ -54,23 +72,26 @@ export function ActivityLog() {
     try {
       setIsLoading(true);
 
-      const response = await apiRequest<ActivityApiResponse>(
+      const res = await apiRequest<ActivityApiResponse>(
         `/activities?userId=${user.id}`,
-        {
-          method: "GET",
-        }
+        { method: 'GET' },
       );
 
-      if (response.success) {
-        setActivities(response.activities);
-        return true;
-      } else {
-        toast.error(response.message || "Failed to fetch activities.");
+      if (!res.success) {
+        toast.error(res.message ?? 'Failed to fetch activities.');
         return false;
       }
-    } catch (error) {
+
+      const data: MirrorJobWithKey[] = res.activities.map((a) => ({
+        ...structuredClone(a),
+        _rowKey: genKey(a),
+      }));
+
+      setActivities(data);
+      return true;
+    } catch (err) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to fetch activities."
+        err instanceof Error ? err.message : 'Failed to fetch activities.',
       );
       return false;
     } finally {
@@ -82,208 +103,167 @@ export function ActivityLog() {
     fetchActivities();
   }, [fetchActivities]);
 
-  const handleRefreshActivities = async () => {
-    const success = await fetchActivities();
-    if (success) {
-      toast.success("Activities refreshed successfully.");
-    }
-  };
+  /* ---------------------- filtering + exporting ---------------------- */
 
-  // Get the currently filtered activities
-  const getFilteredActivities = () => {
-    return activities.filter(activity => {
-      let isIncluded = true;
+  const applyLightFilter = (list: MirrorJobWithKey[]) => {
+    return list.filter((a) => {
+      if (filter.status && a.status !== filter.status) return false;
 
-      if (filter.status) {
-        isIncluded = isIncluded && activity.status === filter.status;
+      if (filter.type === 'repository' && !a.repositoryId) return false;
+      if (filter.type === 'organization' && !a.organizationId) return false;
+
+      if (
+        filter.name &&
+        a.repositoryName !== filter.name &&
+        a.organizationName !== filter.name
+      ) {
+        return false;
       }
 
-      if (filter.type) {
-        if (filter.type === 'repository') {
-          isIncluded = isIncluded && !!activity.repositoryId;
-        } else if (filter.type === 'organization') {
-          isIncluded = isIncluded && !!activity.organizationId;
-        }
-      }
-
-      if (filter.name) {
-        isIncluded = isIncluded && (
-          activity.repositoryName === filter.name ||
-          activity.organizationName === filter.name
-        );
-      }
-
-      // Note: We're not applying the search term filter here as that would require
-      // re-implementing the Fuse.js search logic
-
-      return isIncluded;
+      return true;
     });
   };
 
-  // Function to export activities as CSV
   const exportAsCSV = () => {
-    const filteredActivities = getFilteredActivities();
+    const rows = applyLightFilter(activities);
+    if (!rows.length) return toast.error('No activities to export.');
 
-    if (filteredActivities.length === 0) {
-      toast.error("No activities to export.");
-      return;
-    }
-
-    // Create CSV content
-    const headers = ["Timestamp", "Message", "Status", "Repository", "Organization", "Details"];
-    const csvRows = [
-      headers.join(","),
-      ...filteredActivities.map(activity => {
-        const formattedDate = formatDate(activity.timestamp);
-        // Escape fields that might contain commas or quotes
-        const escapeCsvField = (field: string | null | undefined) => {
-          if (!field) return '';
-          if (field.includes(',') || field.includes('"') || field.includes('\n')) {
-            return `"${field.replace(/"/g, '""')}"`;
-          }
-          return field;
-        };
-
-        return [
-          formattedDate,
-          escapeCsvField(activity.message),
-          activity.status,
-          escapeCsvField(activity.repositoryName || ''),
-          escapeCsvField(activity.organizationName || ''),
-          escapeCsvField(activity.details || '')
-        ].join(',');
-      })
+    const headers = [
+      'Timestamp',
+      'Message',
+      'Status',
+      'Repository',
+      'Organization',
+      'Details',
     ];
 
-    const csvContent = csvRows.join('\n');
+    const escape = (v: string | null | undefined) =>
+      v && /[,\"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v ?? '';
 
-    // Download the CSV file
-    downloadFile(csvContent, 'text/csv;charset=utf-8;', 'activity_log_export.csv');
+    const csv = [
+      headers.join(','),
+      ...rows.map((a) =>
+        [
+          formatDate(a.timestamp),
+          escape(a.message),
+          a.status,
+          escape(a.repositoryName),
+          escape(a.organizationName),
+          escape(a.details),
+        ].join(','),
+      ),
+    ].join('\n');
 
-    toast.success("Activity log exported as CSV successfully.");
+    downloadFile(csv, 'text/csv;charset=utf-8;', 'activity_log_export.csv');
+    toast.success('CSV exported.');
   };
 
-  // Function to export activities as JSON
   const exportAsJSON = () => {
-    const filteredActivities = getFilteredActivities();
+    const rows = applyLightFilter(activities);
+    if (!rows.length) return toast.error('No activities to export.');
 
-    if (filteredActivities.length === 0) {
-      toast.error("No activities to export.");
-      return;
-    }
+    const json = JSON.stringify(
+      rows.map((a) => ({
+        ...a,
+        formattedTime: formatDate(a.timestamp),
+      })),
+      null,
+      2,
+    );
 
-    // Format the activities for export (removing any sensitive or unnecessary fields if needed)
-    const activitiesForExport = filteredActivities.map(activity => ({
-      id: activity.id,
-      timestamp: activity.timestamp,
-      formattedTime: formatDate(activity.timestamp),
-      message: activity.message,
-      status: activity.status,
-      repositoryId: activity.repositoryId,
-      repositoryName: activity.repositoryName,
-      organizationId: activity.organizationId,
-      organizationName: activity.organizationName,
-      details: activity.details
-    }));
-
-    const jsonContent = JSON.stringify(activitiesForExport, null, 2);
-
-    // Download the JSON file
-    downloadFile(jsonContent, 'application/json', 'activity_log_export.json');
-
-    toast.success("Activity log exported as JSON successfully.");
+    downloadFile(json, 'application/json', 'activity_log_export.json');
+    toast.success('JSON exported.');
   };
 
-  // Generic function to download a file
-  const downloadFile = (content: string, mimeType: string, filename: string) => {
-    // Add date to filename
-    const date = new Date();
-    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    const filenameWithDate = filename.replace('.', `_${dateStr}.`);
-
-    // Create a download link
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
+  const downloadFile = (
+    content: string,
+    mime: string,
+    filename: string,
+  ): void => {
+    const date = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
     const link = document.createElement('a');
-
-    link.href = url;
-    link.setAttribute('download', filenameWithDate);
-    document.body.appendChild(link);
+    link.href = URL.createObjectURL(new Blob([content], { type: mime }));
+    link.download = filename.replace('.', `_${date}.`);
     link.click();
-    document.body.removeChild(link);
   };
+
+  /* ------------------------------ UI ------------------------------ */
 
   return (
-    <div className="flex flex-col gap-y-8">
-      <div className="flex flex-row items-center gap-4 w-full">
-        <div className="relative flex-1">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+    <div className='flex flex-col gap-y-8'>
+      <div className='flex w-full flex-row items-center gap-4'>
+        {/* search input */}
+        <div className='relative flex-1'>
+          <Search className='absolute left-2 top-2.5 h-4 w-4 text-muted-foreground' />
           <input
-            type="text"
-            placeholder="Search activities..."
-            className="pl-8 h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            type='text'
+            placeholder='Search activities...'
+            className='h-9 w-full rounded-md border border-input bg-background px-3 py-1 pl-8 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
             value={filter.searchTerm}
             onChange={(e) =>
-              setFilter((prev) => ({ ...prev, searchTerm: e.target.value }))
+              setFilter((prev) => ({
+                ...prev,
+                searchTerm: e.target.value,
+              }))
             }
           />
         </div>
+
+        {/* status select */}
         <Select
-          value={filter.status || "all"}
-          onValueChange={(value) =>
-            setFilter((prev) => ({
-              ...prev,
-              status: value === "all" ? "" : (value as RepoStatus),
+          value={filter.status || 'all'}
+          onValueChange={(v) =>
+            setFilter((p) => ({
+              ...p,
+              status: v === 'all' ? '' : (v as RepoStatus),
             }))
           }
         >
-          <SelectTrigger className="w-[140px] h-9 max-h-9">
-            <SelectValue placeholder="All Status" />
+          <SelectTrigger className='h-9 w-[140px] max-h-9'>
+            <SelectValue placeholder='All Status' />
           </SelectTrigger>
           <SelectContent>
-            {["all", ...repoStatusEnum.options].map((status) => (
-              <SelectItem key={status} value={status}>
-                {status === "all"
-                  ? "All Status"
-                  : status.charAt(0).toUpperCase() + status.slice(1)}
+            {['all', ...repoStatusEnum.options].map((s) => (
+              <SelectItem key={s} value={s}>
+                {s === 'all' ? 'All Status' : s[0].toUpperCase() + s.slice(1)}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
 
-        {/* Repository/Organization Name Combobox */}
+        {/* repo/org name combobox */}
         <ActivityNameCombobox
           activities={activities}
-          value={filter.name || ""}
-          onChange={(name: string) => setFilter((prev) => ({ ...prev, name }))}
+          value={filter.name || ''}
+          onChange={(name) => setFilter((p) => ({ ...p, name }))}
         />
-        {/* Filter by type: repository/org/all */}
+
+        {/* type select */}
         <Select
-          value={filter.type || "all"}
-          onValueChange={(value) =>
-            setFilter((prev) => ({
-              ...prev,
-              type: value === "all" ? "" : value,
-            }))
+          value={filter.type || 'all'}
+          onValueChange={(v) =>
+            setFilter((p) => ({ ...p, type: v === 'all' ? '' : v }))
           }
         >
-          <SelectTrigger className="w-[140px] h-9 max-h-9">
-            <SelectValue placeholder="All Types" />
+          <SelectTrigger className='h-9 w-[140px] max-h-9'>
+            <SelectValue placeholder='All Types' />
           </SelectTrigger>
           <SelectContent>
-            {['all', 'repository', 'organization'].map((type) => (
-              <SelectItem key={type} value={type}>
-                {type === 'all' ? 'All Types' : type.charAt(0).toUpperCase() + type.slice(1)}
+            {['all', 'repository', 'organization'].map((t) => (
+              <SelectItem key={t} value={t}>
+                {t === 'all' ? 'All Types' : t[0].toUpperCase() + t.slice(1)}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+
+        {/* export dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="flex items-center gap-1">
-              <Download className="h-4 w-4 mr-1" />
+            <Button variant='outline' className='flex items-center gap-1'>
+              <Download className='mr-1 h-4 w-4' />
               Export
-              <ChevronDown className="h-4 w-4 ml-1" />
+              <ChevronDown className='ml-1 h-4 w-4' />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
@@ -295,19 +275,21 @@ export function ActivityLog() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button onClick={handleRefreshActivities}>
-          <RefreshCw className="h-4 w-4 mr-2" />
+
+        {/* refresh */}
+        <Button onClick={() => fetchActivities()}>
+          <RefreshCw className='mr-2 h-4 w-4' />
           Refresh
         </Button>
       </div>
-      <div className="flex flex-col gap-y-6">
-        <ActivityList
-          activities={activities}
-          isLoading={isLoading || !connected}
-          filter={filter}
-          setFilter={setFilter}
-        />
-      </div>
+
+      {/* activity list */}
+      <ActivityList
+        activities={applyLightFilter(activities)}
+        isLoading={isLoading || !connected}
+        filter={filter}
+        setFilter={setFilter}
+      />
     </div>
   );
 }
