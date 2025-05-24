@@ -6,14 +6,14 @@ import { eq } from "drizzle-orm";
 export const POST: APIRoute = async ({ request }) => {
   try {
     const body = await request.json();
-    const { userId, githubConfig, giteaConfig, scheduleConfig } = body;
+    const { userId, githubConfig, giteaConfig, scheduleConfig, cleanupConfig } = body;
 
-    if (!userId || !githubConfig || !giteaConfig || !scheduleConfig) {
+    if (!userId || !githubConfig || !giteaConfig || !scheduleConfig || !cleanupConfig) {
       return new Response(
         JSON.stringify({
           success: false,
           message:
-            "userId, githubConfig, giteaConfig, and scheduleConfig are required.",
+            "userId, githubConfig, giteaConfig, scheduleConfig, and cleanupConfig are required.",
         }),
         {
           status: 400,
@@ -64,6 +64,7 @@ export const POST: APIRoute = async ({ request }) => {
           githubConfig,
           giteaConfig,
           scheduleConfig,
+          cleanupConfig,
           updatedAt: new Date(),
         })
         .where(eq(configs.id, existingConfig.id));
@@ -113,6 +114,7 @@ export const POST: APIRoute = async ({ request }) => {
       include: [],
       exclude: [],
       scheduleConfig,
+      cleanupConfig,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -194,6 +196,12 @@ export const GET: APIRoute = async ({ request }) => {
           scheduleConfig: {
             enabled: false,
             interval: 3600,
+            lastRun: null,
+            nextRun: null,
+          },
+          cleanupConfig: {
+            enabled: false,
+            retentionDays: 7,
             lastRun: null,
             nextRun: null,
           },

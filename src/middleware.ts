@@ -1,9 +1,11 @@
 import { defineMiddleware } from 'astro:middleware';
 import { initializeRecovery, hasJobsNeedingRecovery, getRecoveryStatus } from './lib/recovery';
+import { startCleanupService } from './lib/cleanup-service';
 
 // Flag to track if recovery has been initialized
 let recoveryInitialized = false;
 let recoveryAttempted = false;
+let cleanupServiceStarted = false;
 
 export const onRequest = defineMiddleware(async (context, next) => {
   // Initialize recovery system only once when the server starts
@@ -50,6 +52,18 @@ export const onRequest = defineMiddleware(async (context, next) => {
       console.log('Recovery status:', status);
 
       recoveryInitialized = true; // Mark as attempted to avoid retries
+    }
+  }
+
+  // Start cleanup service only once after recovery is complete
+  if (recoveryInitialized && !cleanupServiceStarted) {
+    try {
+      console.log('Starting automatic database cleanup service...');
+      startCleanupService();
+      cleanupServiceStarted = true;
+    } catch (error) {
+      console.error('Failed to start cleanup service:', error);
+      // Don't fail the request if cleanup service fails to start
     }
   }
 

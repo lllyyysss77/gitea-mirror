@@ -81,6 +81,7 @@ export const events = sqliteTable("events", {
 const githubSchema = configSchema.shape.githubConfig;
 const giteaSchema = configSchema.shape.giteaConfig;
 const scheduleSchema = configSchema.shape.scheduleConfig;
+const cleanupSchema = configSchema.shape.cleanupConfig;
 
 export const configs = sqliteTable("configs", {
   id: text("id").primaryKey(),
@@ -110,6 +111,10 @@ export const configs = sqliteTable("configs", {
 
   scheduleConfig: text("schedule_config", { mode: "json" })
     .$type<z.infer<typeof scheduleSchema>>()
+    .notNull(),
+
+  cleanupConfig: text("cleanup_config", { mode: "json" })
+    .$type<z.infer<typeof cleanupSchema>>()
     .notNull(),
 
   createdAt: integer("created_at", { mode: "timestamp" })

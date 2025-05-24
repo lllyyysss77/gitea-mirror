@@ -18,6 +18,13 @@ export interface ScheduleConfig {
   nextRun?: Date;
 }
 
+export interface DatabaseCleanupConfig {
+  enabled: boolean;
+  retentionDays: number;
+  lastRun?: Date;
+  nextRun?: Date;
+}
+
 export interface GitHubConfig {
   username: string;
   token: string;
@@ -34,6 +41,7 @@ export interface SaveConfigApiRequest {
   githubConfig: GitHubConfig;
   giteaConfig: GiteaConfig;
   scheduleConfig: ScheduleConfig;
+  cleanupConfig: DatabaseCleanupConfig;
 }
 
 export interface SaveConfigApiResponse {
@@ -55,6 +63,7 @@ export interface ConfigApiResponse {
   githubConfig: GitHubConfig;
   giteaConfig: GiteaConfig;
   scheduleConfig: ScheduleConfig;
+  cleanupConfig: DatabaseCleanupConfig;
   include: string[];
   exclude: string[];
   createdAt: Date;

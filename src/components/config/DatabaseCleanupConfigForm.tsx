@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "../ui/checkbox";
-import type { ScheduleConfig } from "@/types/config";
+import type { DatabaseCleanupConfig } from "@/types/config";
 import { formatDate } from "@/lib/utils";
 import {
   Select,
@@ -9,21 +9,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Database } from "lucide-react";
 
-interface ScheduleConfigFormProps {
-  config: ScheduleConfig;
-  setConfig: React.Dispatch<React.SetStateAction<ScheduleConfig>>;
-  onAutoSave?: (config: ScheduleConfig) => void;
+interface DatabaseCleanupConfigFormProps {
+  config: DatabaseCleanupConfig;
+  setConfig: React.Dispatch<React.SetStateAction<DatabaseCleanupConfig>>;
+  onAutoSave?: (config: DatabaseCleanupConfig) => void;
   isAutoSaving?: boolean;
 }
 
-export function ScheduleConfigForm({
+export function DatabaseCleanupConfigForm({
   config,
   setConfig,
   onAutoSave,
   isAutoSaving = false,
-}: ScheduleConfigFormProps) {
+}: DatabaseCleanupConfigFormProps) {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -35,25 +35,21 @@ export function ScheduleConfigForm({
     };
     setConfig(newConfig);
 
-    // Trigger auto-save for schedule config changes
+    // Trigger auto-save for cleanup config changes
     if (onAutoSave) {
       onAutoSave(newConfig);
     }
   };
 
-  // Predefined intervals
-  const intervals: { value: number; label: string }[] = [
-    // { value: 120, label: "2 minutes" }, //for testing
-    { value: 900, label: "15 minutes" },
-    { value: 1800, label: "30 minutes" },
-    { value: 3600, label: "1 hour" },
-    { value: 7200, label: "2 hours" },
-    { value: 14400, label: "4 hours" },
-    { value: 28800, label: "8 hours" },
-    { value: 43200, label: "12 hours" },
-    { value: 86400, label: "1 day" },
-    { value: 172800, label: "2 days" },
-    { value: 604800, label: "1 week" },
+  // Predefined retention periods
+  const retentionOptions: { value: number; label: string }[] = [
+    { value: 1, label: "1 day" },
+    { value: 3, label: "3 days" },
+    { value: 7, label: "7 days" },
+    { value: 14, label: "14 days" },
+    { value: 30, label: "30 days" },
+    { value: 60, label: "60 days" },
+    { value: 90, label: "90 days" },
   ];
 
   return (
@@ -68,7 +64,7 @@ export function ScheduleConfigForm({
         <div className="flex flex-col gap-y-4">
           <div className="flex items-center">
             <Checkbox
-              id="enabled"
+              id="cleanup-enabled"
               name="enabled"
               checked={config.enabled}
               onCheckedChange={(checked) =>
@@ -83,49 +79,49 @@ export function ScheduleConfigForm({
               }
             />
             <label
-              htmlFor="enabled"
+              htmlFor="cleanup-enabled"
               className="select-none ml-2 block text-sm font-medium"
             >
-              Enable Automatic Mirroring
+              <div className="flex items-center gap-2">
+                <Database className="h-4 w-4" />
+                Enable Automatic Database Cleanup
+              </div>
             </label>
           </div>
 
           {config.enabled && (
             <div>
-              <label
-                htmlFor="interval"
-                className="block text-sm font-medium mb-1.5"
-              >
-                Mirroring Interval
+              <label className="block text-sm font-medium mb-2">
+                Retention Period
               </label>
 
               <Select
-                name="interval"
-                value={String(config.interval)}
+                name="retentionDays"
+                value={String(config.retentionDays)}
                 onValueChange={(value) =>
                   handleChange({
-                    target: { name: "interval", value },
+                    target: { name: "retentionDays", value },
                   } as React.ChangeEvent<HTMLInputElement>)
                 }
               >
                 <SelectTrigger className="w-full border border-input dark:bg-background dark:hover:bg-background">
-                  <SelectValue placeholder="Select interval" />
+                  <SelectValue placeholder="Select retention period" />
                 </SelectTrigger>
                 <SelectContent className="bg-background text-foreground border border-input shadow-sm">
-                  {intervals.map((interval) => (
+                  {retentionOptions.map((option) => (
                     <SelectItem
-                      key={interval.value}
-                      value={interval.value.toString()}
+                      key={option.value}
+                      value={option.value.toString()}
                       className="cursor-pointer text-sm px-3 py-2 hover:bg-accent focus:bg-accent focus:text-accent-foreground"
                     >
-                      {interval.label}
+                      {option.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
 
               <p className="text-xs text-muted-foreground mt-1">
-                How often the mirroring process should run.
+                Activities and events older than this period will be automatically deleted.
               </p>
             </div>
           )}

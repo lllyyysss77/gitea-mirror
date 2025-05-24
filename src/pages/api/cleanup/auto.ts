@@ -1,0 +1,72 @@
+/**
+ * API endpoint to manually trigger automatic cleanup
+ * This is useful for testing and debugging the cleanup service
+ */
+
+import type { APIRoute } from 'astro';
+import { runAutomaticCleanup } from '@/lib/cleanup-service';
+
+export const POST: APIRoute = async ({ request }) => {
+  try {
+    console.log('Manual cleanup trigger requested');
+    
+    // Run the automatic cleanup
+    const results = await runAutomaticCleanup();
+    
+    // Calculate totals
+    const totalEventsDeleted = results.reduce((sum, result) => sum + result.eventsDeleted, 0);
+    const totalJobsDeleted = results.reduce((sum, result) => sum + result.mirrorJobsDeleted, 0);
+    const errors = results.filter(result => result.error);
+    
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: 'Automatic cleanup completed',
+        results: {
+          usersProcessed: results.length,
+          totalEventsDeleted,
+          totalJobsDeleted,
+          errors: errors.length,
+          details: results,
+        },
+      }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+  } catch (error) {
+    console.error('Error in manual cleanup trigger:', error);
+    
+    return new Response(
+      JSON.stringify({
+        success: false,
+        message: 'Failed to run automatic cleanup',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }),
+      {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+  }
+};
+
+export const GET: APIRoute = async () => {
+  return new Response(
+    JSON.stringify({
+      success: false,
+      message: 'Use POST method to trigger cleanup',
+    }),
+    {
+      status: 405,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+};

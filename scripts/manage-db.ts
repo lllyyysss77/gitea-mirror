@@ -197,6 +197,33 @@ async function ensureTablesExist() {
       process.exit(1);
     }
   }
+
+  // Migration: Add cleanup_config column to existing configs table
+  try {
+    const db = new Database(dbPath);
+
+    // Check if cleanup_config column exists
+    const tableInfo = db.query(`PRAGMA table_info(configs)`).all();
+    const hasCleanupConfig = tableInfo.some((column: any) => column.name === 'cleanup_config');
+
+    if (!hasCleanupConfig) {
+      console.log("Adding cleanup_config column to configs table...");
+
+      // Add the column with a default value
+      const defaultCleanupConfig = JSON.stringify({
+        enabled: false,
+        retentionDays: 7,
+        lastRun: null,
+        nextRun: null,
+      });
+
+      db.exec(`ALTER TABLE configs ADD COLUMN cleanup_config TEXT NOT NULL DEFAULT '${defaultCleanupConfig}'`);
+      console.log("✅ cleanup_config column added successfully.");
+    }
+  } catch (error) {
+    console.error("❌ Error during cleanup_config migration:", error);
+    // Don't exit here as this is not critical for basic functionality
+  }
 }
 
 /**
@@ -328,6 +355,7 @@ async function initializeDatabase() {
         include TEXT NOT NULL DEFAULT '["*"]',
         exclude TEXT NOT NULL DEFAULT '[]',
         schedule_config TEXT NOT NULL,
+        cleanup_config TEXT NOT NULL,
         created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
         updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
         FOREIGN KEY (user_id) REFERENCES users(id)
@@ -459,10 +487,16 @@ async function initializeDatabase() {
           lastRun: null,
           nextRun: null,
         });
+        const cleanupConfig = JSON.stringify({
+          enabled: false,
+          retentionDays: 7,
+          lastRun: null,
+          nextRun: null,
+        });
 
         const stmt = db.prepare(`
-          INSERT INTO configs (id, user_id, name, is_active, github_config, gitea_config, include, exclude, schedule_config, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO configs (id, user_id, name, is_active, github_config, gitea_config, include, exclude, schedule_config, cleanup_config, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         stmt.run(
@@ -475,6 +509,7 @@ async function initializeDatabase() {
           include,
           exclude,
           scheduleConfig,
+          cleanupConfig,
           Date.now(),
           Date.now()
         );

@@ -52,6 +52,12 @@ export const configSchema = z.object({
     lastRun: z.date().optional(),
     nextRun: z.date().optional(),
   }),
+  cleanupConfig: z.object({
+    enabled: z.boolean().default(false),
+    retentionDays: z.number().min(1).default(7), // in days
+    lastRun: z.date().optional(),
+    nextRun: z.date().optional(),
+  }),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date().default(() => new Date()),
 });
