@@ -10,9 +10,10 @@ import { useConfigStatus } from "@/hooks/useConfigStatus";
 
 interface HeaderProps {
   currentPage?: "dashboard" | "repositories" | "organizations" | "configuration" | "activity-log";
+  onNavigate?: (page: string) => void;
 }
 
-export function Header({ currentPage }: HeaderProps) {
+export function Header({ currentPage, onNavigate }: HeaderProps) {
   const { user, logout, isLoading } = useAuth();
   const { isLiveEnabled, toggleLive } = useLiveRefresh();
   const { isFullyConfigured, isLoading: configLoading } = useConfigStatus();
@@ -49,10 +50,18 @@ export function Header({ currentPage }: HeaderProps) {
   return (
     <header className="border-b bg-background">
       <div className="flex h-[4.5rem] items-center justify-between px-6">
-        <a href="/" className="flex items-center gap-2 py-1">
+        <button
+          onClick={() => {
+            if (currentPage !== 'dashboard') {
+              window.history.pushState({}, '', '/');
+              onNavigate?.('dashboard');
+            }
+          }}
+          className="flex items-center gap-2 py-1 hover:opacity-80 transition-opacity"
+        >
           <SiGitea className="h-6 w-6" />
           <span className="text-xl font-bold">Gitea Mirror</span>
-        </a>
+        </button>
 
         <div className="flex items-center gap-4">
           {showLiveButton && (

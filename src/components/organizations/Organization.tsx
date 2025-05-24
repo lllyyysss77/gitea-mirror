@@ -26,6 +26,7 @@ import { useFilterParams } from "@/hooks/useFilterParams";
 import { toast } from "sonner";
 import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { useConfigStatus } from "@/hooks/useConfigStatus";
+import { useNavigation } from "@/components/layout/MainLayout";
 
 export function Organization() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -34,6 +35,7 @@ export function Organization() {
   const { user } = useAuth();
   const { registerRefreshCallback } = useLiveRefresh();
   const { isGitHubConfigured } = useConfigStatus();
+  const { navigationKey } = useNavigation();
   const { filter, setFilter } = useFilterParams({
     searchTerm: "",
     membershipRole: "",
@@ -63,7 +65,7 @@ export function Organization() {
   });
 
   const fetchOrganizations = useCallback(async () => {
-    if (!user || !user.id) {
+    if (!user?.id) {
       return false;
     }
 
@@ -98,11 +100,13 @@ export function Organization() {
     } finally {
       setIsLoading(false);
     }
-  }, [user, isGitHubConfigured]);
+  }, [user?.id, isGitHubConfigured]); // Only depend on user.id, not entire user object
 
   useEffect(() => {
+    // Reset loading state when component becomes active
+    setIsLoading(true);
     fetchOrganizations();
-  }, [fetchOrganizations]);
+  }, [fetchOrganizations, navigationKey]); // Include navigationKey to trigger on navigation
 
   // Register with global live refresh system
   useEffect(() => {

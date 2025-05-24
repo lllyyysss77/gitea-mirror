@@ -16,6 +16,7 @@ import { apiRequest } from '@/lib/utils';
 import { RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
+import { invalidateConfigCache } from '@/hooks/useConfigStatus';
 
 type ConfigState = {
   githubConfig: GitHubConfig;
@@ -117,6 +118,8 @@ export function ConfigTabs() {
       if (result.success) {
         await refreshUser();
         setIsConfigSaved(true);
+        // Invalidate config cache so other components get fresh data
+        invalidateConfigCache();
         toast.success(
           'Configuration saved successfully! Now import your GitHub data to begin.',
         );
@@ -165,6 +168,8 @@ export function ConfigTabs() {
         if (result.success) {
           // Silent success - no toast for auto-save
           // Removed refreshUser() call to prevent page reload
+          // Invalidate config cache so other components get fresh data
+          invalidateConfigCache();
         } else {
           toast.error(
             `Auto-save failed: ${result.message || 'Unknown error'}`,

@@ -6,9 +6,10 @@ import { VersionInfo } from "./VersionInfo";
 
 interface SidebarProps {
   className?: string;
+  onNavigate?: (page: string) => void;
 }
 
-export function Sidebar({ className }: SidebarProps) {
+export function Sidebar({ className, onNavigate }: SidebarProps) {
   const [currentPath, setCurrentPath] = useState<string>("");
 
   useEffect(() => {
@@ -17,6 +18,39 @@ export function Sidebar({ className }: SidebarProps) {
     setCurrentPath(path);
     console.log("Hydrated path:", path); // Should log now
   }, []);
+
+  // Listen for URL changes (browser back/forward)
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const handleNavigation = (href: string, event: React.MouseEvent) => {
+    event.preventDefault();
+
+    // Don't navigate if already on the same page
+    if (currentPath === href) return;
+
+    // Update URL without page reload
+    window.history.pushState({}, '', href);
+    setCurrentPath(href);
+
+    // Map href to page name for the parent component
+    const pageMap: Record<string, string> = {
+      '/': 'dashboard',
+      '/repositories': 'repositories',
+      '/organizations': 'organizations',
+      '/config': 'configuration',
+      '/activity': 'activity-log'
+    };
+
+    const pageName = pageMap[href] || 'dashboard';
+    onNavigate?.(pageName);
+  };
 
   return (
     <aside className={cn("w-64 border-r bg-background", className)}>
@@ -27,11 +61,11 @@ export function Sidebar({ className }: SidebarProps) {
             const Icon = link.icon;
 
             return (
-              <a
+              <button
                 key={index}
-                href={link.href}
+                onClick={(e) => handleNavigation(link.href, e)}
                 className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors w-full text-left",
                   isActive
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -39,7 +73,7 @@ export function Sidebar({ className }: SidebarProps) {
               >
                 <Icon className="h-4 w-4" />
                 {link.label}
-              </a>
+              </button>
             );
           })}
         </nav>

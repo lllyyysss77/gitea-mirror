@@ -26,6 +26,7 @@ import { useFilterParams } from '@/hooks/useFilterParams';
 import { toast } from 'sonner';
 import { useLiveRefresh } from '@/hooks/useLiveRefresh';
 import { useConfigStatus } from '@/hooks/useConfigStatus';
+import { useNavigation } from '@/components/layout/MainLayout';
 
 type MirrorJobWithKey = MirrorJob & { _rowKey: string };
 
@@ -41,6 +42,7 @@ export function ActivityLog() {
   const { user } = useAuth();
   const { registerRefreshCallback } = useLiveRefresh();
   const { isFullyConfigured } = useConfigStatus();
+  const { navigationKey } = useNavigation();
 
   const [activities, setActivities] = useState<MirrorJobWithKey[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -71,7 +73,7 @@ export function ActivityLog() {
   /* ------------------------- initial fetch --------------------------- */
 
   const fetchActivities = useCallback(async () => {
-    if (!user) return false;
+    if (!user?.id) return false;
 
     try {
       setIsLoading(true);
@@ -101,11 +103,13 @@ export function ActivityLog() {
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user?.id]); // Only depend on user.id, not entire user object
 
   useEffect(() => {
+    // Reset loading state when component becomes active
+    setIsLoading(true);
     fetchActivities();
-  }, [fetchActivities]);
+  }, [fetchActivities, navigationKey]); // Include navigationKey to trigger on navigation
 
   // Register with global live refresh system
   useEffect(() => {

@@ -27,9 +27,10 @@ import type { SyncRepoRequest, SyncRepoResponse } from "@/types/sync";
 import { OwnerCombobox, OrganizationCombobox } from "./RepositoryComboboxes";
 import type { RetryRepoRequest, RetryRepoResponse } from "@/types/retry";
 import AddRepositoryDialog from "./AddRepositoryDialog";
-import type { ConfigApiResponse } from "@/types/config";
+
 import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { useConfigStatus } from "@/hooks/useConfigStatus";
+import { useNavigation } from "@/components/layout/MainLayout";
 
 export default function Repository() {
   const [repositories, setRepositories] = useState<Repository[]>([]);
@@ -37,6 +38,7 @@ export default function Repository() {
   const { user } = useAuth();
   const { registerRefreshCallback } = useLiveRefresh();
   const { isGitHubConfigured } = useConfigStatus();
+  const { navigationKey } = useNavigation();
   const { filter, setFilter } = useFilterParams({
     searchTerm: "",
     status: "",
@@ -79,7 +81,7 @@ export default function Repository() {
   });
 
   const fetchRepositories = useCallback(async () => {
-    if (!user) return;
+    if (!user?.id) return;
 
     // Don't fetch repositories if GitHub is not configured or still loading config
     if (!isGitHubConfigured) {
@@ -112,11 +114,13 @@ export default function Repository() {
     } finally {
       setIsLoading(false);
     }
-  }, [user, isGitHubConfigured]);
+  }, [user?.id, isGitHubConfigured]); // Only depend on user.id, not entire user object
 
   useEffect(() => {
+    // Reset loading state when component becomes active
+    setIsLoading(true);
     fetchRepositories();
-  }, [fetchRepositories]);
+  }, [fetchRepositories, navigationKey]); // Include navigationKey to trigger on navigation
 
   // Register with global live refresh system
   useEffect(() => {

@@ -14,12 +14,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { usePageVisibility } from "@/hooks/usePageVisibility";
 import { useConfigStatus } from "@/hooks/useConfigStatus";
+import { useNavigation } from "@/components/layout/MainLayout";
 
 export function Dashboard() {
   const { user } = useAuth();
   const { registerRefreshCallback } = useLiveRefresh();
   const isPageVisible = usePageVisibility();
   const { isFullyConfigured } = useConfigStatus();
+  const { navigationKey } = useNavigation();
 
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -68,7 +70,7 @@ export function Dashboard() {
   // Extract fetchDashboardData as a stable callback
   const fetchDashboardData = useCallback(async (showToast = false) => {
     try {
-      if (!user || !user.id) {
+      if (!user?.id) {
         return false;
       }
 
@@ -114,12 +116,14 @@ export function Dashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, [user, isFullyConfigured]);
+  }, [user?.id, isFullyConfigured]); // Only depend on user.id, not entire user object
 
-  // Initial data fetch
+  // Initial data fetch and reset loading state when component becomes active
   useEffect(() => {
+    // Reset loading state when component mounts or becomes active
+    setIsLoading(true);
     fetchDashboardData();
-  }, [fetchDashboardData]);
+  }, [fetchDashboardData, navigationKey]); // Include navigationKey to trigger on navigation
 
   // Setup dashboard auto-refresh (30 seconds) and register with live refresh
   useEffect(() => {
