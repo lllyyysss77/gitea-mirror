@@ -145,3 +145,10 @@ export function useConfigStatus(): ConfigStatus {
 export function invalidateConfigCache() {
   configCache = { data: null, timestamp: 0, userId: null };
 }
+
+// Export function to get cached config data for other hooks
+export function getCachedConfig(): ConfigApiResponse | null {
+  const now = Date.now();
+  const isCacheValid = configCache.data && (now - configCache.timestamp) < CACHE_DURATION;
+  return isCacheValid ? configCache.data : null;
+}

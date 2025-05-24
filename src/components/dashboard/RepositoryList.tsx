@@ -1,15 +1,50 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { GitFork } from "lucide-react";
-import { SiGithub } from "react-icons/si";
+import { SiGithub, SiGitea } from "react-icons/si";
 import type { Repository } from "@/lib/db/schema";
 import { getStatusColor } from "@/lib/utils";
+import { useGiteaConfig } from "@/hooks/useGiteaConfig";
 
 interface RepositoryListProps {
   repositories: Repository[];
 }
 
 export function RepositoryList({ repositories }: RepositoryListProps) {
+  const { giteaConfig } = useGiteaConfig();
+
+  // Helper function to construct Gitea repository URL
+  const getGiteaRepoUrl = (repository: Repository): string | null => {
+    if (!giteaConfig?.url) {
+      return null;
+    }
+
+    // Only provide Gitea links for repositories that have been or are being mirrored
+    const validStatuses = ['mirroring', 'mirrored', 'syncing', 'synced'];
+    if (!validStatuses.includes(repository.status)) {
+      return null;
+    }
+
+    // Use mirroredLocation if available, otherwise construct from repository data
+    let repoPath: string;
+    if (repository.mirroredLocation) {
+      repoPath = repository.mirroredLocation;
+    } else {
+      // Fallback: construct the path based on repository data
+      // If repository has organization and preserveOrgStructure would be true, use org
+      // Otherwise use the repository owner
+      const owner = repository.organization || repository.owner;
+      repoPath = `${owner}/${repository.name}`;
+    }
+
+    // Ensure the base URL doesn't have a trailing slash
+    const baseUrl = giteaConfig.url.endsWith('/')
+      ? giteaConfig.url.slice(0, -1)
+      : giteaConfig.url;
+
+    return `${baseUrl}/${repoPath}`;
+  };
+
   return (
     <Card className="w-full">
       {/* calculating the max height based non the other elements and sizing styles */}
@@ -69,14 +104,48 @@ export function RepositoryList({ repositories }: RepositoryListProps) {
                     {/* setting the minimum width to 3rem corresponding to the largest status (mirrored) so that all are left alligned */}
                     {repo.status}
                   </span>
-                  <Button variant="ghost" size="icon">
-                    <GitFork className="h-4 w-4" />
-                  </Button>
+                  {(() => {
+                    const giteaUrl = getGiteaRepoUrl(repo);
+
+                    // Determine tooltip based on status and configuration
+                    let tooltip: string;
+                    if (!giteaConfig?.url) {
+                      tooltip = "Gitea not configured";
+                    } else if (repo.status === 'imported') {
+                      tooltip = "Repository not yet mirrored to Gitea";
+                    } else if (repo.status === 'failed') {
+                      tooltip = "Repository mirroring failed";
+                    } else if (repo.status === 'mirroring') {
+                      tooltip = "Repository is being mirrored to Gitea";
+                    } else if (giteaUrl) {
+                      tooltip = "View on Gitea";
+                    } else {
+                      tooltip = "Gitea repository not available";
+                    }
+
+                    return giteaUrl ? (
+                      <Button variant="ghost" size="icon" asChild>
+                        <a
+                          href={giteaUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={tooltip}
+                        >
+                          <SiGitea className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    ) : (
+                      <Button variant="ghost" size="icon" disabled title={tooltip}>
+                        <SiGitea className="h-4 w-4" />
+                      </Button>
+                    );
+                  })()}
                   <Button variant="ghost" size="icon" asChild>
                     <a
                       href={repo.url}
                       target="_blank"
                       rel="noopener noreferrer"
+                      title="View on GitHub"
                       >
                        <SiGithub className="h-4 w-4" />
                       </a>

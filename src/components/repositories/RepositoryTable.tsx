@@ -1,13 +1,14 @@
 import { useMemo, useRef } from "react";
 import Fuse from "fuse.js";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { GitFork, RefreshCw, RotateCcw } from "lucide-react";
-import { SiGithub } from "react-icons/si";
+import { FlipHorizontal, GitFork, RefreshCw, RotateCcw } from "lucide-react";
+import { SiGithub, SiGitea } from "react-icons/si";
 import type { Repository } from "@/lib/db/schema";
 import { Button } from "@/components/ui/button";
 import { formatDate, getStatusColor } from "@/lib/utils";
 import type { FilterParams } from "@/types/filter";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useGiteaConfig } from "@/hooks/useGiteaConfig";
 
 interface RepositoryTableProps {
   repositories: Repository[];
@@ -31,6 +32,37 @@ export default function RepositoryTable({
   loadingRepoIds,
 }: RepositoryTableProps) {
   const tableParentRef = useRef<HTMLDivElement>(null);
+  const { giteaConfig } = useGiteaConfig();
+
+  // Helper function to construct Gitea repository URL
+  const getGiteaRepoUrl = (repository: Repository): string | null => {
+    if (!giteaConfig?.url) {
+      return null;
+    }
+
+    // Only provide Gitea links for repositories that have been or are being mirrored
+    const validStatuses = ['mirroring', 'mirrored', 'syncing', 'synced'];
+    if (!validStatuses.includes(repository.status)) {
+      return null;
+    }
+
+    // Use mirroredLocation if available, otherwise construct from repository data
+    let repoPath: string;
+    if (repository.mirroredLocation) {
+      repoPath = repository.mirroredLocation;
+    } else {
+      // Fallback: construct the path based on repository data
+      const owner = repository.organization || repository.owner;
+      repoPath = `${owner}/${repository.name}`;
+    }
+
+    // Ensure the base URL doesn't have a trailing slash
+    const baseUrl = giteaConfig.url.endsWith('/')
+      ? giteaConfig.url.slice(0, -1)
+      : giteaConfig.url;
+
+    return `${baseUrl}/${repoPath}`;
+  };
 
   const hasAnyFilter = Object.values(filter).some(
     (val) => val?.toString().trim() !== ""
@@ -239,60 +271,55 @@ export default function RepositoryTable({
 
                 {/* Actions  */}
                 <div className="h-full p-3 flex items-center justify-end gap-x-2 flex-[1]">
-                  {/* {repo.status === "mirrored" ||
-                  repo.status === "syncing" ||
-                  repo.status === "synced" ? (
-                    <Button
-                      variant="ghost"
-                      disabled={repo.status === "syncing" || isLoading}
-                      onClick={() => onSync({ repoId: repo.id ?? "" })}
-                    >
-                      {isLoading ? (
-                        <>
-                          <RefreshCw className="h-4 w-4 animate-spin mr-1" />
-                          Sync
-                        </>
-                      ) : (
-                        <>
-                          <RefreshCw className="h-4 w-4 mr-1" />
-                          Sync
-                        </>
-                      )}
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="ghost"
-                      disabled={repo.status === "mirroring" || isLoading}
-                      onClick={() => onMirror({ repoId: repo.id ?? "" })}
-                    >
-                      {isLoading ? (
-                        <>
-                          <RefreshCw className="h-4 w-4 animate-spin mr-1" />
-                          Mirror
-                        </>
-                      ) : (
-                        <>
-                          <RefreshCw className="h-4 w-4 mr-1" />
-                          Mirror
-                        </>
-                      )}
-                    </Button>
-                  )} */}
-
                   <RepoActionButton
                     repo={{ id: repo.id ?? "", status: repo.status }}
                     isLoading={isLoading}
-                    onMirror={({ repoId }) =>
-                      onMirror({ repoId: repo.id ?? "" })
-                    }
-                    onSync={({ repoId }) => onSync({ repoId: repo.id ?? "" })}
-                    onRetry={({ repoId }) => onRetry({ repoId: repo.id ?? "" })}
+                    onMirror={() => onMirror({ repoId: repo.id ?? "" })}
+                    onSync={() => onSync({ repoId: repo.id ?? "" })}
+                    onRetry={() => onRetry({ repoId: repo.id ?? "" })}
                   />
+                  {(() => {
+                    const giteaUrl = getGiteaRepoUrl(repo);
+
+                    // Determine tooltip based on status and configuration
+                    let tooltip: string;
+                    if (!giteaConfig?.url) {
+                      tooltip = "Gitea not configured";
+                    } else if (repo.status === 'imported') {
+                      tooltip = "Repository not yet mirrored to Gitea";
+                    } else if (repo.status === 'failed') {
+                      tooltip = "Repository mirroring failed";
+                    } else if (repo.status === 'mirroring') {
+                      tooltip = "Repository is being mirrored to Gitea";
+                    } else if (giteaUrl) {
+                      tooltip = "View on Gitea";
+                    } else {
+                      tooltip = "Gitea repository not available";
+                    }
+
+                    return giteaUrl ? (
+                      <Button variant="ghost" size="icon" asChild>
+                        <a
+                          href={giteaUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={tooltip}
+                        >
+                          <SiGitea className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    ) : (
+                      <Button variant="ghost" size="icon" disabled title={tooltip}>
+                        <SiGitea className="h-4 w-4" />
+                      </Button>
+                    );
+                  })()}
                   <Button variant="ghost" size="icon" asChild>
                     <a
                       href={repo.url}
                       target="_blank"
                       rel="noopener noreferrer"
+                      title="View on GitHub"
                     >
                       <SiGithub className="h-4 w-4" />
                     </a>
@@ -333,12 +360,10 @@ function RepoActionButton({
 }: {
   repo: { id: string; status: string };
   isLoading: boolean;
-  onMirror: ({ repoId }: { repoId: string }) => void;
-  onSync: ({ repoId }: { repoId: string }) => void;
-  onRetry: ({ repoId }: { repoId: string }) => void;
+  onMirror: () => void;
+  onSync: () => void;
+  onRetry: () => void;
 }) {
-  const repoId = repo.id ?? "";
-
   let label = "";
   let icon = <></>;
   let onClick = () => {};
@@ -347,23 +372,28 @@ function RepoActionButton({
   if (repo.status === "failed") {
     label = "Retry";
     icon = <RotateCcw className="h-4 w-4 mr-1" />;
-    onClick = () => onRetry({ repoId });
+    onClick = onRetry;
   } else if (["mirrored", "synced", "syncing"].includes(repo.status)) {
     label = "Sync";
     icon = <RefreshCw className="h-4 w-4 mr-1" />;
-    onClick = () => onSync({ repoId });
+    onClick = onSync;
     disabled ||= repo.status === "syncing";
   } else if (["imported", "mirroring"].includes(repo.status)) {
     label = "Mirror";
-    icon = <RefreshCw className="h-4 w-4 mr-1" />;
-    onClick = () => onMirror({ repoId });
+    icon = <FlipHorizontal className="h-4 w-4 mr-1" />;
+    onClick = onMirror;
     disabled ||= repo.status === "mirroring";
   } else {
     return null; // unsupported status
   }
 
   return (
-    <Button variant="ghost" disabled={disabled} onClick={onClick}>
+    <Button
+      variant="ghost"
+      disabled={disabled}
+      onClick={onClick}
+      className="min-w-[80px] justify-start"
+    >
       {isLoading ? (
         <>
           <RefreshCw className="h-4 w-4 animate-spin mr-1" />
