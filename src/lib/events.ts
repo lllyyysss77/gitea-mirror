@@ -87,36 +87,27 @@ export async function getNewEvents({
   lastEventTime?: Date;
 }): Promise<any[]> {
   try {
-    console.log(`Getting new events for user ${userId} in channel ${channel}`);
-    if (lastEventTime) {
-      console.log(`Looking for events after ${lastEventTime.toISOString()}`);
-    }
-
-    // Build the query
-    let query = db
-      .select()
-      .from(events)
-      .where(
-        and(
-          eq(events.userId, userId),
-          eq(events.channel, channel),
-          eq(events.read, false)
-        )
-      )
-      .orderBy(events.createdAt);
+    // Build the query conditions
+    const conditions = [
+      eq(events.userId, userId),
+      eq(events.channel, channel),
+      eq(events.read, false)
+    ];
 
     // Add time filter if provided
     if (lastEventTime) {
-      query = query.where(gt(events.createdAt, lastEventTime));
+      conditions.push(gt(events.createdAt, lastEventTime));
     }
 
     // Execute the query
-    const newEvents = await query;
-    console.log(`Found ${newEvents.length} new events`);
+    const newEvents = await db
+      .select()
+      .from(events)
+      .where(and(...conditions))
+      .orderBy(events.createdAt);
 
     // Mark events as read
     if (newEvents.length > 0) {
-      console.log(`Marking ${newEvents.length} events as read`);
       await db
         .update(events)
         .set({ read: true })
@@ -149,14 +140,11 @@ export async function removeDuplicateEvents(userId?: string): Promise<{ duplicat
     console.log("Removing duplicate events...");
 
     // Build the base query
-    let query = db.select().from(events);
-    if (userId) {
-      query = query.where(eq(events.userId, userId));
-    }
+    const allEvents = userId
+      ? await db.select().from(events).where(eq(events.userId, userId))
+      : await db.select().from(events);
 
-    const allEvents = await query;
     const duplicateIds: string[] = [];
-    const seenKeys = new Set<string>();
 
     // Group events by user and channel, then check for duplicates
     const eventsByUserChannel = new Map<string, typeof allEvents>();
@@ -241,7 +229,7 @@ export async function cleanupOldEvents(
         )
       );
 
-    const readEventsDeleted = readResult.changes || 0;
+    const readEventsDeleted = (readResult as any).changes || 0;
     console.log(`Deleted ${readEventsDeleted} read events`);
 
     // Calculate the cutoff date for unread events (default to 2x the retention period)
@@ -259,7 +247,7 @@ export async function cleanupOldEvents(
         )
       );
 
-    const unreadEventsDeleted = unreadResult.changes || 0;
+    const unreadEventsDeleted = (unreadResult as any).changes || 0;
     console.log(`Deleted ${unreadEventsDeleted} unread events`);
 
     return { readEventsDeleted, unreadEventsDeleted };

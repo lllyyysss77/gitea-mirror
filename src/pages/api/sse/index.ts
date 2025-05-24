@@ -34,16 +34,12 @@ export const GET: APIRoute = async ({ request }) => {
         if (isClosed) return;
 
         try {
-          console.log(`Polling for events for user ${userId} in channel ${channel}`);
-
           // Get new events from SQLite
           const events = await getNewEvents({
             userId,
             channel,
             lastEventTime,
           });
-
-          console.log(`Found ${events.length} new events`);
 
           // Send events to client
           if (events.length > 0) {
@@ -52,7 +48,6 @@ export const GET: APIRoute = async ({ request }) => {
 
             // Send each event to the client
             for (const event of events) {
-              console.log(`Sending event: ${JSON.stringify(event.payload)}`);
               sendMessage(`data: ${JSON.stringify(event.payload)}\n\n`);
             }
           }
