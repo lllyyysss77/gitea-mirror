@@ -295,15 +295,8 @@ export async function getOrCreateGiteaOrg({
 
     if (orgRes.ok) {
       const org = await orgRes.json();
-
-      await createMirrorJob({
-        userId: config.userId,
-        organizationId: org.id,
-        organizationName: orgName,
-        status: "imported",
-        message: `Organization ${orgName} fetched successfully`,
-        details: `Organization ${orgName} was fetched from GitHub`,
-      });
+      // Note: Organization events are handled by the main mirroring process
+      // to avoid duplicate events
       return org.id;
     }
 
@@ -325,13 +318,8 @@ export async function getOrCreateGiteaOrg({
       throw new Error(`Failed to create Gitea org: ${await createRes.text()}`);
     }
 
-    await createMirrorJob({
-      userId: config.userId,
-      organizationName: orgName,
-      status: "imported",
-      message: `Organization ${orgName} created successfully`,
-      details: `Organization ${orgName} was created in Gitea`,
-    });
+    // Note: Organization creation events are handled by the main mirroring process
+    // to avoid duplicate events
 
     const newOrg = await createRes.json();
     return newOrg.id;
@@ -417,15 +405,8 @@ export async function mirrorGitHubRepoToGiteaOrg({
       })
       .where(eq(repositories.id, repository.id!));
 
-    // Append log for "mirroring" status
-    await createMirrorJob({
-      userId: config.userId,
-      repositoryId: repository.id,
-      repositoryName: repository.name,
-      message: `Started mirroring repository: ${repository.name}`,
-      details: `Repository ${repository.name} is now in the mirroring state.`,
-      status: "mirroring",
-    });
+    // Note: "mirroring" status events are handled by the concurrency system
+    // to avoid duplicate events during batch operations
 
     const apiUrl = `${config.giteaConfig.url}/api/v1/repos/migrate`;
 

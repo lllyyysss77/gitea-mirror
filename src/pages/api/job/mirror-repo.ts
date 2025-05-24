@@ -126,7 +126,7 @@ export const POST: APIRoute = async ({ request }) => {
           concurrencyLimit: CONCURRENCY_LIMIT,
           maxRetries: 2,
           retryDelay: 2000,
-          checkpointInterval: 1, // Checkpoint after each repository
+          checkpointInterval: 5, // Checkpoint every 5 repositories to reduce event frequency
           onProgress: (completed, total, result) => {
             const percentComplete = Math.round((completed / total) * 100);
             console.log(`Mirroring progress: ${percentComplete}% (${completed}/${total})`);

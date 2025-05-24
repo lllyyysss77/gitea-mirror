@@ -17,6 +17,7 @@ export async function createMirrorJob({
   totalItems,
   itemIds,
   inProgress,
+  skipDuplicateEvent,
 }: {
   userId: string;
   organizationId?: string;
@@ -31,6 +32,7 @@ export async function createMirrorJob({
   totalItems?: number;
   itemIds?: string[];
   inProgress?: boolean;
+  skipDuplicateEvent?: boolean; // Option to skip event publishing for internal operations
 }) {
   const jobId = uuidv4();
   const currentTimestamp = new Date();
@@ -64,13 +66,27 @@ export async function createMirrorJob({
     // Insert the job into the database
     await db.insert(mirrorJobs).values(job);
 
-    // Publish the event using SQLite instead of Redis
-    const channel = `mirror-status:${userId}`;
-    await publishEvent({
-      userId,
-      channel,
-      payload: job
-    });
+    // Publish the event using SQLite instead of Redis (unless skipped)
+    if (!skipDuplicateEvent) {
+      const channel = `mirror-status:${userId}`;
+
+      // Create deduplication key based on the operation
+      let deduplicationKey: string | undefined;
+      if (repositoryId && status) {
+        deduplicationKey = `repo-${repositoryId}-${status}`;
+      } else if (organizationId && status) {
+        deduplicationKey = `org-${organizationId}-${status}`;
+      } else if (batchId) {
+        deduplicationKey = `batch-${batchId}-${status}`;
+      }
+
+      await publishEvent({
+        userId,
+        channel,
+        payload: job,
+        deduplicationKey
+      });
+    }
 
     return jobId;
   } catch (error) {
@@ -156,16 +172,27 @@ export async function updateMirrorJobProgress({
       .set(updates)
       .where(mirrorJobs.id === jobId);
 
-    // Publish the event
+    // Publish the event with deduplication
     const updatedJob = {
       ...job,
       ...updates,
     };
 
+    // Create deduplication key for progress updates
+    let deduplicationKey: string | undefined;
+    if (completedItemId) {
+      deduplicationKey = `progress-${jobId}-${completedItemId}`;
+    } else if (isCompleted) {
+      deduplicationKey = `completed-${jobId}`;
+    } else {
+      deduplicationKey = `update-${jobId}-${Date.now()}`;
+    }
+
     await publishEvent({
       userId: job.userId,
       channel: `mirror-status:${job.userId}`,
       payload: updatedJob,
+      deduplicationKey
     });
 
     return updatedJob;

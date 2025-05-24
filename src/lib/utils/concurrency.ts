@@ -181,7 +181,7 @@ export async function processWithResilience<T, R>(
     getItemId,
     getItemName,
     resumeFromJobId,
-    checkpointInterval = 5,
+    checkpointInterval = 10, // Increased from 5 to reduce event frequency
     ...otherOptions
   } = options;
 

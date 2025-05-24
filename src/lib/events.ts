@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import { db, events } from "./db";
-import { eq, and, gt, lt } from "drizzle-orm";
+import { eq, and, gt, lt, inArray } from "drizzle-orm";
 
 /**
  * Publishes an event to a specific channel for a user
@@ -10,21 +10,58 @@ export async function publishEvent({
   userId,
   channel,
   payload,
+  deduplicationKey,
 }: {
   userId: string;
   channel: string;
   payload: any;
+  deduplicationKey?: string; // Optional key to prevent duplicate events
 }): Promise<string> {
   try {
     const eventId = uuidv4();
     console.log(`Publishing event to channel ${channel} for user ${userId}`);
+
+    // Check for duplicate events if deduplication key is provided
+    if (deduplicationKey) {
+      const existingEvent = await db
+        .select()
+        .from(events)
+        .where(
+          and(
+            eq(events.userId, userId),
+            eq(events.channel, channel),
+            eq(events.read, false)
+          )
+        )
+        .limit(10); // Check recent unread events
+
+      // Check if any existing event has the same deduplication key in payload
+      const isDuplicate = existingEvent.some(event => {
+        try {
+          const eventPayload = JSON.parse(event.payload as string);
+          return eventPayload.deduplicationKey === deduplicationKey;
+        } catch {
+          return false;
+        }
+      });
+
+      if (isDuplicate) {
+        console.log(`Skipping duplicate event with key: ${deduplicationKey}`);
+        return eventId; // Return a valid ID but don't create the event
+      }
+    }
+
+    // Add deduplication key to payload if provided
+    const eventPayload = deduplicationKey
+      ? { ...payload, deduplicationKey }
+      : payload;
 
     // Insert the event into the SQLite database
     await db.insert(events).values({
       id: eventId,
       userId,
       channel,
-      payload: JSON.stringify(payload),
+      payload: JSON.stringify(eventPayload),
       createdAt: new Date(),
     });
 
@@ -100,6 +137,78 @@ export async function getNewEvents({
   } catch (error) {
     console.error("Error getting new events:", error);
     return [];
+  }
+}
+
+/**
+ * Removes duplicate events based on deduplication keys
+ * This can be called periodically to clean up any duplicates that may have slipped through
+ */
+export async function removeDuplicateEvents(userId?: string): Promise<{ duplicatesRemoved: number }> {
+  try {
+    console.log("Removing duplicate events...");
+
+    // Build the base query
+    let query = db.select().from(events);
+    if (userId) {
+      query = query.where(eq(events.userId, userId));
+    }
+
+    const allEvents = await query;
+    const duplicateIds: string[] = [];
+    const seenKeys = new Set<string>();
+
+    // Group events by user and channel, then check for duplicates
+    const eventsByUserChannel = new Map<string, typeof allEvents>();
+
+    for (const event of allEvents) {
+      const key = `${event.userId}-${event.channel}`;
+      if (!eventsByUserChannel.has(key)) {
+        eventsByUserChannel.set(key, []);
+      }
+      eventsByUserChannel.get(key)!.push(event);
+    }
+
+    // Check each group for duplicates
+    for (const [, events] of eventsByUserChannel) {
+      const channelSeenKeys = new Set<string>();
+
+      // Sort by creation time (keep the earliest)
+      events.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+      for (const event of events) {
+        try {
+          const payload = JSON.parse(event.payload as string);
+          if (payload.deduplicationKey) {
+            if (channelSeenKeys.has(payload.deduplicationKey)) {
+              duplicateIds.push(event.id);
+            } else {
+              channelSeenKeys.add(payload.deduplicationKey);
+            }
+          }
+        } catch {
+          // Skip events with invalid JSON
+        }
+      }
+    }
+
+    // Remove duplicates
+    if (duplicateIds.length > 0) {
+      console.log(`Removing ${duplicateIds.length} duplicate events`);
+
+      // Delete in batches to avoid query size limits
+      const batchSize = 100;
+      for (let i = 0; i < duplicateIds.length; i += batchSize) {
+        const batch = duplicateIds.slice(i, i + batchSize);
+        await db.delete(events).where(inArray(events.id, batch));
+      }
+    }
+
+    console.log(`Removed ${duplicateIds.length} duplicate events`);
+    return { duplicatesRemoved: duplicateIds.length };
+  } catch (error) {
+    console.error("Error removing duplicate events:", error);
+    return { duplicatesRemoved: 0 };
   }
 }
 

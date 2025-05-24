@@ -1,12 +1,21 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, Download, RefreshCw, Search } from 'lucide-react';
+import { ChevronDown, Download, RefreshCw, Search, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '../ui/dialog';
 import { apiRequest, formatDate } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import type { MirrorJob } from '@/lib/db/schema';
@@ -30,12 +39,30 @@ import { useNavigation } from '@/components/layout/MainLayout';
 
 type MirrorJobWithKey = MirrorJob & { _rowKey: string };
 
-function genKey(job: MirrorJob): string {
-  return `${
-    job.id ?? (typeof crypto !== 'undefined'
-      ? crypto.randomUUID()
-      : Math.random().toString(36).slice(2))
-  }-${job.timestamp}`;
+// Maximum number of activities to keep in memory to prevent performance issues
+const MAX_ACTIVITIES = 1000;
+
+// More robust key generation to prevent collisions
+function genKey(job: MirrorJob, index?: number): string {
+  const baseId = job.id || `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const timestamp = job.timestamp instanceof Date ? job.timestamp.getTime() : new Date(job.timestamp).getTime();
+  const indexSuffix = index !== undefined ? `-${index}` : '';
+  return `${baseId}-${timestamp}${indexSuffix}`;
+}
+
+// Create a deep clone without structuredClone for better browser compatibility
+function deepClone<T>(obj: T): T {
+  if (obj === null || typeof obj !== 'object') return obj;
+  if (obj instanceof Date) return new Date(obj.getTime()) as T;
+  if (Array.isArray(obj)) return obj.map(item => deepClone(item)) as T;
+
+  const cloned = {} as T;
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      cloned[key] = deepClone(obj[key]);
+    }
+  }
+  return cloned;
 }
 
 export function ActivityLog() {
@@ -46,6 +73,16 @@ export function ActivityLog() {
 
   const [activities, setActivities] = useState<MirrorJobWithKey[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [showCleanupDialog, setShowCleanupDialog] = useState(false);
+
+  // Ref to track if component is mounted to prevent state updates after unmount
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const { filter, setFilter } = useFilterParams({
     searchTerm: '',
@@ -57,12 +94,41 @@ export function ActivityLog() {
   /* ----------------------------- SSE hook ----------------------------- */
 
   const handleNewMessage = useCallback((data: MirrorJob) => {
-    const withKey: MirrorJobWithKey = {
-      ...structuredClone(data),
-      _rowKey: genKey(data),
-    };
+    if (!isMountedRef.current) return;
 
-    setActivities((prev) => [withKey, ...prev]);
+    setActivities((prev) => {
+      // Create a deep clone of the new activity
+      const clonedData = deepClone(data);
+
+      // Check if this activity already exists to prevent duplicates
+      const existingIndex = prev.findIndex(activity =>
+        activity.id === clonedData.id ||
+        (activity.repositoryId === clonedData.repositoryId &&
+         activity.organizationId === clonedData.organizationId &&
+         activity.message === clonedData.message &&
+         Math.abs(new Date(activity.timestamp).getTime() - new Date(clonedData.timestamp).getTime()) < 1000)
+      );
+
+      if (existingIndex !== -1) {
+        // Update existing activity instead of adding duplicate
+        const updated = [...prev];
+        updated[existingIndex] = {
+          ...clonedData,
+          _rowKey: prev[existingIndex]._rowKey, // Keep the same key
+        };
+        return updated;
+      }
+
+      // Add new activity with unique key
+      const withKey: MirrorJobWithKey = {
+        ...clonedData,
+        _rowKey: genKey(clonedData, prev.length),
+      };
+
+      // Limit the number of activities to prevent memory issues
+      const newActivities = [withKey, ...prev];
+      return newActivities.slice(0, MAX_ACTIVITIES);
+    });
   }, []);
 
   const { connected } = useSSE({
@@ -88,20 +154,37 @@ export function ActivityLog() {
         return false;
       }
 
-      const data: MirrorJobWithKey[] = res.activities.map((a) => ({
-        ...structuredClone(a),
-        _rowKey: genKey(a),
-      }));
+      // Process activities with robust cloning and unique keys
+      const data: MirrorJobWithKey[] = res.activities.map((activity, index) => {
+        const clonedActivity = deepClone(activity);
+        return {
+          ...clonedActivity,
+          _rowKey: genKey(clonedActivity, index),
+        };
+      });
 
-      setActivities(data);
+      // Sort by timestamp (newest first) to ensure consistent ordering
+      data.sort((a, b) => {
+        const timeA = new Date(a.timestamp).getTime();
+        const timeB = new Date(b.timestamp).getTime();
+        return timeB - timeA;
+      });
+
+      if (isMountedRef.current) {
+        setActivities(data);
+      }
       return true;
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to fetch activities.',
-      );
+      if (isMountedRef.current) {
+        toast.error(
+          err instanceof Error ? err.message : 'Failed to fetch activities.',
+        );
+      }
       return false;
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [user?.id]); // Only depend on user.id, not entire user object
 
@@ -210,6 +293,50 @@ export function ActivityLog() {
     link.click();
   };
 
+  const handleCleanupClick = () => {
+    setShowCleanupDialog(true);
+  };
+
+  const confirmCleanup = async () => {
+    if (!user?.id) return;
+
+    try {
+      setIsLoading(true);
+      setShowCleanupDialog(false);
+
+      // Use fetch directly to avoid potential axios issues
+      const response = await fetch('/api/activities/cleanup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error occurred' }));
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const res = await response.json();
+
+      if (res.success) {
+        // Clear the activities from the UI
+        setActivities([]);
+        toast.success(`All activities cleaned up successfully. Deleted ${res.result.mirrorJobsDeleted} mirror jobs and ${res.result.eventsDeleted} events.`);
+      } else {
+        toast.error(res.error || 'Failed to cleanup activities.');
+      }
+    } catch (error) {
+      console.error('Error cleaning up activities:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to cleanup activities.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const cancelCleanup = () => {
+    setShowCleanupDialog(false);
+  };
+
   /* ------------------------------ UI ------------------------------ */
 
   return (
@@ -308,6 +435,17 @@ export function ActivityLog() {
         >
           <RefreshCw className='h-4 w-4' />
         </Button>
+
+        {/* cleanup all activities */}
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleCleanupClick}
+          title="Delete all activities"
+          className="text-destructive hover:text-destructive"
+        >
+          <Trash2 className='h-4 w-4' />
+        </Button>
       </div>
 
       {/* activity list */}
@@ -317,6 +455,30 @@ export function ActivityLog() {
         filter={filter}
         setFilter={setFilter}
       />
+
+      {/* cleanup confirmation dialog */}
+      <Dialog open={showCleanupDialog} onOpenChange={setShowCleanupDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete All Activities</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete ALL activities? This action cannot be undone and will remove all mirror jobs and events from the database.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={cancelCleanup}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmCleanup}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Deleting...' : 'Delete All Activities'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

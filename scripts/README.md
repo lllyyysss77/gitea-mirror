@@ -60,39 +60,35 @@ The database file should be located in the `./data/gitea-mirror.db` directory. I
 
 The following scripts help manage events in the SQLite database:
 
-### Event Inspection (check-events.ts)
+> **Note**: For a more user-friendly approach, you can use the cleanup button in the Activity Log page of the web interface to delete all activities with a single click.
 
-Displays all events currently stored in the database.
 
-```bash
-bun scripts/check-events.ts
-```
 
 ### Event Cleanup (cleanup-events.ts)
 
-Removes old events from the database to prevent it from growing too large.
+Removes old events and duplicate events from the database to prevent it from growing too large.
 
 ```bash
-# Remove events older than 7 days (default)
+# Remove events older than 7 days (default) and duplicates
 bun scripts/cleanup-events.ts
 
-# Remove events older than X days
+# Remove events older than X days and duplicates
 bun scripts/cleanup-events.ts 14
 ```
 
 This script can be scheduled to run periodically (e.g., daily) using cron or another scheduler. When using Docker, this is automatically scheduled to run daily.
 
-### Mark Events as Read (mark-events-read.ts)
+### Remove Duplicate Events (remove-duplicate-events.ts)
 
-Marks all unread events as read.
+Specifically removes duplicate events based on deduplication keys without affecting old events.
 
 ```bash
-bun scripts/mark-events-read.ts
+# Remove duplicate events for all users
+bun scripts/remove-duplicate-events.ts
+
+# Remove duplicate events for a specific user
+bun scripts/remove-duplicate-events.ts <userId>
 ```
-
-### Make Events Appear Older (make-events-old.ts)
-
-For testing purposes, this script modifies event timestamps to make them appear older.
 
 ### Mirror Jobs Cleanup (cleanup-mirror-jobs.ts)
 
@@ -108,9 +104,19 @@ bun scripts/cleanup-mirror-jobs.ts 14
 
 This script can be scheduled to run periodically (e.g., daily) using cron or another scheduler. When using Docker, this is automatically scheduled to run daily.
 
+### Fix Interrupted Jobs (fix-interrupted-jobs.ts)
+
+Fixes interrupted jobs that might be preventing cleanup by marking them as failed.
+
 ```bash
-bun scripts/make-events-old.ts
+# Fix all interrupted jobs
+bun scripts/fix-interrupted-jobs.ts
+
+# Fix interrupted jobs for a specific user
+bun scripts/fix-interrupted-jobs.ts <userId>
 ```
+
+Use this script if you're having trouble cleaning up activities due to "interrupted" jobs that won't delete.
 
 ## Deployment Scripts
 
