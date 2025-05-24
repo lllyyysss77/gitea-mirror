@@ -20,7 +20,7 @@ export interface ScheduleConfig {
 
 export interface DatabaseCleanupConfig {
   enabled: boolean;
-  retentionDays: number;
+  retentionDays: number; // Actually stores seconds, but keeping the name for compatibility
   lastRun?: Date;
   nextRun?: Date;
 }

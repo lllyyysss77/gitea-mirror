@@ -15,15 +15,39 @@ interface CleanupResult {
 }
 
 /**
- * Clean up old events and mirror jobs for a specific user
+ * Calculate cleanup interval in hours based on retention period
+ * For shorter retention periods, run more frequently
+ * For longer retention periods, run less frequently
+ * @param retentionSeconds - Retention period in seconds
  */
-async function cleanupForUser(userId: string, retentionDays: number): Promise<CleanupResult> {
-  try {
-    console.log(`Running cleanup for user ${userId} with ${retentionDays} days retention`);
+export function calculateCleanupInterval(retentionSeconds: number): number {
+  const retentionDays = retentionSeconds / (24 * 60 * 60); // Convert seconds to days
 
-    // Calculate cutoff date
+  if (retentionDays <= 1) {
+    return 6; // Every 6 hours for 1 day retention
+  } else if (retentionDays <= 3) {
+    return 12; // Every 12 hours for 1-3 days retention
+  } else if (retentionDays <= 7) {
+    return 24; // Daily for 4-7 days retention
+  } else if (retentionDays <= 30) {
+    return 48; // Every 2 days for 8-30 days retention
+  } else {
+    return 168; // Weekly for 30+ days retention
+  }
+}
+
+/**
+ * Clean up old events and mirror jobs for a specific user
+ * @param retentionSeconds - Retention period in seconds
+ */
+async function cleanupForUser(userId: string, retentionSeconds: number): Promise<CleanupResult> {
+  try {
+    const retentionDays = retentionSeconds / (24 * 60 * 60); // Convert to days for logging
+    console.log(`Running cleanup for user ${userId} with ${retentionDays} days retention (${retentionSeconds} seconds)`);
+
+    // Calculate cutoff date using seconds
     const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+    cutoffDate.setTime(cutoffDate.getTime() - retentionSeconds * 1000);
 
     let eventsDeleted = 0;
     let mirrorJobsDeleted = 0;
@@ -75,7 +99,9 @@ async function cleanupForUser(userId: string, retentionDays: number): Promise<Cl
 async function updateCleanupConfig(userId: string, cleanupConfig: any) {
   try {
     const now = new Date();
-    const nextRun = new Date(now.getTime() + 24 * 60 * 60 * 1000); // Next day
+    const retentionSeconds = cleanupConfig.retentionDays || 604800; // Default 7 days in seconds
+    const cleanupIntervalHours = calculateCleanupInterval(retentionSeconds);
+    const nextRun = new Date(now.getTime() + cleanupIntervalHours * 60 * 60 * 1000);
 
     const updatedConfig = {
       ...cleanupConfig,
@@ -91,7 +117,8 @@ async function updateCleanupConfig(userId: string, cleanupConfig: any) {
       })
       .where(eq(configs.userId, userId));
 
-    console.log(`Updated cleanup config for user ${userId}, next run: ${nextRun.toISOString()}`);
+    const retentionDays = retentionSeconds / (24 * 60 * 60);
+    console.log(`Updated cleanup config for user ${userId}, next run: ${nextRun.toISOString()} (${cleanupIntervalHours}h interval for ${retentionDays}d retention)`);
   } catch (error) {
     console.error(`Error updating cleanup config for user ${userId}:`, error);
   }
@@ -116,7 +143,7 @@ export async function runAutomaticCleanup(): Promise<CleanupResult[]> {
     for (const config of userConfigs) {
       try {
         const cleanupConfig = config.cleanupConfig;
-        
+
         // Skip if cleanup is not enabled
         if (!cleanupConfig?.enabled) {
           continue;
@@ -124,10 +151,10 @@ export async function runAutomaticCleanup(): Promise<CleanupResult[]> {
 
         // Check if it's time to run cleanup
         const nextRun = cleanupConfig.nextRun ? new Date(cleanupConfig.nextRun) : null;
-        
+
         // If nextRun is null or in the past, run cleanup
         if (!nextRun || now >= nextRun) {
-          const result = await cleanupForUser(config.userId, cleanupConfig.retentionDays || 7);
+          const result = await cleanupForUser(config.userId, cleanupConfig.retentionDays || 604800);
           results.push(result);
 
           // Update the cleanup config with new run times

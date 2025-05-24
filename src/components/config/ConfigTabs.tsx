@@ -53,7 +53,7 @@ export function ConfigTabs() {
     },
     cleanupConfig: {
       enabled: false,
-      retentionDays: 7,
+      retentionDays: 604800, // 7 days in seconds
     },
   });
   const { user, refreshUser } = useAuth();
@@ -181,6 +181,22 @@ export function ConfigTabs() {
           // Removed refreshUser() call to prevent page reload
           // Invalidate config cache so other components get fresh data
           invalidateConfigCache();
+
+          // Fetch updated config to get the recalculated nextRun time
+          try {
+            const updatedResponse = await apiRequest<ConfigApiResponse>(
+              `/config?userId=${user.id}`,
+              { method: 'GET' },
+            );
+            if (updatedResponse && !updatedResponse.error) {
+              setConfig(prev => ({
+                ...prev,
+                scheduleConfig: updatedResponse.scheduleConfig || prev.scheduleConfig,
+              }));
+            }
+          } catch (fetchError) {
+            console.warn('Failed to fetch updated config after auto-save:', fetchError);
+          }
         } else {
           toast.error(
             `Auto-save failed: ${result.message || 'Unknown error'}`,
@@ -233,6 +249,22 @@ export function ConfigTabs() {
           // Silent success - no toast for auto-save
           // Invalidate config cache so other components get fresh data
           invalidateConfigCache();
+
+          // Fetch updated config to get the recalculated nextRun time
+          try {
+            const updatedResponse = await apiRequest<ConfigApiResponse>(
+              `/config?userId=${user.id}`,
+              { method: 'GET' },
+            );
+            if (updatedResponse && !updatedResponse.error) {
+              setConfig(prev => ({
+                ...prev,
+                cleanupConfig: updatedResponse.cleanupConfig || prev.cleanupConfig,
+              }));
+            }
+          } catch (fetchError) {
+            console.warn('Failed to fetch updated config after auto-save:', fetchError);
+          }
         } else {
           toast.error(
             `Auto-save failed: ${result.message || 'Unknown error'}`,

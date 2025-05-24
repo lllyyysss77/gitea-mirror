@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { db, configs, users } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 import { eq } from "drizzle-orm";
+import { calculateCleanupInterval } from "@/lib/cleanup-service";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -56,6 +57,63 @@ export const POST: APIRoute = async ({ request }) => {
       }
     }
 
+    // Process schedule config - set/update nextRun if enabled, clear if disabled
+    const processedScheduleConfig = { ...scheduleConfig };
+    if (scheduleConfig.enabled) {
+      const now = new Date();
+      const interval = scheduleConfig.interval || 3600; // Default to 1 hour
+
+      // Check if we need to recalculate nextRun
+      // Recalculate if: no nextRun exists, or interval changed from existing config
+      let shouldRecalculate = !scheduleConfig.nextRun;
+
+      if (existingConfig && existingConfig.scheduleConfig) {
+        const existingScheduleConfig = existingConfig.scheduleConfig;
+        const existingInterval = existingScheduleConfig.interval || 3600;
+
+        // If interval changed, recalculate nextRun
+        if (interval !== existingInterval) {
+          shouldRecalculate = true;
+        }
+      }
+
+      if (shouldRecalculate) {
+        processedScheduleConfig.nextRun = new Date(now.getTime() + interval * 1000);
+      }
+    } else {
+      // Clear nextRun when disabled
+      processedScheduleConfig.nextRun = null;
+    }
+
+    // Process cleanup config - set/update nextRun if enabled, clear if disabled
+    const processedCleanupConfig = { ...cleanupConfig };
+    if (cleanupConfig.enabled) {
+      const now = new Date();
+      const retentionSeconds = cleanupConfig.retentionDays || 604800; // Default 7 days in seconds
+      const cleanupIntervalHours = calculateCleanupInterval(retentionSeconds);
+
+      // Check if we need to recalculate nextRun
+      // Recalculate if: no nextRun exists, or retention period changed from existing config
+      let shouldRecalculate = !cleanupConfig.nextRun;
+
+      if (existingConfig && existingConfig.cleanupConfig) {
+        const existingCleanupConfig = existingConfig.cleanupConfig;
+        const existingRetentionSeconds = existingCleanupConfig.retentionDays || 604800;
+
+        // If retention period changed, recalculate nextRun
+        if (retentionSeconds !== existingRetentionSeconds) {
+          shouldRecalculate = true;
+        }
+      }
+
+      if (shouldRecalculate) {
+        processedCleanupConfig.nextRun = new Date(now.getTime() + cleanupIntervalHours * 60 * 60 * 1000);
+      }
+    } else {
+      // Clear nextRun when disabled
+      processedCleanupConfig.nextRun = null;
+    }
+
     if (existingConfig) {
       // Update path
       await db
@@ -63,8 +121,8 @@ export const POST: APIRoute = async ({ request }) => {
         .set({
           githubConfig,
           giteaConfig,
-          scheduleConfig,
-          cleanupConfig,
+          scheduleConfig: processedScheduleConfig,
+          cleanupConfig: processedCleanupConfig,
           updatedAt: new Date(),
         })
         .where(eq(configs.id, existingConfig.id));
@@ -113,8 +171,8 @@ export const POST: APIRoute = async ({ request }) => {
       giteaConfig,
       include: [],
       exclude: [],
-      scheduleConfig,
-      cleanupConfig,
+      scheduleConfig: processedScheduleConfig,
+      cleanupConfig: processedCleanupConfig,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -201,7 +259,7 @@ export const GET: APIRoute = async ({ request }) => {
           },
           cleanupConfig: {
             enabled: false,
-            retentionDays: 7,
+            retentionDays: 604800, // 7 days in seconds
             lastRun: null,
             nextRun: null,
           },

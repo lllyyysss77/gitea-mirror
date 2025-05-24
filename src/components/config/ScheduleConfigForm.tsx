@@ -43,9 +43,6 @@ export function ScheduleConfigForm({
 
   // Predefined intervals
   const intervals: { value: number; label: string }[] = [
-    // { value: 120, label: "2 minutes" }, //for testing
-    { value: 900, label: "15 minutes" },
-    { value: 1800, label: "30 minutes" },
     { value: 3600, label: "1 hour" },
     { value: 7200, label: "2 hours" },
     { value: 14400, label: "4 hours" },
@@ -127,12 +124,18 @@ export function ScheduleConfigForm({
               <p className="text-xs text-muted-foreground mt-1">
                 How often the mirroring process should run.
               </p>
+              <div className="mt-2 p-2 bg-muted/50 rounded-md">
+                <p className="text-xs text-muted-foreground">
+                  <strong>Sync Schedule:</strong> Repositories will be synchronized at the specified interval.
+                  Choose shorter intervals for frequently updated repositories, longer intervals for stable ones.
+                </p>
+              </div>
             </div>
           )}
 
           <div className="flex gap-x-4">
             <div className="flex-1">
-              <label className="block text-sm font-medium mb-1">Last Run</label>
+              <label className="block text-sm font-medium mb-1">Last Sync</label>
               <div className="text-sm">
                 {config.lastRun ? formatDate(config.lastRun) : "Never"}
               </div>
@@ -140,7 +143,7 @@ export function ScheduleConfigForm({
 
             {config.enabled && (
               <div className="flex-1">
-                <label className="block text-sm font-medium mb-1">Next Run</label>
+                <label className="block text-sm font-medium mb-1">Next Sync</label>
                 <div className="text-sm">
                   {config.nextRun ? formatDate(config.nextRun) : "Never"}
                 </div>
