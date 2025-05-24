@@ -91,7 +91,7 @@ export function ConfigTabs() {
       );
       result.success
         ? toast.success(
-            'GitHub data imported successfully! Head to the Dashboard to start mirroring repositories.',
+            'GitHub data imported successfully! Head to the Repositories page to start mirroring.',
           )
         : toast.error(
             `Failed to import GitHub data: ${
