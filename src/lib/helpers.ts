@@ -1,5 +1,6 @@
 import type { RepoStatus } from "@/types/Repository";
 import { db, mirrorJobs } from "./db";
+import { eq, and, or, lt, isNull } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { publishEvent } from "./events";
 
@@ -120,7 +121,7 @@ export async function updateMirrorJobProgress({
     const [job] = await db
       .select()
       .from(mirrorJobs)
-      .where(mirrorJobs.id === jobId);
+      .where(eq(mirrorJobs.id, jobId));
 
     if (!job) {
       throw new Error(`Mirror job with ID ${jobId} not found`);
@@ -170,7 +171,7 @@ export async function updateMirrorJobProgress({
     await db
       .update(mirrorJobs)
       .set(updates)
-      .where(mirrorJobs.id === jobId);
+      .where(eq(mirrorJobs.id, jobId));
 
     // Publish the event with deduplication
     const updatedJob = {
@@ -203,7 +204,7 @@ export async function updateMirrorJobProgress({
 }
 
 /**
- * Finds interrupted jobs that need to be resumed
+ * Finds interrupted jobs that need to be resumed with enhanced criteria
  */
 export async function findInterruptedJobs() {
   try {
@@ -211,14 +212,34 @@ export async function findInterruptedJobs() {
     const cutoffTime = new Date();
     cutoffTime.setMinutes(cutoffTime.getMinutes() - 10); // Consider jobs inactive after 10 minutes without updates
 
+    // Also check for jobs that have been running for too long (over 2 hours)
+    const staleCutoffTime = new Date();
+    staleCutoffTime.setHours(staleCutoffTime.getHours() - 2);
+
     const interruptedJobs = await db
       .select()
       .from(mirrorJobs)
       .where(
-        mirrorJobs.inProgress === true &&
-        (mirrorJobs.lastCheckpoint === null ||
-         mirrorJobs.lastCheckpoint < cutoffTime)
+        and(
+          eq(mirrorJobs.inProgress, true),
+          or(
+            // Jobs with no recent checkpoint
+            or(isNull(mirrorJobs.lastCheckpoint), lt(mirrorJobs.lastCheckpoint, cutoffTime)),
+            // Jobs that started too long ago (likely stale)
+            lt(mirrorJobs.startedAt, staleCutoffTime)
+          )
+        )
       );
+
+    // Log details about found jobs for debugging
+    if (interruptedJobs.length > 0) {
+      console.log(`Found ${interruptedJobs.length} interrupted jobs:`);
+      interruptedJobs.forEach(job => {
+        const lastCheckpoint = job.lastCheckpoint ? new Date(job.lastCheckpoint).toISOString() : 'never';
+        const startedAt = job.startedAt ? new Date(job.startedAt).toISOString() : 'unknown';
+        console.log(`- Job ${job.id}: ${job.jobType} (started: ${startedAt}, last checkpoint: ${lastCheckpoint})`);
+      });
+    }
 
     return interruptedJobs;
   } catch (error) {

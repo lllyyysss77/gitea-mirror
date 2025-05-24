@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { jsonResponse } from "@/lib/utils";
 import { db } from "@/lib/db";
 import { ENV } from "@/lib/config";
+import { getRecoveryStatus, hasJobsNeedingRecovery } from "@/lib/recovery";
 import os from "os";
 import axios from "axios";
 
@@ -38,9 +39,20 @@ export const GET: APIRoute = async () => {
     const currentVersion = process.env.npm_package_version || "unknown";
     const latestVersion = await checkLatestVersion();
 
+    // Get recovery system status
+    const recoveryStatus = await getRecoverySystemStatus();
+
+    // Determine overall health status
+    let overallStatus = "ok";
+    if (!dbStatus.connected) {
+      overallStatus = "error";
+    } else if (recoveryStatus.jobsNeedingRecovery > 0 && !recoveryStatus.inProgress) {
+      overallStatus = "degraded";
+    }
+
     // Build response
     const healthData = {
-      status: "ok",
+      status: overallStatus,
       timestamp: new Date().toISOString(),
       version: currentVersion,
       latestVersion: latestVersion,
@@ -48,6 +60,7 @@ export const GET: APIRoute = async () => {
                        currentVersion !== "unknown" &&
                        latestVersion !== currentVersion,
       database: dbStatus,
+      recovery: recoveryStatus,
       system: systemInfo,
     };
 
@@ -90,6 +103,36 @@ async function checkDatabaseConnection() {
     return {
       connected: false,
       message: error instanceof Error ? error.message : "Database connection failed",
+    };
+  }
+}
+
+/**
+ * Get recovery system status
+ */
+async function getRecoverySystemStatus() {
+  try {
+    const recoveryStatus = getRecoveryStatus();
+    const needsRecovery = await hasJobsNeedingRecovery();
+
+    return {
+      status: needsRecovery ? 'jobs-pending' : 'healthy',
+      inProgress: recoveryStatus.inProgress,
+      lastAttempt: recoveryStatus.lastAttempt?.toISOString() || null,
+      jobsNeedingRecovery: needsRecovery ? 1 : 0, // Simplified count for health check
+      message: needsRecovery
+        ? 'Jobs found that need recovery'
+        : 'No jobs need recovery',
+    };
+  } catch (error) {
+    console.error('Recovery system status check failed:', error);
+
+    return {
+      status: 'error',
+      inProgress: false,
+      lastAttempt: null,
+      jobsNeedingRecovery: -1,
+      message: error instanceof Error ? error.message : 'Recovery status check failed',
     };
   }
 }

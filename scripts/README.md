@@ -118,6 +118,27 @@ bun scripts/fix-interrupted-jobs.ts <userId>
 
 Use this script if you're having trouble cleaning up activities due to "interrupted" jobs that won't delete.
 
+### Startup Recovery (startup-recovery.ts)
+
+Runs job recovery during application startup to handle any interrupted jobs from previous runs.
+
+```bash
+# Run startup recovery (normal mode)
+bun scripts/startup-recovery.ts
+
+# Force recovery even if recent attempt was made
+bun scripts/startup-recovery.ts --force
+
+# Set custom timeout (default: 30000ms)
+bun scripts/startup-recovery.ts --timeout=60000
+
+# Using npm scripts
+bun run startup-recovery
+bun run startup-recovery-force
+```
+
+This script is automatically run by the Docker entrypoint during container startup. It ensures that any jobs interrupted by container restarts or application crashes are properly recovered or marked as failed.
+
 ## Deployment Scripts
 
 ### Docker Deployment

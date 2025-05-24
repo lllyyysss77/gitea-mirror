@@ -250,6 +250,30 @@ else
   echo "Consider setting up external scheduled tasks to run cleanup scripts."
 fi
 
+# Run startup recovery to handle any interrupted jobs
+echo "Running startup recovery..."
+if [ -f "dist/scripts/startup-recovery.js" ]; then
+  echo "Running startup recovery using compiled script..."
+  bun dist/scripts/startup-recovery.js --timeout=30000
+  RECOVERY_EXIT_CODE=$?
+elif [ -f "scripts/startup-recovery.ts" ]; then
+  echo "Running startup recovery using TypeScript script..."
+  bun scripts/startup-recovery.ts --timeout=30000
+  RECOVERY_EXIT_CODE=$?
+else
+  echo "Warning: Startup recovery script not found. Skipping recovery."
+  RECOVERY_EXIT_CODE=0
+fi
+
+# Log recovery result
+if [ $RECOVERY_EXIT_CODE -eq 0 ]; then
+  echo "✅ Startup recovery completed successfully"
+elif [ $RECOVERY_EXIT_CODE -eq 1 ]; then
+  echo "⚠️  Startup recovery completed with warnings"
+else
+  echo "❌ Startup recovery failed with exit code $RECOVERY_EXIT_CODE"
+fi
+
 # Start the application
 echo "Starting Gitea Mirror..."
 exec bun ./dist/server/entry.mjs
