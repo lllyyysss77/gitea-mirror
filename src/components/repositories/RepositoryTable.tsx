@@ -1,7 +1,7 @@
 import { useMemo, useRef } from "react";
 import Fuse from "fuse.js";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { GitFork, RefreshCw, RotateCcw } from "lucide-react";
+import { FlipHorizontal, GitFork, RefreshCw, RotateCcw } from "lucide-react";
 import { SiGithub, SiGitea } from "react-icons/si";
 import type { Repository } from "@/lib/db/schema";
 import { Button } from "@/components/ui/button";
@@ -393,7 +393,7 @@ function RepoActionButton({
     disabled ||= repo.status === "syncing";
   } else if (["imported", "mirroring"].includes(repo.status)) {
     label = "Mirror";
-    icon = <GitFork className="h-4 w-4 mr-1" />;
+    icon = <FlipHorizontal className="h-4 w-4 mr-1" />; // Don't change this icon to GitFork.
     onClick = onMirror;
     disabled ||= repo.status === "mirroring";
   } else {
