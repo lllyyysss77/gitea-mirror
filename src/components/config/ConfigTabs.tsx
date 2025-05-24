@@ -20,7 +20,7 @@ import type {
 import { Button } from '../ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { apiRequest } from '@/lib/utils';
-import { Copy, CopyCheck, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -57,8 +57,6 @@ export function ConfigTabs() {
   });
   const { user, refreshUser } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
-  const [dockerCode, setDockerCode] = useState<string>('');
-  const [isCopied, setIsCopied] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [isConfigSaved, setIsConfigSaved] = useState<boolean>(false);
 
@@ -192,41 +190,6 @@ export function ConfigTabs() {
     fetchConfig();
   }, [user]);
 
-  useEffect(() => {
-    const generateDockerCode = () => `
-services:
-  gitea-mirror:
-    image: arunavo4/gitea-mirror:latest
-    restart: unless-stopped
-    container_name: gitea-mirror
-    environment:
-      - GITHUB_USERNAME=${config.githubConfig.username}
-      - GITEA_URL=${config.giteaConfig.url}
-      - GITEA_TOKEN=${config.giteaConfig.token}
-      - GITHUB_TOKEN=${config.githubConfig.token}
-      - SKIP_FORKS=${config.githubConfig.skipForks}
-      - PRIVATE_REPOSITORIES=${config.githubConfig.privateRepositories}
-      - MIRROR_ISSUES=${config.githubConfig.mirrorIssues}
-      - MIRROR_STARRED=${config.githubConfig.mirrorStarred}
-      - PRESERVE_ORG_STRUCTURE=${config.githubConfig.preserveOrgStructure}
-      - SKIP_STARRED_ISSUES=${config.githubConfig.skipStarredIssues}
-      - GITEA_ORGANIZATION=${config.giteaConfig.organization}
-      - GITEA_ORG_VISIBILITY=${config.giteaConfig.visibility}
-      - DELAY=${config.scheduleConfig.interval}`;
-    setDockerCode(generateDockerCode());
-  }, [config]);
-
-  const handleCopyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text).then(
-      () => {
-        setIsCopied(true);
-        toast.success('Docker configuration copied to clipboard!');
-        setTimeout(() => setIsCopied(false), 2000);
-      },
-      () => toast.error('Could not copy text to clipboard.'),
-    );
-  };
-
   function ConfigCardSkeleton() {
     return (
       <Card>
@@ -280,25 +243,9 @@ services:
     );
   }
 
-  function DockerConfigSkeleton() {
-    return (
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-6 w-40" />
-          <Skeleton className="h-4 w-64" />
-        </CardHeader>
-        <CardContent className="relative">
-          <Skeleton className="h-8 w-8 absolute top-4 right-10 rounded-md" />
-          <Skeleton className="h-48 w-full rounded-md" />
-        </CardContent>
-      </Card>
-    );
-  }
-
   return isLoading ? (
     <div className="flex flex-col gap-y-6">
       <ConfigCardSkeleton />
-      <DockerConfigSkeleton />
     </div>
   ) : (
     <div className="flex flex-col gap-y-6">
@@ -389,31 +336,6 @@ services:
               }
             />
           </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Docker Configuration</CardTitle>
-          <CardDescription>
-            Equivalent Docker configuration for your current settings.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="relative">
-          <Button
-            variant="outline"
-            size="icon"
-            className="absolute top-4 right-10"
-            onClick={() => handleCopyToClipboard(dockerCode)}
-          >
-            {isCopied ? (
-              <CopyCheck className="text-green-500" />
-            ) : (
-              <Copy className="text-muted-foreground" />
-            )}
-          </Button>
-          <pre className="bg-muted p-4 rounded-md overflow-auto text-sm">
-            {dockerCode}
-          </pre>
         </CardContent>
       </Card>
     </div>
