@@ -14,6 +14,7 @@ type MirrorJobWithKey = MirrorJob & { _rowKey: string };
 interface ActivityListProps {
   activities: MirrorJobWithKey[];
   isLoading: boolean;
+  isLiveActive?: boolean;
   filter: FilterParams;
   setFilter: (filter: FilterParams) => void;
 }
@@ -21,6 +22,7 @@ interface ActivityListProps {
 export default function ActivityList({
   activities,
   isLoading,
+  isLiveActive = false,
   filter,
   setFilter,
 }: ActivityListProps) {
@@ -120,18 +122,19 @@ export default function ActivityList({
   }
 
   return (
-    <Card
-      ref={parentRef}
-      className='relative max-h-[calc(100dvh-191px)] overflow-y-auto rounded-md border'
-    >
-      <div
-        style={{
-          height: virtualizer.getTotalSize(),
-          position: 'relative',
-          width: '100%',
-        }}
+    <div className="flex flex-col border rounded-md">
+      <Card
+        ref={parentRef}
+        className='relative max-h-[calc(100dvh-231px)] overflow-y-auto rounded-none border-0'
       >
-        {virtualizer.getVirtualItems().map((vRow) => {
+        <div
+          style={{
+            height: virtualizer.getTotalSize(),
+            position: 'relative',
+            width: '100%',
+          }}
+        >
+          {virtualizer.getVirtualItems().map((vRow) => {
           const activity = filteredActivities[vRow.index];
           const isExpanded = expandedItems.has(activity._rowKey);
 
@@ -213,5 +216,44 @@ export default function ActivityList({
         })}
       </div>
     </Card>
+
+    {/* Status Bar */}
+    <div className="h-[40px] flex items-center justify-between border-t bg-muted/30 px-3 relative">
+      <div className="flex items-center gap-2">
+        <div className={`h-1.5 w-1.5 rounded-full ${isLiveActive ? 'bg-emerald-500' : 'bg-primary'}`} />
+        <span className="text-sm font-medium text-foreground">
+          {filteredActivities.length} {filteredActivities.length === 1 ? 'activity' : 'activities'} total
+        </span>
+      </div>
+
+      {/* Center - Live active indicator */}
+      {isLiveActive && (
+        <div className="flex items-center gap-1.5 absolute left-1/2 transform -translate-x-1/2">
+          <div
+            className="h-1 w-1 rounded-full bg-emerald-500"
+            style={{
+              animation: 'pulse 2s ease-in-out infinite'
+            }}
+          />
+          <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+            Live active
+          </span>
+          <div
+            className="h-1 w-1 rounded-full bg-emerald-500"
+            style={{
+              animation: 'pulse 2s ease-in-out infinite',
+              animationDelay: '1s'
+            }}
+          />
+        </div>
+      )}
+
+      {(filter.searchTerm || filter.status || filter.type || filter.name) && (
+        <span className="text-xs text-muted-foreground">
+          Filters applied
+        </span>
+      )}
+    </div>
+  </div>
   );
 }

@@ -67,12 +67,12 @@ function deepClone<T>(obj: T): T {
 
 export function ActivityLog() {
   const { user } = useAuth();
-  const { registerRefreshCallback } = useLiveRefresh();
+  const { registerRefreshCallback, isLiveEnabled } = useLiveRefresh();
   const { isFullyConfigured } = useConfigStatus();
   const { navigationKey } = useNavigation();
 
   const [activities, setActivities] = useState<MirrorJobWithKey[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
   const [showCleanupDialog, setShowCleanupDialog] = useState(false);
 
   // Ref to track if component is mounted to prevent state updates after unmount
@@ -138,11 +138,14 @@ export function ActivityLog() {
 
   /* ------------------------- initial fetch --------------------------- */
 
-  const fetchActivities = useCallback(async () => {
+  const fetchActivities = useCallback(async (isLiveRefresh = false) => {
     if (!user?.id) return false;
 
     try {
-      setIsLoading(true);
+      // Set appropriate loading state based on refresh type
+      if (!isLiveRefresh) {
+        setIsInitialLoading(true);
+      }
 
       const res = await apiRequest<ActivityApiResponse>(
         `/activities?userId=${user.id}`,
@@ -150,7 +153,10 @@ export function ActivityLog() {
       );
 
       if (!res.success) {
-        toast.error(res.message ?? 'Failed to fetch activities.');
+        // Only show error toast for manual refreshes to avoid spam during live updates
+        if (!isLiveRefresh) {
+          toast.error(res.message ?? 'Failed to fetch activities.');
+        }
         return false;
       }
 
@@ -176,22 +182,25 @@ export function ActivityLog() {
       return true;
     } catch (err) {
       if (isMountedRef.current) {
-        toast.error(
-          err instanceof Error ? err.message : 'Failed to fetch activities.',
-        );
+        // Only show error toast for manual refreshes to avoid spam during live updates
+        if (!isLiveRefresh) {
+          toast.error(
+            err instanceof Error ? err.message : 'Failed to fetch activities.',
+          );
+        }
       }
       return false;
     } finally {
-      if (isMountedRef.current) {
-        setIsLoading(false);
+      if (isMountedRef.current && !isLiveRefresh) {
+        setIsInitialLoading(false);
       }
     }
   }, [user?.id]); // Only depend on user.id, not entire user object
 
   useEffect(() => {
     // Reset loading state when component becomes active
-    setIsLoading(true);
-    fetchActivities();
+    setIsInitialLoading(true);
+    fetchActivities(false); // Manual refresh, not live
   }, [fetchActivities, navigationKey]); // Include navigationKey to trigger on navigation
 
   // Register with global live refresh system
@@ -203,7 +212,7 @@ export function ActivityLog() {
     }
 
     const unregister = registerRefreshCallback(() => {
-      fetchActivities();
+      fetchActivities(true); // Live refresh
     });
 
     return unregister;
@@ -301,7 +310,7 @@ export function ActivityLog() {
     if (!user?.id) return;
 
     try {
-      setIsLoading(true);
+      setIsInitialLoading(true);
       setShowCleanupDialog(false);
 
       // Use fetch directly to avoid potential axios issues
@@ -329,7 +338,7 @@ export function ActivityLog() {
       console.error('Error cleaning up activities:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to cleanup activities.');
     } finally {
-      setIsLoading(false);
+      setIsInitialLoading(false);
     }
   };
 
@@ -430,7 +439,7 @@ export function ActivityLog() {
         <Button
           variant="outline"
           size="icon"
-          onClick={() => fetchActivities()}
+          onClick={() => fetchActivities(false)} // Manual refresh, show loading skeleton
           title="Refresh activity log"
         >
           <RefreshCw className='h-4 w-4' />
@@ -451,7 +460,8 @@ export function ActivityLog() {
       {/* activity list */}
       <ActivityList
         activities={applyLightFilter(activities)}
-        isLoading={isLoading || !connected}
+        isLoading={isInitialLoading || !connected}
+        isLiveActive={isLiveEnabled && isFullyConfigured}
         filter={filter}
         setFilter={setFilter}
       />
@@ -472,9 +482,9 @@ export function ActivityLog() {
             <Button
               variant="destructive"
               onClick={confirmCleanup}
-              disabled={isLoading}
+              disabled={isInitialLoading}
             >
-              {isLoading ? 'Deleting...' : 'Delete All Activities'}
+              {isInitialLoading ? 'Deleting...' : 'Delete All Activities'}
             </Button>
           </DialogFooter>
         </DialogContent>
