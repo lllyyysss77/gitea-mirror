@@ -68,26 +68,8 @@ export function ConfigTabs() {
     return isGitHubValid && isGiteaValid;
   };
 
-  useEffect(() => {
-    const updateLastAndNextRun = () => {
-      const lastRun = config.scheduleConfig.lastRun
-        ? new Date(config.scheduleConfig.lastRun)
-        : new Date();
-      const intervalInSeconds = config.scheduleConfig.interval;
-      const nextRun = new Date(
-        lastRun.getTime() + intervalInSeconds * 1000,
-      );
-      setConfig(prev => ({
-        ...prev,
-        scheduleConfig: {
-          ...prev.scheduleConfig,
-          lastRun,
-          nextRun,
-        },
-      }));
-    };
-    updateLastAndNextRun();
-  }, [config.scheduleConfig.interval]);
+  // Removed the problematic useEffect that was causing circular dependencies
+  // The lastRun and nextRun should be managed by the backend and fetched via API
 
   const handleImportGitHubData = async () => {
     if (!user?.id) return;
@@ -182,7 +164,7 @@ export function ConfigTabs() {
 
         if (result.success) {
           // Silent success - no toast for auto-save
-          await refreshUser();
+          // Removed refreshUser() call to prevent page reload
         } else {
           toast.error(
             `Auto-save failed: ${result.message || 'Unknown error'}`,
@@ -200,7 +182,7 @@ export function ConfigTabs() {
         setIsAutoSaving(false);
       }
     }, 500); // 500ms debounce
-  }, [user?.id, isConfigSaved, config.githubConfig, config.giteaConfig, refreshUser]);
+  }, [user?.id, isConfigSaved, config.githubConfig, config.giteaConfig]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -212,7 +194,7 @@ export function ConfigTabs() {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
 
     const fetchConfig = async () => {
       setIsLoading(true);
@@ -242,7 +224,7 @@ export function ConfigTabs() {
     };
 
     fetchConfig();
-  }, [user]);
+  }, [user?.id]); // Only depend on user.id, not the entire user object
 
   function ConfigCardSkeleton() {
     return (
