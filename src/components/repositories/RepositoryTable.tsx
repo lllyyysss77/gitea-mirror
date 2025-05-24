@@ -13,6 +13,7 @@ import { useGiteaConfig } from "@/hooks/useGiteaConfig";
 interface RepositoryTableProps {
   repositories: Repository[];
   isLoading: boolean;
+  isLiveActive?: boolean;
   filter: FilterParams;
   setFilter: (filter: FilterParams) => void;
   onMirror: ({ repoId }: { repoId: string }) => Promise<void>;
@@ -24,6 +25,7 @@ interface RepositoryTableProps {
 export default function RepositoryTable({
   repositories,
   isLoading,
+  isLiveActive = false,
   filter,
   setFilter,
   onMirror,
@@ -345,15 +347,38 @@ export default function RepositoryTable({
       </div>
 
       {/* Status Bar */}
-      <div className="h-[40px] flex items-center justify-between border-t bg-muted/30 px-3">
+      <div className="h-[40px] flex items-center justify-between border-t bg-muted/30 px-3 relative">
         <div className="flex items-center gap-2">
-          <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+          <div className={`h-1.5 w-1.5 rounded-full ${isLiveActive ? 'bg-emerald-500' : 'bg-primary'}`} />
           <span className="text-sm font-medium text-foreground">
             {hasAnyFilter
               ? `Showing ${filteredRepositories.length} of ${repositories.length} repositories`
               : `${repositories.length} ${repositories.length === 1 ? 'repository' : 'repositories'} total`}
           </span>
         </div>
+
+        {/* Center - Live active indicator */}
+        {isLiveActive && (
+          <div className="flex items-center gap-1.5 absolute left-1/2 transform -translate-x-1/2">
+            <div
+              className="h-1 w-1 rounded-full bg-emerald-500"
+              style={{
+                animation: 'pulse 2s ease-in-out infinite'
+              }}
+            />
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+              Live active
+            </span>
+            <div
+              className="h-1 w-1 rounded-full bg-emerald-500"
+              style={{
+                animation: 'pulse 2s ease-in-out infinite',
+                animationDelay: '1s'
+              }}
+            />
+          </div>
+        )}
+
         {hasAnyFilter && (
           <span className="text-xs text-muted-foreground">
             Filters applied

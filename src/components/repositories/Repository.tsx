@@ -34,10 +34,10 @@ import { useNavigation } from "@/components/layout/MainLayout";
 
 export default function Repository() {
   const [repositories, setRepositories] = useState<Repository[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const { user } = useAuth();
-  const { registerRefreshCallback } = useLiveRefresh();
-  const { isGitHubConfigured } = useConfigStatus();
+  const { registerRefreshCallback, isLiveEnabled } = useLiveRefresh();
+  const { isGitHubConfigured, isFullyConfigured } = useConfigStatus();
   const { navigationKey } = useNavigation();
   const { filter, setFilter } = useFilterParams({
     searchTerm: "",
@@ -80,17 +80,20 @@ export default function Repository() {
     onMessage: handleNewMessage,
   });
 
-  const fetchRepositories = useCallback(async () => {
+  const fetchRepositories = useCallback(async (isLiveRefresh = false) => {
     if (!user?.id) return;
 
     // Don't fetch repositories if GitHub is not configured or still loading config
     if (!isGitHubConfigured) {
-      setIsLoading(false);
+      setIsInitialLoading(false);
       return false;
     }
 
     try {
-      setIsLoading(true);
+      // Set appropriate loading state based on refresh type
+      if (!isLiveRefresh) {
+        setIsInitialLoading(true);
+      }
 
       const response = await apiRequest<RepositoryApiResponse>(
         `/github/repositories?userId=${user.id}`,
@@ -103,23 +106,31 @@ export default function Repository() {
         setRepositories(response.repositories);
         return true;
       } else {
-        toast.error(response.error || "Error fetching repositories");
+        // Only show error toast for manual refreshes to avoid spam during live updates
+        if (!isLiveRefresh) {
+          toast.error(response.error || "Error fetching repositories");
+        }
         return false;
       }
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Error fetching repositories"
-      );
+      // Only show error toast for manual refreshes to avoid spam during live updates
+      if (!isLiveRefresh) {
+        toast.error(
+          error instanceof Error ? error.message : "Error fetching repositories"
+        );
+      }
       return false;
     } finally {
-      setIsLoading(false);
+      if (!isLiveRefresh) {
+        setIsInitialLoading(false);
+      }
     }
   }, [user?.id, isGitHubConfigured]); // Only depend on user.id, not entire user object
 
   useEffect(() => {
     // Reset loading state when component becomes active
-    setIsLoading(true);
-    fetchRepositories();
+    setIsInitialLoading(true);
+    fetchRepositories(false); // Manual refresh, not live
   }, [fetchRepositories, navigationKey]); // Include navigationKey to trigger on navigation
 
   // Register with global live refresh system
@@ -130,14 +141,14 @@ export default function Repository() {
     }
 
     const unregister = registerRefreshCallback(() => {
-      fetchRepositories();
+      fetchRepositories(true); // Live refresh
     });
 
     return unregister;
   }, [registerRefreshCallback, fetchRepositories, isGitHubConfigured]);
 
   const handleRefresh = async () => {
-    const success = await fetchRepositories();
+    const success = await fetchRepositories(false); // Manual refresh, show loading skeleton
     if (success) {
       toast.success("Repositories refreshed successfully.");
     }
@@ -363,7 +374,7 @@ export default function Repository() {
         toast.success(`Repository added successfully`);
         setRepositories((prevRepos) => [...prevRepos, response.repository]);
 
-        await fetchRepositories();
+        await fetchRepositories(false); // Manual refresh after adding repository
 
         setFilter((prev) => ({
           ...prev,
@@ -463,7 +474,7 @@ export default function Repository() {
         <Button
           variant="default"
           onClick={handleMirrorAllRepos}
-          disabled={isLoading || loadingRepoIds.size > 0}
+          disabled={isInitialLoading || loadingRepoIds.size > 0}
         >
           <FlipHorizontal className="h-4 w-4 mr-2" />
           Mirror All
@@ -490,7 +501,8 @@ export default function Repository() {
       ) : (
         <RepositoryTable
           repositories={repositories}
-          isLoading={isLoading || !connected}
+          isLoading={isInitialLoading || !connected}
+          isLiveActive={isLiveEnabled && isFullyConfigured}
           filter={filter}
           setFilter={setFilter}
           onMirror={handleMirrorRepo}
