@@ -5,9 +5,29 @@ import { ModeToggle } from "@/components/theme/ModeToggle";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
+import { useConfigStatus } from "@/hooks/useConfigStatus";
 
-export function Header() {
+interface HeaderProps {
+  currentPage?: "dashboard" | "repositories" | "organizations" | "configuration" | "activity-log";
+}
+
+export function Header({ currentPage }: HeaderProps) {
   const { user, logout, isLoading } = useAuth();
+  const { isLiveEnabled, toggleLive } = useLiveRefresh();
+  const { isFullyConfigured, isLoading: configLoading } = useConfigStatus();
+
+  // Show Live button on all pages except configuration
+  const showLiveButton = currentPage && currentPage !== "configuration";
+
+  // Determine button state and tooltip
+  const isLiveActive = isLiveEnabled && isFullyConfigured;
+  const getTooltip = () => {
+    if (!isFullyConfigured && !configLoading) {
+      return 'Configure GitHub and Gitea settings to enable live refresh';
+    }
+    return isLiveEnabled ? 'Disable live refresh' : 'Enable live refresh';
+  };
 
   const handleLogout = async () => {
     toast.success("Logged out successfully");
@@ -35,6 +55,26 @@ export function Header() {
         </a>
 
         <div className="flex items-center gap-4">
+          {showLiveButton && (
+            <Button
+              variant="outline"
+              size="lg"
+              className={`flex items-center gap-2 ${!isFullyConfigured && !configLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={isFullyConfigured || configLoading ? toggleLive : undefined}
+              title={getTooltip()}
+              disabled={!isFullyConfigured && !configLoading}
+            >
+              <div className={`w-3 h-3 rounded-full ${
+                configLoading
+                  ? 'bg-yellow-400 animate-pulse'
+                  : isLiveActive
+                    ? 'bg-emerald-400 animate-pulse'
+                    : 'bg-gray-500'
+              }`} />
+              <span>LIVE</span>
+            </Button>
+          )}
+
           <ModeToggle />
 
           {isLoading ? (

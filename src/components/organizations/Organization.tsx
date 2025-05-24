@@ -24,12 +24,16 @@ import type { MirrorOrgRequest, MirrorOrgResponse } from "@/types/mirror";
 import { useSSE } from "@/hooks/useSEE";
 import { useFilterParams } from "@/hooks/useFilterParams";
 import { toast } from "sonner";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
+import { useConfigStatus } from "@/hooks/useConfigStatus";
 
 export function Organization() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
   const { user } = useAuth();
+  const { registerRefreshCallback } = useLiveRefresh();
+  const { isGitHubConfigured } = useConfigStatus();
   const { filter, setFilter } = useFilterParams({
     searchTerm: "",
     membershipRole: "",
@@ -63,6 +67,12 @@ export function Organization() {
       return false;
     }
 
+    // Don't fetch organizations if GitHub is not configured
+    if (!isGitHubConfigured) {
+      setIsLoading(false);
+      return false;
+    }
+
     try {
       setIsLoading(true);
 
@@ -88,11 +98,25 @@ export function Organization() {
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, isGitHubConfigured]);
 
   useEffect(() => {
     fetchOrganizations();
   }, [fetchOrganizations]);
+
+  // Register with global live refresh system
+  useEffect(() => {
+    // Only register for live refresh if GitHub is configured
+    if (!isGitHubConfigured) {
+      return;
+    }
+
+    const unregister = registerRefreshCallback(() => {
+      fetchOrganizations();
+    });
+
+    return unregister;
+  }, [registerRefreshCallback, fetchOrganizations, isGitHubConfigured]);
 
   const handleRefresh = async () => {
     const success = await fetchOrganizations();
@@ -342,9 +366,13 @@ export function Organization() {
           </SelectContent>
         </Select>
 
-        <Button variant="default" onClick={handleRefresh}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleRefresh}
+          title="Refresh organizations"
+        >
+          <RefreshCw className="h-4 w-4" />
         </Button>
 
         <Button

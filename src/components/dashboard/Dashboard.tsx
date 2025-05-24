@@ -2,7 +2,7 @@ import { StatusCard } from "./StatusCard";
 import { RecentActivity } from "./RecentActivity";
 import { RepositoryList } from "./RepositoryList";
 import { GitFork, Clock, FlipHorizontal, Building2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { MirrorJob, Organization, Repository } from "@/lib/db/schema";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/utils";
@@ -11,9 +11,16 @@ import { useSSE } from "@/hooks/useSEE";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
+import { usePageVisibility } from "@/hooks/usePageVisibility";
+import { useConfigStatus } from "@/hooks/useConfigStatus";
 
 export function Dashboard() {
   const { user } = useAuth();
+  const { registerRefreshCallback } = useLiveRefresh();
+  const isPageVisible = usePageVisibility();
+  const { isFullyConfigured } = useConfigStatus();
+
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [activities, setActivities] = useState<MirrorJob[]>([]);
@@ -22,6 +29,10 @@ export function Dashboard() {
   const [orgCount, setOrgCount] = useState<number>(0);
   const [mirroredCount, setMirroredCount] = useState<number>(0);
   const [lastSync, setLastSync] = useState<Date | null>(null);
+
+  // Dashboard auto-refresh timer (30 seconds)
+  const dashboardTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const DASHBOARD_REFRESH_INTERVAL = 30000; // 30 seconds
 
   // Create a stable callback using useCallback
   const handleNewMessage = useCallback((data: MirrorJob) => {
@@ -54,44 +65,94 @@ export function Dashboard() {
     onMessage: handleNewMessage,
   });
 
+  // Extract fetchDashboardData as a stable callback
+  const fetchDashboardData = useCallback(async (showToast = false) => {
+    try {
+      if (!user || !user.id) {
+        return false;
+      }
+
+      // Don't fetch data if configuration is not complete
+      if (!isFullyConfigured) {
+        if (showToast) {
+          toast.info("Please configure GitHub and Gitea settings first");
+        }
+        return false;
+      }
+
+      const response = await apiRequest<DashboardApiResponse>(
+        `/dashboard?userId=${user.id}`,
+        {
+          method: "GET",
+        }
+      );
+
+      if (response.success) {
+        setRepositories(response.repositories);
+        setOrganizations(response.organizations);
+        setActivities(response.activities);
+        setRepoCount(response.repoCount);
+        setOrgCount(response.orgCount);
+        setMirroredCount(response.mirroredCount);
+        setLastSync(response.lastSync);
+
+        if (showToast) {
+          toast.success("Dashboard data refreshed successfully");
+        }
+        return true;
+      } else {
+        toast.error(response.error || "Error fetching dashboard data");
+        return false;
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Error fetching dashboard data"
+      );
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, isFullyConfigured]);
+
+  // Initial data fetch
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        if (!user || !user.id) {
-          return;
-        }
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
-        const response = await apiRequest<DashboardApiResponse>(
-          `/dashboard?userId=${user.id}`,
-          {
-            method: "GET",
-          }
-        );
+  // Setup dashboard auto-refresh (30 seconds) and register with live refresh
+  useEffect(() => {
+    // Clear any existing timer
+    if (dashboardTimerRef.current) {
+      clearInterval(dashboardTimerRef.current);
+      dashboardTimerRef.current = null;
+    }
 
-        if (response.success) {
-          setRepositories(response.repositories);
-          setOrganizations(response.organizations);
-          setActivities(response.activities);
-          setRepoCount(response.repoCount);
-          setOrgCount(response.orgCount);
-          setMirroredCount(response.mirroredCount);
-          setLastSync(response.lastSync);
-        } else {
-          toast.error(response.error || "Error fetching dashboard data");
-        }
-      } catch (error) {
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : "Error fetching dashboard data"
-        );
-      } finally {
-        setIsLoading(false);
+    // Set up 30-second auto-refresh only when page is visible and configuration is complete
+    if (isPageVisible && isFullyConfigured) {
+      dashboardTimerRef.current = setInterval(() => {
+        fetchDashboardData();
+      }, DASHBOARD_REFRESH_INTERVAL);
+    }
+
+    // Cleanup on unmount or when page becomes invisible
+    return () => {
+      if (dashboardTimerRef.current) {
+        clearInterval(dashboardTimerRef.current);
+        dashboardTimerRef.current = null;
       }
     };
+  }, [isPageVisible, isFullyConfigured, fetchDashboardData]);
 
-    fetchDashboardData();
-  }, [user]);
+  // Register with global live refresh system
+  useEffect(() => {
+    const unregister = registerRefreshCallback(() => {
+      fetchDashboardData();
+    });
+
+    return unregister;
+  }, [registerRefreshCallback, fetchDashboardData]);
 
   // Status Card Skeleton component
   function StatusCardSkeleton() {
@@ -150,6 +211,7 @@ export function Dashboard() {
     </div>
   ) : (
     <div className="flex flex-col gap-y-6">
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatusCard
           title="Total Repositories"

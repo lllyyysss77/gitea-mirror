@@ -44,7 +44,7 @@ function AppWithProviders({ page }: AppProps) {
 
   return (
     <main className="flex min-h-screen flex-col">
-      <Header />
+      <Header currentPage={page} />
       <div className="flex flex-1">
         <Sidebar />
         <section className="flex-1 p-6 overflow-y-auto h-[calc(100dvh-4.55rem)]">

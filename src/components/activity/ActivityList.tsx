@@ -105,7 +105,7 @@ export default function ActivityList({
             ? 'Try adjusting your search or filter criteria.'
             : 'No mirroring activities have been recorded yet.'}
         </p>
-        {hasFilter ? (
+        {hasFilter && (
           <Button
             variant='outline'
             onClick={() =>
@@ -113,11 +113,6 @@ export default function ActivityList({
             }
           >
             Clear Filters
-          </Button>
-        ) : (
-          <Button>
-            <RefreshCw className='mr-2 h-4 w-4' />
-            Refresh
           </Button>
         )}
       </div>

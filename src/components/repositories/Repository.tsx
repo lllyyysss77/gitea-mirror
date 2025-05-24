@@ -28,12 +28,15 @@ import { OwnerCombobox, OrganizationCombobox } from "./RepositoryComboboxes";
 import type { RetryRepoRequest, RetryRepoResponse } from "@/types/retry";
 import AddRepositoryDialog from "./AddRepositoryDialog";
 import type { ConfigApiResponse } from "@/types/config";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
+import { useConfigStatus } from "@/hooks/useConfigStatus";
 
 export default function Repository() {
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isGitHubConfigured, setIsGitHubConfigured] = useState<boolean>(true);
   const { user } = useAuth();
+  const { registerRefreshCallback } = useLiveRefresh();
+  const { isGitHubConfigured } = useConfigStatus();
   const { filter, setFilter } = useFilterParams({
     searchTerm: "",
     status: "",
@@ -78,25 +81,13 @@ export default function Repository() {
   const fetchRepositories = useCallback(async () => {
     if (!user) return;
 
-    // First, check if GitHub is configured by fetching the user's config
+    // Don't fetch repositories if GitHub is not configured or still loading config
+    if (!isGitHubConfigured) {
+      setIsLoading(false);
+      return false;
+    }
+
     try {
-      const configResponse = await apiRequest<ConfigApiResponse>(
-        `/config?userId=${user.id}`,
-        {
-          method: "GET",
-        }
-      );
-
-      // Check if GitHub credentials are configured
-      if (!configResponse?.githubConfig?.username || !configResponse?.githubConfig?.token) {
-        setIsLoading(false);
-        setIsGitHubConfigured(false);
-        // Don't show error toast for unconfigured GitHub - just return silently
-        return false;
-      }
-
-      // GitHub is configured
-      setIsGitHubConfigured(true);
       setIsLoading(true);
 
       const response = await apiRequest<RepositoryApiResponse>(
@@ -121,11 +112,25 @@ export default function Repository() {
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, isGitHubConfigured]);
 
   useEffect(() => {
     fetchRepositories();
   }, [fetchRepositories]);
+
+  // Register with global live refresh system
+  useEffect(() => {
+    // Only register for live refresh if GitHub is configured
+    if (!isGitHubConfigured) {
+      return;
+    }
+
+    const unregister = registerRefreshCallback(() => {
+      fetchRepositories();
+    });
+
+    return unregister;
+  }, [registerRefreshCallback, fetchRepositories, isGitHubConfigured]);
 
   const handleRefresh = async () => {
     const success = await fetchRepositories();
@@ -442,9 +447,13 @@ export default function Repository() {
           </SelectContent>
         </Select>
 
-        <Button variant="default" onClick={handleRefresh}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleRefresh}
+          title="Refresh repositories"
+        >
+          <RefreshCw className="h-4 w-4" />
         </Button>
 
         <Button

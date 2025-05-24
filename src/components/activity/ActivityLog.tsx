@@ -24,6 +24,8 @@ import { ActivityNameCombobox } from './ActivityNameCombobox';
 import { useSSE } from '@/hooks/useSEE';
 import { useFilterParams } from '@/hooks/useFilterParams';
 import { toast } from 'sonner';
+import { useLiveRefresh } from '@/hooks/useLiveRefresh';
+import { useConfigStatus } from '@/hooks/useConfigStatus';
 
 type MirrorJobWithKey = MirrorJob & { _rowKey: string };
 
@@ -37,6 +39,8 @@ function genKey(job: MirrorJob): string {
 
 export function ActivityLog() {
   const { user } = useAuth();
+  const { registerRefreshCallback } = useLiveRefresh();
+  const { isFullyConfigured } = useConfigStatus();
 
   const [activities, setActivities] = useState<MirrorJobWithKey[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -102,6 +106,21 @@ export function ActivityLog() {
   useEffect(() => {
     fetchActivities();
   }, [fetchActivities]);
+
+  // Register with global live refresh system
+  useEffect(() => {
+    // Only register for live refresh if configuration is complete
+    // Activity logs can exist from previous runs, but new activities won't be generated without config
+    if (!isFullyConfigured) {
+      return;
+    }
+
+    const unregister = registerRefreshCallback(() => {
+      fetchActivities();
+    });
+
+    return unregister;
+  }, [registerRefreshCallback, fetchActivities, isFullyConfigured]);
 
   /* ---------------------- filtering + exporting ---------------------- */
 
@@ -277,9 +296,13 @@ export function ActivityLog() {
         </DropdownMenu>
 
         {/* refresh */}
-        <Button onClick={() => fetchActivities()}>
-          <RefreshCw className='mr-2 h-4 w-4' />
-          Refresh
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => fetchActivities()}
+          title="Refresh activity log"
+        >
+          <RefreshCw className='h-4 w-4' />
         </Button>
       </div>
 
