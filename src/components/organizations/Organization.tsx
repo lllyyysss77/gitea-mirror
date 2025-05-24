@@ -24,7 +24,6 @@ import type { MirrorOrgRequest, MirrorOrgResponse } from "@/types/mirror";
 import { useSSE } from "@/hooks/useSEE";
 import { useFilterParams } from "@/hooks/useFilterParams";
 import { toast } from "sonner";
-import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { useConfigStatus } from "@/hooks/useConfigStatus";
 import { useNavigation } from "@/components/layout/MainLayout";
 
@@ -33,7 +32,6 @@ export function Organization() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
   const { user } = useAuth();
-  const { registerRefreshCallback } = useLiveRefresh();
   const { isGitHubConfigured } = useConfigStatus();
   const { navigationKey } = useNavigation();
   const { filter, setFilter } = useFilterParams({
@@ -107,20 +105,6 @@ export function Organization() {
     setIsLoading(true);
     fetchOrganizations();
   }, [fetchOrganizations, navigationKey]); // Include navigationKey to trigger on navigation
-
-  // Register with global live refresh system
-  useEffect(() => {
-    // Only register for live refresh if GitHub is configured
-    if (!isGitHubConfigured) {
-      return;
-    }
-
-    const unregister = registerRefreshCallback(() => {
-      fetchOrganizations();
-    });
-
-    return unregister;
-  }, [registerRefreshCallback, fetchOrganizations, isGitHubConfigured]);
 
   const handleRefresh = async () => {
     const success = await fetchOrganizations();
