@@ -227,26 +227,28 @@ fi
 if command -v crontab >/dev/null 2>&1; then
   echo "Setting up automatic database cleanup cron jobs..."
   # Install cron if not already installed
-  if ! command -v cron >/dev/null 2>&1; then
+  if ! command -v crond >/dev/null 2>&1; then
     echo "Installing cron..."
-    apt-get update && apt-get install -y cron
+    apk add --no-cache dcron
   fi
 
-  # Install the cron job
-  crontab /app/data/cron/cleanup-cron
+  # Try to install the cron job, but don't fail if it doesn't work
+  if crontab /app/data/cron/cleanup-cron 2>/dev/null; then
+    echo "✅ Cron job installed successfully"
 
-  # Start cron service
-  if command -v service >/dev/null 2>&1; then
-    service cron start
-    echo "Cron service started"
-  elif command -v cron >/dev/null 2>&1; then
-    cron
-    echo "Cron daemon started"
+    # Start cron service (Alpine uses crond)
+    if command -v crond >/dev/null 2>&1; then
+      crond -b
+      echo "✅ Cron daemon started"
+    else
+      echo "⚠️  Warning: Could not start cron service. Automatic database cleanup will not run."
+    fi
   else
-    echo "Warning: Could not start cron service. Automatic database cleanup will not run."
+    echo "⚠️  Warning: Could not install cron job (permission issue). Automatic database cleanup will not be set up."
+    echo "Consider setting up external scheduled tasks to run cleanup scripts."
   fi
 else
-  echo "Warning: crontab command not found. Automatic database cleanup will not be set up."
+  echo "⚠️  Warning: crontab command not found. Automatic database cleanup will not be set up."
   echo "Consider setting up external scheduled tasks to run cleanup scripts."
 fi
 
