@@ -166,7 +166,7 @@ export default function RepositoryTable({
       {/* table body wrapper (for a parent in virtualization) */}
       <div
         ref={tableParentRef}
-        className="flex flex-col max-h-[calc(100dvh-236px)] overflow-y-auto" //the height is set according to the other contents
+        className="flex flex-col max-h-[calc(100dvh-276px)] overflow-y-auto" //adjusted height to account for status bar
       >
         <div
           style={{
@@ -302,6 +302,23 @@ export default function RepositoryTable({
             );
           })}
         </div>
+      </div>
+
+      {/* Status Bar */}
+      <div className="h-[40px] flex items-center justify-between border-t bg-muted/30 px-3">
+        <div className="flex items-center gap-2">
+          <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+          <span className="text-sm font-medium text-foreground">
+            {hasAnyFilter
+              ? `Showing ${filteredRepositories.length} of ${repositories.length} repositories`
+              : `${repositories.length} ${repositories.length === 1 ? 'repository' : 'repositories'} total`}
+          </span>
+        </div>
+        {hasAnyFilter && (
+          <span className="text-xs text-muted-foreground">
+            Filters applied
+          </span>
+        )}
       </div>
     </div>
   );
