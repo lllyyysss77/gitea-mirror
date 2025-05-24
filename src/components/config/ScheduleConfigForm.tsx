@@ -130,19 +130,23 @@ export function ScheduleConfigForm({
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Last Run</label>
-            <div className="text-sm">
-              {config.lastRun ? formatDate(config.lastRun) : "Never"}
+          <div className="flex gap-x-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium mb-1">Last Run</label>
+              <div className="text-sm">
+                {config.lastRun ? formatDate(config.lastRun) : "Never"}
+              </div>
             </div>
-          </div>
 
-          {config.nextRun && config.enabled && (
-            <div>
-              <label className="block text-sm font-medium mb-1">Next Run</label>
-              <div className="text-sm">{formatDate(config.nextRun)}</div>
-            </div>
-          )}
+            {config.enabled && (
+              <div className="flex-1">
+                <label className="block text-sm font-medium mb-1">Next Run</label>
+                <div className="text-sm">
+                  {config.nextRun ? formatDate(config.nextRun) : "Never"}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
