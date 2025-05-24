@@ -478,7 +478,11 @@ export default function Repository() {
           </p>
           <Button
             variant="default"
-            onClick={() => window.location.href = "/config"}
+            onClick={() => {
+              window.history.pushState({}, '', '/config');
+              // We need to trigger a page change event for the navigation system
+              window.dispatchEvent(new PopStateEvent('popstate'));
+            }}
           >
             Go to Configuration
           </Button>

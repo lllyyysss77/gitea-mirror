@@ -151,12 +151,17 @@ export function Dashboard() {
 
   // Register with global live refresh system
   useEffect(() => {
+    // Only register if configuration is complete
+    if (!isFullyConfigured) {
+      return;
+    }
+
     const unregister = registerRefreshCallback(() => {
       fetchDashboardData();
     });
 
     return unregister;
-  }, [registerRefreshCallback, fetchDashboardData]);
+  }, [registerRefreshCallback, fetchDashboardData, isFullyConfigured]);
 
   // Status Card Skeleton component
   function StatusCardSkeleton() {

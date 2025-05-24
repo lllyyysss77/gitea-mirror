@@ -74,6 +74,8 @@ function AppWithProviders({ page: initialPage }: AppProps) {
 
       const pageName = pageMap[path] || 'dashboard';
       setCurrentPage(pageName);
+      // Also increment navigation key for browser navigation to trigger loading states
+      setNavigationKey(prev => prev + 1);
     };
 
     window.addEventListener('popstate', handlePopState);
