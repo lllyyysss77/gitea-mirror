@@ -1,11 +1,4 @@
 import { useEffect, useState } from 'react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { GitHubConfigForm } from './GitHubConfigForm';
 import { GiteaConfigForm } from './GiteaConfigForm';
 import { ScheduleConfigForm } from './ScheduleConfigForm';
@@ -192,152 +185,154 @@ export function ConfigTabs() {
 
   function ConfigCardSkeleton() {
     return (
-      <Card>
-        <CardHeader className="flex-row justify-between">
-          <div className="flex flex-col gap-y-1.5 m-0">
-            <Skeleton className="h-6 w-48" />
+      <div className="space-y-6">
+        {/* Header section */}
+        <div className="flex flex-row justify-between items-start">
+          <div className="flex flex-col gap-y-1.5">
+            <Skeleton className="h-8 w-48" />
             <Skeleton className="h-4 w-72" />
           </div>
           <div className="flex gap-x-4">
             <Skeleton className="h-10 w-36" />
             <Skeleton className="h-10 w-36" />
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-y-4">
-            <div className="flex gap-x-4">
-              <div className="w-1/2 border rounded-lg p-4">
-                <div className="flex justify-between items-center mb-4">
-                  <Skeleton className="h-6 w-40" />
-                  <Skeleton className="h-9 w-32" />
-                </div>
-                <div className="space-y-4">
-                  <Skeleton className="h-20 w-full" />
-                  <Skeleton className="h-20 w-full" />
-                  <Skeleton className="h-32 w-full" />
-                </div>
+        </div>
+
+        {/* Content section */}
+        <div className="flex flex-col gap-y-4">
+          <div className="flex gap-x-4">
+            <div className="w-1/2 border rounded-lg p-4">
+              <div className="flex justify-between items-center mb-4">
+                <Skeleton className="h-6 w-40" />
+                <Skeleton className="h-9 w-32" />
               </div>
-              <div className="w-1/2 border rounded-lg p-4">
-                <div className="flex justify-between items-center mb-4">
-                  <Skeleton className="h-6 w-40" />
-                  <Skeleton className="h-9 w-32" />
-                </div>
-                <div className="space-y-4">
-                  <Skeleton className="h-20 w-full" />
-                  <Skeleton className="h-20 w-full" />
-                  <Skeleton className="h-20 w-full" />
-                  <Skeleton className="h-20 w-full" />
-                </div>
+              <div className="space-y-4">
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-32 w-full" />
               </div>
             </div>
-            <div className="border rounded-lg p-4">
+            <div className="w-1/2 border rounded-lg p-4">
+              <div className="flex justify-between items-center mb-4">
+                <Skeleton className="h-6 w-40" />
+                <Skeleton className="h-9 w-32" />
+              </div>
               <div className="space-y-4">
-                <Skeleton className="h-8 w-48" />
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-8 w-32" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+          <div className="border rounded-lg p-4">
+            <div className="space-y-4">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-8 w-32" />
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return isLoading ? (
-    <div className="flex flex-col gap-y-6">
+    <div className="space-y-6">
       <ConfigCardSkeleton />
     </div>
   ) : (
-    <div className="flex flex-col gap-y-6">
-      <Card>
-        <CardHeader className="flex-row justify-between">
-          <div className="flex flex-col gap-y-1.5 m-0">
-            <CardTitle>Configuration Settings</CardTitle>
-            <CardDescription>
-              Configure your GitHub and Gitea connections, and set up automatic
-              mirroring.
-            </CardDescription>
-          </div>
-          <div className="flex gap-x-4">
-            <Button
-              onClick={handleImportGitHubData}
-              disabled={isSyncing || !isConfigSaved}
-              title={
-                !isConfigSaved
-                  ? 'Save configuration first'
-                  : isSyncing
-                  ? 'Import in progress'
-                  : 'Import GitHub Data'
-              }
-            >
-              {isSyncing ? (
-                <>
-                  <RefreshCw className="h-4 w-4 animate-spin mr-1" />
-                  Import GitHub Data
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-1" />
-                  Import GitHub Data
-                </>
-              )}
-            </Button>
-            <Button
-              onClick={handleSaveConfig}
-              disabled={!isConfigFormValid()}
-              title={
-                !isConfigFormValid()
-                  ? 'Please fill all required fields'
-                  : 'Save Configuration'
-              }
-            >
-              Save Configuration
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-y-4">
-            <div className="flex gap-x-4">
-              <GitHubConfigForm
-                config={config.githubConfig}
-                setConfig={update =>
-                  setConfig(prev => ({
-                    ...prev,
-                    githubConfig:
-                      typeof update === 'function'
-                        ? update(prev.githubConfig)
-                        : update,
-                  }))
-                }
-              />
-              <GiteaConfigForm
-                config={config.giteaConfig}
-                setConfig={update =>
-                  setConfig(prev => ({
-                    ...prev,
-                    giteaConfig:
-                      typeof update === 'function'
-                        ? update(prev.giteaConfig)
-                        : update,
-                  }))
-                }
-              />
-            </div>
-            <ScheduleConfigForm
-              config={config.scheduleConfig}
-              setConfig={update =>
-                setConfig(prev => ({
-                  ...prev,
-                  scheduleConfig:
-                    typeof update === 'function'
-                      ? update(prev.scheduleConfig)
-                      : update,
-                }))
-              }
-            />
-          </div>
-        </CardContent>
-      </Card>
+    <div className="space-y-6">
+      {/* Header section */}
+      <div className="flex flex-row justify-between items-start">
+        <div className="flex flex-col gap-y-1.5">
+          <h1 className="text-2xl font-semibold leading-none tracking-tight">
+            Configuration Settings
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Configure your GitHub and Gitea connections, and set up automatic
+            mirroring.
+          </p>
+        </div>
+        <div className="flex gap-x-4">
+          <Button
+            onClick={handleImportGitHubData}
+            disabled={isSyncing || !isConfigSaved}
+            title={
+              !isConfigSaved
+                ? 'Save configuration first'
+                : isSyncing
+                ? 'Import in progress'
+                : 'Import GitHub Data'
+            }
+          >
+            {isSyncing ? (
+              <>
+                <RefreshCw className="h-4 w-4 animate-spin mr-1" />
+                Import GitHub Data
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Import GitHub Data
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={handleSaveConfig}
+            disabled={!isConfigFormValid()}
+            title={
+              !isConfigFormValid()
+                ? 'Please fill all required fields'
+                : 'Save Configuration'
+            }
+          >
+            Save Configuration
+          </Button>
+        </div>
+      </div>
+
+      {/* Content section */}
+      <div className="flex flex-col gap-y-4">
+        <div className="flex gap-x-4">
+          <GitHubConfigForm
+            config={config.githubConfig}
+            setConfig={update =>
+              setConfig(prev => ({
+                ...prev,
+                githubConfig:
+                  typeof update === 'function'
+                    ? update(prev.githubConfig)
+                    : update,
+              }))
+            }
+          />
+          <GiteaConfigForm
+            config={config.giteaConfig}
+            setConfig={update =>
+              setConfig(prev => ({
+                ...prev,
+                giteaConfig:
+                  typeof update === 'function'
+                    ? update(prev.giteaConfig)
+                    : update,
+              }))
+            }
+          />
+        </div>
+        <ScheduleConfigForm
+          config={config.scheduleConfig}
+          setConfig={update =>
+            setConfig(prev => ({
+              ...prev,
+              scheduleConfig:
+                typeof update === 'function'
+                  ? update(prev.scheduleConfig)
+                  : update,
+            }))
+          }
+        />
+      </div>
     </div>
   );
 }
