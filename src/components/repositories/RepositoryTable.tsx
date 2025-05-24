@@ -1,7 +1,7 @@
 import { useMemo, useRef } from "react";
 import Fuse from "fuse.js";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { FlipHorizontal, GitFork, RefreshCw, RotateCcw } from "lucide-react";
+import { GitFork, RefreshCw, RotateCcw } from "lucide-react";
 import { SiGithub, SiGitea } from "react-icons/si";
 import type { Repository } from "@/lib/db/schema";
 import { Button } from "@/components/ui/button";
@@ -117,8 +117,11 @@ export default function RepositoryTable({
           Last Mirrored
         </div>
         <div className="h-full p-3 text-sm font-medium flex-[1]">Status</div>
-        <div className="h-full p-3 text-sm font-medium flex-[1] text-right">
+        <div className="h-full p-3 text-sm font-medium flex-[1]">
           Actions
+        </div>
+        <div className="h-full p-3 text-sm font-medium flex-[0.8] text-center">
+          Links
         </div>
       </div>
 
@@ -142,7 +145,10 @@ export default function RepositoryTable({
           <div className="h-full p-3 text-sm font-medium flex-[1]">
             <Skeleton className="h-full w-full" />
           </div>
-          <div className="h-full p-3 text-sm font-medium flex-[1] text-right">
+          <div className="h-full p-3 text-sm font-medium flex-[1]">
+            <Skeleton className="h-full w-full" />
+          </div>
+          <div className="h-full p-3 text-sm font-medium flex-[0.8] text-center">
             <Skeleton className="h-full w-full" />
           </div>
         </div>
@@ -190,8 +196,11 @@ export default function RepositoryTable({
           Last Mirrored
         </div>
         <div className="h-full p-3 text-sm font-medium flex-[1]">Status</div>
-        <div className="h-full p-3 text-sm font-medium flex-[1] text-right">
+        <div className="h-full p-3 text-sm font-medium flex-[1]">
           Actions
+        </div>
+        <div className="h-full p-3 text-sm font-medium flex-[0.8] text-center">
+          Links
         </div>
       </div>
 
@@ -270,7 +279,7 @@ export default function RepositoryTable({
                 </div>
 
                 {/* Actions  */}
-                <div className="h-full p-3 flex items-center justify-end gap-x-2 flex-[1]">
+                <div className="h-full p-3 flex items-center justify-start flex-[1]">
                   <RepoActionButton
                     repo={{ id: repo.id ?? "", status: repo.status }}
                     isLoading={isLoading}
@@ -278,6 +287,10 @@ export default function RepositoryTable({
                     onSync={() => onSync({ repoId: repo.id ?? "" })}
                     onRetry={() => onRetry({ repoId: repo.id ?? "" })}
                   />
+                </div>
+
+                {/* Links  */}
+                <div className="h-full p-3 flex items-center justify-center gap-x-2 flex-[0.8]">
                   {(() => {
                     const giteaUrl = getGiteaRepoUrl(repo);
 
@@ -380,7 +393,7 @@ function RepoActionButton({
     disabled ||= repo.status === "syncing";
   } else if (["imported", "mirroring"].includes(repo.status)) {
     label = "Mirror";
-    icon = <FlipHorizontal className="h-4 w-4 mr-1" />;
+    icon = <GitFork className="h-4 w-4 mr-1" />;
     onClick = onMirror;
     disabled ||= repo.status === "mirroring";
   } else {
