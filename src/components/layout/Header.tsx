@@ -24,8 +24,13 @@ export function Header({ currentPage, onNavigate }: HeaderProps) {
   // Determine button state and tooltip
   const isLiveActive = isLiveEnabled && isFullyConfigured;
   const getTooltip = () => {
-    if (!isFullyConfigured && !configLoading) {
-      return 'Configure GitHub and Gitea settings to enable live refresh';
+    if (configLoading) {
+      return 'Loading configuration...';
+    }
+    if (!isFullyConfigured) {
+      return isLiveEnabled
+        ? 'Live refresh enabled but requires GitHub and Gitea configuration to function'
+        : 'Enable live refresh (requires GitHub and Gitea configuration)';
     }
     return isLiveEnabled ? 'Disable live refresh' : 'Enable live refresh';
   };
@@ -68,17 +73,18 @@ export function Header({ currentPage, onNavigate }: HeaderProps) {
             <Button
               variant="outline"
               size="lg"
-              className={`flex items-center gap-2 ${!isFullyConfigured && !configLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              onClick={isFullyConfigured || configLoading ? toggleLive : undefined}
+              className="flex items-center gap-2"
+              onClick={toggleLive}
               title={getTooltip()}
-              disabled={!isFullyConfigured && !configLoading}
             >
               <div className={`w-3 h-3 rounded-full ${
                 configLoading
                   ? 'bg-yellow-400 animate-pulse'
                   : isLiveActive
                     ? 'bg-emerald-400 animate-pulse'
-                    : 'bg-gray-500'
+                    : isLiveEnabled
+                      ? 'bg-orange-400'
+                      : 'bg-gray-500'
               }`} />
               <span>LIVE</span>
             </Button>
