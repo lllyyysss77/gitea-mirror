@@ -1,13 +1,30 @@
 import { defineMiddleware } from 'astro:middleware';
 import { initializeRecovery, hasJobsNeedingRecovery, getRecoveryStatus } from './lib/recovery';
-import { startCleanupService } from './lib/cleanup-service';
+import { startCleanupService, stopCleanupService } from './lib/cleanup-service';
+import { initializeShutdownManager, registerShutdownCallback } from './lib/shutdown-manager';
+import { setupSignalHandlers } from './lib/signal-handlers';
 
 // Flag to track if recovery has been initialized
 let recoveryInitialized = false;
 let recoveryAttempted = false;
 let cleanupServiceStarted = false;
+let shutdownManagerInitialized = false;
 
 export const onRequest = defineMiddleware(async (context, next) => {
+  // Initialize shutdown manager and signal handlers first
+  if (!shutdownManagerInitialized) {
+    try {
+      console.log('🔧 Initializing shutdown manager and signal handlers...');
+      initializeShutdownManager();
+      setupSignalHandlers();
+      shutdownManagerInitialized = true;
+      console.log('✅ Shutdown manager and signal handlers initialized');
+    } catch (error) {
+      console.error('❌ Failed to initialize shutdown manager:', error);
+      // Continue anyway - this shouldn't block the application
+    }
+  }
+
   // Initialize recovery system only once when the server starts
   // This is a fallback in case the startup script didn't run
   if (!recoveryInitialized && !recoveryAttempted) {
@@ -60,6 +77,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
     try {
       console.log('Starting automatic database cleanup service...');
       startCleanupService();
+
+      // Register cleanup service shutdown callback
+      registerShutdownCallback(async () => {
+        console.log('🛑 Shutting down cleanup service...');
+        stopCleanupService();
+      });
+
       cleanupServiceStarted = true;
     } catch (error) {
       console.error('Failed to start cleanup service:', error);

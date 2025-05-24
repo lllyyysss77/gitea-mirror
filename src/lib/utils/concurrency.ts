@@ -102,6 +102,16 @@ export async function processWithRetry<T, R>(
 
     for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
       try {
+        // Check for shutdown before processing each item (only in production)
+        try {
+          const { isShuttingDown } = await import('@/lib/shutdown-manager');
+          if (isShuttingDown()) {
+            throw new Error('Processing interrupted by application shutdown');
+          }
+        } catch (importError) {
+          // Ignore import errors during testing
+        }
+
         const result = await processItem(item);
 
         // Handle checkpointing if enabled
@@ -185,8 +195,23 @@ export async function processWithResilience<T, R>(
     ...otherOptions
   } = options;
 
-  // Import helpers for job management
+  // Import helpers for job management and shutdown handling
   const { createMirrorJob, updateMirrorJobProgress } = await import('@/lib/helpers');
+
+  // Import shutdown manager (with fallback for testing)
+  let registerActiveJob: (jobId: string) => void = () => {};
+  let unregisterActiveJob: (jobId: string) => void = () => {};
+  let isShuttingDown: () => boolean = () => false;
+
+  try {
+    const shutdownManager = await import('@/lib/shutdown-manager');
+    registerActiveJob = shutdownManager.registerActiveJob;
+    unregisterActiveJob = shutdownManager.unregisterActiveJob;
+    isShuttingDown = shutdownManager.isShuttingDown;
+  } catch (importError) {
+    // Use fallback functions during testing
+    console.log('Using fallback shutdown manager functions (testing mode)');
+  }
 
   // Get item IDs for all items
   const allItemIds = items.map(getItemId);
@@ -240,6 +265,9 @@ export async function processWithResilience<T, R>(
     console.log(`Created new job ${jobId} with ${items.length} items`);
   }
 
+  // Register the job with the shutdown manager
+  registerActiveJob(jobId);
+
   // Define the checkpoint function
   const onCheckpoint = async (jobId: string, completedItemId: string) => {
     const itemName = items.find(item => getItemId(item) === completedItemId)
@@ -254,6 +282,12 @@ export async function processWithResilience<T, R>(
   };
 
   try {
+    // Check if shutdown is in progress before starting
+    if (isShuttingDown()) {
+      console.log(`⚠️  Shutdown in progress, aborting job ${jobId}`);
+      throw new Error('Job aborted due to application shutdown');
+    }
+
     // Process the items with checkpointing
     const results = await processWithRetry(
       itemsToProcess,
@@ -276,16 +310,26 @@ export async function processWithResilience<T, R>(
       isCompleted: true,
     });
 
+    // Unregister the job from shutdown manager
+    unregisterActiveJob(jobId);
+
     return results;
   } catch (error) {
-    // Mark the job as failed
+    // Mark the job as failed (unless it was interrupted by shutdown)
+    const isShutdownError = error instanceof Error && error.message.includes('shutdown');
+
     await updateMirrorJobProgress({
       jobId,
-      status: "failed",
-      message: `Failed ${jobType} job: ${error instanceof Error ? error.message : String(error)}`,
+      status: isShutdownError ? "imported" : "failed", // Keep as imported if shutdown interrupted
+      message: isShutdownError
+        ? 'Job interrupted by application shutdown - will resume on restart'
+        : `Failed ${jobType} job: ${error instanceof Error ? error.message : String(error)}`,
       inProgress: false,
-      isCompleted: true,
+      isCompleted: !isShutdownError, // Don't mark as completed if shutdown interrupted
     });
+
+    // Unregister the job from shutdown manager
+    unregisterActiveJob(jobId);
 
     throw error;
   }

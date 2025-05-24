@@ -232,6 +232,23 @@ else
   echo "❌ Startup recovery failed with exit code $RECOVERY_EXIT_CODE"
 fi
 
+# Function to handle shutdown signals
+shutdown_handler() {
+  echo "🛑 Received shutdown signal, forwarding to application..."
+  if [ ! -z "$APP_PID" ]; then
+    kill -TERM "$APP_PID"
+    wait "$APP_PID"
+  fi
+  exit 0
+}
+
+# Set up signal handlers
+trap 'shutdown_handler' TERM INT HUP
+
 # Start the application
 echo "Starting Gitea Mirror..."
-exec bun ./dist/server/entry.mjs
+bun ./dist/server/entry.mjs &
+APP_PID=$!
+
+# Wait for the application to finish
+wait "$APP_PID"

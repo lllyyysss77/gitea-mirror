@@ -22,6 +22,8 @@
     "startup-recovery-force": "bun scripts/startup-recovery.ts --force",
     "test-recovery": "bun scripts/test-recovery.ts",
     "test-recovery-cleanup": "bun scripts/test-recovery.ts --cleanup",
+    "test-shutdown": "bun scripts/test-graceful-shutdown.ts",
+    "test-shutdown-cleanup": "bun scripts/test-graceful-shutdown.ts --cleanup",
     "preview": "bunx --bun astro preview",
     "start": "bun dist/server/entry.mjs",
     "start:fresh": "bun run cleanup-db && bun run manage-db init && bun run update-db && bun dist/server/entry.mjs",

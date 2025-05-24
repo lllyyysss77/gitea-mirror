@@ -181,30 +181,41 @@ export async function runAutomaticCleanup(): Promise<CleanupResult[]> {
   }
 }
 
+// Service state tracking
+let cleanupIntervalId: NodeJS.Timeout | null = null;
+let initialCleanupTimeoutId: NodeJS.Timeout | null = null;
+let cleanupServiceRunning = false;
+
 /**
  * Start the cleanup service with periodic execution
  * This should be called when the application starts
  */
 export function startCleanupService() {
+  if (cleanupServiceRunning) {
+    console.log('⚠️  Cleanup service already running, skipping start');
+    return;
+  }
+
   console.log('Starting background cleanup service...');
 
   // Run cleanup every hour
   const CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 hour in milliseconds
 
   // Run initial cleanup after 5 minutes to allow app to fully start
-  setTimeout(() => {
+  initialCleanupTimeoutId = setTimeout(() => {
     runAutomaticCleanup().catch(error => {
       console.error('Error in initial cleanup run:', error);
     });
   }, 5 * 60 * 1000); // 5 minutes
 
   // Set up periodic cleanup
-  setInterval(() => {
+  cleanupIntervalId = setInterval(() => {
     runAutomaticCleanup().catch(error => {
       console.error('Error in periodic cleanup run:', error);
     });
   }, CLEANUP_INTERVAL);
 
+  cleanupServiceRunning = true;
   console.log(`✅ Cleanup service started. Will run every ${CLEANUP_INTERVAL / 1000 / 60} minutes.`);
 }
 
@@ -212,7 +223,36 @@ export function startCleanupService() {
  * Stop the cleanup service (for testing or shutdown)
  */
 export function stopCleanupService() {
-  // Note: In a real implementation, you'd want to track the interval ID
-  // and clear it here. For now, this is a placeholder.
-  console.log('Cleanup service stop requested (not implemented)');
+  if (!cleanupServiceRunning) {
+    console.log('Cleanup service is not running');
+    return;
+  }
+
+  console.log('🛑 Stopping cleanup service...');
+
+  // Clear the periodic interval
+  if (cleanupIntervalId) {
+    clearInterval(cleanupIntervalId);
+    cleanupIntervalId = null;
+  }
+
+  // Clear the initial timeout
+  if (initialCleanupTimeoutId) {
+    clearTimeout(initialCleanupTimeoutId);
+    initialCleanupTimeoutId = null;
+  }
+
+  cleanupServiceRunning = false;
+  console.log('✅ Cleanup service stopped');
+}
+
+/**
+ * Get cleanup service status
+ */
+export function getCleanupServiceStatus() {
+  return {
+    running: cleanupServiceRunning,
+    hasInterval: cleanupIntervalId !== null,
+    hasInitialTimeout: initialCleanupTimeoutId !== null,
+  };
 }
