@@ -179,4 +179,4 @@ After your initial setup:
 - Check out the [Configuration Guide](/configuration) for advanced settings
 - Review the [Architecture Documentation](/architecture) to understand the system
 - For server deployments, set up monitoring using the health check endpoint
-- Consider setting up a cron job to clean up old events: `bun scripts/cleanup-events.ts`
+- Use the cleanup button in the Activity Log page to manage old events and activities

@@ -30,24 +30,7 @@ if [ "$JWT_SECRET" = "your-secret-key-change-this-in-production" ] || [ -z "$JWT
   echo "JWT_SECRET has been set to a secure random value"
 fi
 
-# Set up automatic database cleanup cron job
-# Default to 7 days retention for events and mirror jobs unless specified by environment variables
-EVENTS_RETENTION_DAYS=${EVENTS_RETENTION_DAYS:-7}
-JOBS_RETENTION_DAYS=${JOBS_RETENTION_DAYS:-7}
 
-# Create cron directory if it doesn't exist
-mkdir -p /app/data/cron
-
-# Create the cron job file
-cat > /app/data/cron/cleanup-cron <<EOF
-# Run event cleanup daily at 2 AM
-0 2 * * * cd /app && bun dist/scripts/cleanup-events.js ${EVENTS_RETENTION_DAYS} >> /app/data/cleanup-events.log 2>&1
-
-# Run mirror jobs cleanup daily at 3 AM
-0 3 * * * cd /app && bun dist/scripts/cleanup-mirror-jobs.js ${JOBS_RETENTION_DAYS} >> /app/data/cleanup-mirror-jobs.log 2>&1
-
-# Empty line at the end is required for cron to work properly
-EOF
 
 # Skip dependency installation entirely for pre-built images
 # Dependencies are already installed during the Docker build process
@@ -223,34 +206,7 @@ if [ -f "package.json" ]; then
   echo "Setting application version: $npm_package_version"
 fi
 
-# Set up cron if it's available
-if command -v crontab >/dev/null 2>&1; then
-  echo "Setting up automatic database cleanup cron jobs..."
-  # Install cron if not already installed
-  if ! command -v crond >/dev/null 2>&1; then
-    echo "Installing cron..."
-    apk add --no-cache dcron
-  fi
 
-  # Try to install the cron job, but don't fail if it doesn't work
-  if crontab /app/data/cron/cleanup-cron 2>/dev/null; then
-    echo "✅ Cron job installed successfully"
-
-    # Start cron service (Alpine uses crond)
-    if command -v crond >/dev/null 2>&1; then
-      crond -b
-      echo "✅ Cron daemon started"
-    else
-      echo "⚠️  Warning: Could not start cron service. Automatic database cleanup will not run."
-    fi
-  else
-    echo "⚠️  Warning: Could not install cron job (permission issue). Automatic database cleanup will not be set up."
-    echo "Consider setting up external scheduled tasks to run cleanup scripts."
-  fi
-else
-  echo "⚠️  Warning: crontab command not found. Automatic database cleanup will not be set up."
-  echo "Consider setting up external scheduled tasks to run cleanup scripts."
-fi
 
 # Run startup recovery to handle any interrupted jobs
 echo "Running startup recovery..."

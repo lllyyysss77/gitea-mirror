@@ -214,7 +214,7 @@ export async function removeDuplicateEvents(userId?: string): Promise<{ duplicat
 
 /**
  * Cleans up old events to prevent the database from growing too large
- * Should be called periodically (e.g., daily via a cron job)
+ * This function is used by the cleanup button in the Activity Log page
  *
  * @param maxAgeInDays Number of days to keep events (default: 7)
  * @param cleanupUnreadAfterDays Number of days after which to clean up unread events (default: 2x maxAgeInDays)

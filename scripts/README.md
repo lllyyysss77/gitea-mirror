@@ -64,19 +64,7 @@ The following scripts help manage events in the SQLite database:
 
 
 
-### Event Cleanup (cleanup-events.ts)
 
-Removes old events and duplicate events from the database to prevent it from growing too large.
-
-```bash
-# Remove events older than 7 days (default) and duplicates
-bun scripts/cleanup-events.ts
-
-# Remove events older than X days and duplicates
-bun scripts/cleanup-events.ts 14
-```
-
-This script can be scheduled to run periodically (e.g., daily) using cron or another scheduler. When using Docker, this is automatically scheduled to run daily.
 
 ### Remove Duplicate Events (remove-duplicate-events.ts)
 
@@ -90,19 +78,7 @@ bun scripts/remove-duplicate-events.ts
 bun scripts/remove-duplicate-events.ts <userId>
 ```
 
-### Mirror Jobs Cleanup (cleanup-mirror-jobs.ts)
 
-Removes old mirror jobs from the database to prevent it from growing too large.
-
-```bash
-# Remove mirror jobs older than 7 days (default)
-bun scripts/cleanup-mirror-jobs.ts
-
-# Remove mirror jobs older than X days
-bun scripts/cleanup-mirror-jobs.ts 14
-```
-
-This script can be scheduled to run periodically (e.g., daily) using cron or another scheduler. When using Docker, this is automatically scheduled to run daily.
 
 ### Fix Interrupted Jobs (fix-interrupted-jobs.ts)
 

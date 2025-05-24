@@ -481,7 +481,7 @@ Try the following steps:
 > docker compose up -d
 > ```
 >
-> This setup includes automatic database maintenance that runs daily to clean up old events and mirror jobs, preventing the database from growing too large. You can customize the retention periods by setting the `EVENTS_RETENTION_DAYS` and `JOBS_RETENTION_DAYS` environment variables.
+> This setup provides a complete containerized deployment for the Gitea Mirror application.
 
 
 #### Database Maintenance
@@ -498,35 +498,9 @@ Try the following steps:
 >
 > # Reset user accounts (for development)
 > bun run reset-users
->
-> # Clean up old events (keeps last 7 days by default)
-> bun run cleanup-events
->
-> # Clean up old events with custom retention period (e.g., 30 days)
-> bun run cleanup-events 30
->
-> # Clean up old mirror jobs (keeps last 7 days by default)
-> bun run cleanup-jobs
->
-> # Clean up old mirror jobs with custom retention period (e.g., 30 days)
-> bun run cleanup-jobs 30
->
-> # Clean up both events and mirror jobs
-> bun run cleanup-all
 > ```
 >
-> For automated maintenance, consider setting up cron jobs to run the cleanup scripts periodically:
->
-> ```bash
-> # Add these to your crontab
-> # Clean up events daily at 2 AM
-> 0 2 * * * cd /path/to/gitea-mirror && bun run cleanup-events
->
-> # Clean up mirror jobs daily at 3 AM
-> 0 3 * * * cd /path/to/gitea-mirror && bun run cleanup-jobs
-> ```
->
-> **Note:** When using Docker, these cleanup jobs are automatically scheduled inside the container with the default retention period of 7 days. You can customize the retention periods by setting the `EVENTS_RETENTION_DAYS` and `JOBS_RETENTION_DAYS` environment variables in your docker-compose file.
+> **Note:** For cleaning up old activities and events, use the cleanup button in the Activity Log page of the web interface.
 
 
 > [!NOTE]

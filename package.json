@@ -17,9 +17,7 @@
     "check-db": "bun scripts/manage-db.ts check",
     "fix-db": "bun scripts/manage-db.ts fix",
     "reset-users": "bun scripts/manage-db.ts reset-users",
-    "cleanup-events": "bun scripts/cleanup-events.ts",
-    "cleanup-jobs": "bun scripts/cleanup-mirror-jobs.ts",
-    "cleanup-all": "bun scripts/cleanup-events.ts && bun scripts/cleanup-mirror-jobs.ts",
+
     "startup-recovery": "bun scripts/startup-recovery.ts",
     "startup-recovery-force": "bun scripts/startup-recovery.ts --force",
     "test-recovery": "bun scripts/test-recovery.ts",
