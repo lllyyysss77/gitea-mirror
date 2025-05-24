@@ -9,33 +9,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { RefreshCw } from "lucide-react";
 
 interface ScheduleConfigFormProps {
   config: ScheduleConfig;
   setConfig: React.Dispatch<React.SetStateAction<ScheduleConfig>>;
+  onAutoSave?: (config: ScheduleConfig) => void;
+  isAutoSaving?: boolean;
 }
 
 export function ScheduleConfigForm({
   config,
   setConfig,
+  onAutoSave,
+  isAutoSaving = false,
 }: ScheduleConfigFormProps) {
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target;
-    setConfig({
+    const newConfig = {
       ...config,
       [name]:
         type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
-    });
-  };
+    };
+    setConfig(newConfig);
 
-  // Convert seconds to human-readable format
-  const formatInterval = (seconds: number): string => {
-    if (seconds < 60) return `${seconds} seconds`;
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours`;
-    return `${Math.floor(seconds / 86400)} days`;
+    // Trigger auto-save for schedule config changes
+    if (onAutoSave) {
+      onAutoSave(newConfig);
+    }
   };
 
   // Predefined intervals
@@ -55,7 +58,13 @@ export function ScheduleConfigForm({
 
   return (
     <Card>
-      <CardContent className="pt-6">
+      <CardContent className="pt-6 relative">
+        {isAutoSaving && (
+          <div className="absolute top-4 right-4 flex items-center text-sm text-muted-foreground">
+            <RefreshCw className="h-3 w-3 animate-spin mr-1" />
+            <span className="text-xs">Auto-saving...</span>
+          </div>
+        )}
         <div className="flex flex-col gap-y-4">
           <div className="flex items-center">
             <Checkbox

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { GitHubConfigForm } from './GitHubConfigForm';
 import { GiteaConfigForm } from './GiteaConfigForm';
 import { ScheduleConfigForm } from './ScheduleConfigForm';
@@ -52,6 +52,8 @@ export function ConfigTabs() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [isConfigSaved, setIsConfigSaved] = useState<boolean>(false);
+  const [isAutoSaving, setIsAutoSaving] = useState<boolean>(false);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const isConfigFormValid = (): boolean => {
     const { githubConfig, giteaConfig } = config;
@@ -149,6 +151,65 @@ export function ConfigTabs() {
       );
     }
   };
+
+  // Auto-save function specifically for schedule config changes
+  const autoSaveScheduleConfig = useCallback(async (scheduleConfig: ScheduleConfig) => {
+    if (!user?.id || !isConfigSaved) return; // Only auto-save if config was previously saved
+
+    // Clear any existing timeout
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    // Debounce the auto-save to prevent excessive API calls
+    autoSaveTimeoutRef.current = setTimeout(async () => {
+      setIsAutoSaving(true);
+
+      const reqPayload: SaveConfigApiRequest = {
+        userId: user.id!,
+        githubConfig: config.githubConfig,
+        giteaConfig: config.giteaConfig,
+        scheduleConfig: scheduleConfig,
+      };
+
+      try {
+        const response = await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(reqPayload),
+        });
+        const result: SaveConfigApiResponse = await response.json();
+
+        if (result.success) {
+          // Silent success - no toast for auto-save
+          await refreshUser();
+        } else {
+          toast.error(
+            `Auto-save failed: ${result.message || 'Unknown error'}`,
+            { duration: 3000 }
+          );
+        }
+      } catch (error) {
+        toast.error(
+          `Auto-save error: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          { duration: 3000 }
+        );
+      } finally {
+        setIsAutoSaving(false);
+      }
+    }, 500); // 500ms debounce
+  }, [user?.id, isConfigSaved, config.githubConfig, config.giteaConfig, refreshUser]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -331,6 +392,8 @@ export function ConfigTabs() {
                   : update,
             }))
           }
+          onAutoSave={autoSaveScheduleConfig}
+          isAutoSaving={isAutoSaving}
         />
       </div>
     </div>
