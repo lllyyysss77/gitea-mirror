@@ -30,7 +30,7 @@ sudo LOCAL_REPO_DIR=~/Development/gitea-mirror ./scripts/gitea-mirror-lxc-local.
 See the [LXC Container Deployment Guide](scripts/README-lxc.md).
 
 <p align="center">
-  <img src=".github/assets/dashboard.png" alt="Dashboard" width="80%"/>
+  <img src=".github/assets/dashboard.png" alt="Dashboard" width="full"/>
 </p>
 
 ## ✨ Features
@@ -50,12 +50,12 @@ See the [LXC Container Deployment Guide](scripts/README-lxc.md).
 ## 📸 Screenshots
 
 <p align="center">
-  <img src=".github/assets/repositories.png" width="45%"/>
-  <img src=".github/assets/organisations.png" width="45%"/>
+  <img src=".github/assets/repositories.png" width="49%"/>
+  <img src=".github/assets/organisations.png" width="49%"/>
 </p>
 <p align="center">
-  <img src=".github/assets/configuration.png" width="45%"/>
-  <img src=".github/assets/activity.png" width="45%"/>
+  <img src=".github/assets/configuration.png" width="49%"/>
+  <img src=".github/assets/activity.png" width="49%"/>
 </p>
 
 ### Dashboard
