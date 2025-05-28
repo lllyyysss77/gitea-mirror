@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { SiGitea } from 'react-icons/si';
 import { toast, Toaster } from 'sonner';
+import { showErrorToast } from '@/lib/utils';
 import { FlipHorizontal } from 'lucide-react';
 
 export function LoginForm() {
@@ -45,10 +46,10 @@ export function LoginForm() {
           window.location.href = '/';
         }, 1000);
       } else {
-        toast.error(data.error || 'Login failed. Please try again.');
+        showErrorToast(data.error || 'Login failed. Please try again.', toast);
       }
     } catch (error) {
-      toast.error('An error occurred while logging in. Please try again.');
+      showErrorToast(error, toast);
     } finally {
       setIsLoading(false);
     }

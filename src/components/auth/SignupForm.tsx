@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { GitMerge } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
+import { showErrorToast } from '@/lib/utils';
 
 export function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -51,10 +52,10 @@ export function SignupForm() {
           window.location.href = '/';
         }, 1500);
       } else {
-        toast.error(data.error || 'Failed to create account. Please try again.');
+        showErrorToast(data.error || 'Failed to create account. Please try again.', toast);
       }
     } catch (error) {
-      toast.error('An error occurred while creating your account. Please try again.');
+      showErrorToast(error, toast);
     } finally {
       setIsLoading(false);
     }

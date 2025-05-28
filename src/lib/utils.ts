@@ -36,20 +36,141 @@ export function safeParse<T>(value: unknown): T | undefined {
   return value as T;
 }
 
+// Enhanced error message parsing for toast notifications
+export interface ParsedErrorMessage {
+  title: string;
+  description?: string;
+  isStructured: boolean;
+}
+
+export function parseErrorMessage(error: unknown): ParsedErrorMessage {
+  // Handle Error objects
+  if (error instanceof Error) {
+    return parseErrorMessage(error.message);
+  }
+
+  // Handle string messages
+  if (typeof error === "string") {
+    // Try to parse as JSON first
+    try {
+      const parsed = JSON.parse(error);
+
+      // Check for common structured error formats
+      if (typeof parsed === "object" && parsed !== null) {
+        // Format 1: { error: "message", errorType: "type", troubleshooting: "info" }
+        if (parsed.error) {
+          return {
+            title: parsed.error,
+            description: parsed.troubleshooting || parsed.errorType || undefined,
+            isStructured: true,
+          };
+        }
+
+        // Format 2: { title: "title", description: "desc" }
+        if (parsed.title) {
+          return {
+            title: parsed.title,
+            description: parsed.description || undefined,
+            isStructured: true,
+          };
+        }
+
+        // Format 3: { message: "msg", details: "details" }
+        if (parsed.message) {
+          return {
+            title: parsed.message,
+            description: parsed.details || undefined,
+            isStructured: true,
+          };
+        }
+      }
+    } catch {
+      // Not valid JSON, treat as plain string
+    }
+
+    // Plain string message
+    return {
+      title: error,
+      description: undefined,
+      isStructured: false,
+    };
+  }
+
+  // Handle objects directly
+  if (typeof error === "object" && error !== null) {
+    const errorObj = error as any;
+
+    if (errorObj.error) {
+      return {
+        title: errorObj.error,
+        description: errorObj.troubleshooting || errorObj.errorType || undefined,
+        isStructured: true,
+      };
+    }
+
+    if (errorObj.title) {
+      return {
+        title: errorObj.title,
+        description: errorObj.description || undefined,
+        isStructured: true,
+      };
+    }
+
+    if (errorObj.message) {
+      return {
+        title: errorObj.message,
+        description: errorObj.details || undefined,
+        isStructured: true,
+      };
+    }
+  }
+
+  // Fallback for unknown types
+  return {
+    title: String(error),
+    description: undefined,
+    isStructured: false,
+  };
+}
+
+// Enhanced toast helper that parses structured error messages
+export function showErrorToast(error: unknown, toast: any) {
+  const parsed = parseErrorMessage(error);
+
+  if (parsed.description) {
+    // Use sonner's rich toast format with title and description
+    toast.error(parsed.title, {
+      description: parsed.description,
+    });
+  } else {
+    // Simple error toast
+    toast.error(parsed.title);
+  }
+}
+
 // Helper function for API requests
 
 export async function apiRequest<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: (RequestInit & { data?: any }) = {}
 ): Promise<T> {
   try {
-    const response = await httpRequest<T>(`${API_BASE}${endpoint}`, {
+    // Handle the custom 'data' property by converting it to 'body'
+    const { data, ...requestOptions } = options;
+    const finalOptions: RequestInit = {
       headers: {
         "Content-Type": "application/json",
-        ...(options.headers || {}),
+        ...(requestOptions.headers || {}),
       },
-      ...options,
-    });
+      ...requestOptions,
+    };
+
+    // If data is provided, stringify it and set as body
+    if (data !== undefined) {
+      finalOptions.body = JSON.stringify(data);
+    }
+
+    const response = await httpRequest<T>(`${API_BASE}${endpoint}`, finalOptions);
 
     return response.data;
   } catch (err) {

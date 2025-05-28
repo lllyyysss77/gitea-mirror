@@ -9,7 +9,7 @@ import {
   type RepositoryApiResponse,
   type RepoStatus,
 } from "@/types/Repository";
-import { apiRequest } from "@/lib/utils";
+import { apiRequest, showErrorToast } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -108,16 +108,14 @@ export default function Repository() {
       } else {
         // Only show error toast for manual refreshes to avoid spam during live updates
         if (!isLiveRefresh) {
-          toast.error(response.error || "Error fetching repositories");
+          showErrorToast(response.error || "Error fetching repositories", toast);
         }
         return false;
       }
     } catch (error) {
       // Only show error toast for manual refreshes to avoid spam during live updates
       if (!isLiveRefresh) {
-        toast.error(
-          error instanceof Error ? error.message : "Error fetching repositories"
-        );
+        showErrorToast(error, toast);
       }
       return false;
     } finally {
@@ -184,12 +182,10 @@ export default function Repository() {
           })
         );
       } else {
-        toast.error(response.error || "Error starting mirror job");
+        showErrorToast(response.error || "Error starting mirror job", toast);
       }
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Error starting mirror job"
-      );
+      showErrorToast(error, toast);
     } finally {
       setLoadingRepoIds((prev) => {
         const newSet = new Set(prev);
@@ -248,12 +244,10 @@ export default function Repository() {
           })
         );
       } else {
-        toast.error(response.error || "Error starting mirror jobs");
+        showErrorToast(response.error || "Error starting mirror jobs", toast);
       }
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Error starting mirror jobs"
-      );
+      showErrorToast(error, toast);
     } finally {
       // Reset loading states - we'll let the SSE updates handle status changes
       setLoadingRepoIds(new Set());
@@ -287,12 +281,10 @@ export default function Repository() {
           })
         );
       } else {
-        toast.error(response.error || "Error starting sync job");
+        showErrorToast(response.error || "Error starting sync job", toast);
       }
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Error starting sync job"
-      );
+      showErrorToast(error, toast);
     } finally {
       setLoadingRepoIds((prev) => {
         const newSet = new Set(prev);
@@ -329,12 +321,10 @@ export default function Repository() {
           })
         );
       } else {
-        toast.error(response.error || "Error retrying job");
+        showErrorToast(response.error || "Error retrying job", toast);
       }
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Error retrying job"
-      );
+      showErrorToast(error, toast);
     } finally {
       setLoadingRepoIds((prev) => {
         const newSet = new Set(prev);
@@ -381,12 +371,10 @@ export default function Repository() {
           searchTerm: repo,
         }));
       } else {
-        toast.error(response.error || "Error adding repository");
+        showErrorToast(response.error || "Error adding repository", toast);
       }
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Error adding repository"
-      );
+      showErrorToast(error, toast);
     }
   };
 

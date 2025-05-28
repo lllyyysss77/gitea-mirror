@@ -5,7 +5,7 @@ import { GitFork, Clock, FlipHorizontal, Building2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MirrorJob, Organization, Repository } from "@/lib/db/schema";
 import { useAuth } from "@/hooks/useAuth";
-import { apiRequest } from "@/lib/utils";
+import { apiRequest, showErrorToast } from "@/lib/utils";
 import type { DashboardApiResponse } from "@/types/dashboard";
 import { useSSE } from "@/hooks/useSEE";
 import { toast } from "sonner";
@@ -103,15 +103,11 @@ export function Dashboard() {
         }
         return true;
       } else {
-        toast.error(response.error || "Error fetching dashboard data");
+        showErrorToast(response.error || "Error fetching dashboard data", toast);
         return false;
       }
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Error fetching dashboard data"
-      );
+      showErrorToast(error, toast);
       return false;
     } finally {
       setIsLoading(false);

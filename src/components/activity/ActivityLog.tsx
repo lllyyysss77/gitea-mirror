@@ -16,7 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../ui/dialog';
-import { apiRequest, formatDate } from '@/lib/utils';
+import { apiRequest, formatDate, showErrorToast } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import type { MirrorJob } from '@/lib/db/schema';
 import type { ActivityApiResponse } from '@/types/activities';
@@ -155,7 +155,7 @@ export function ActivityLog() {
       if (!res.success) {
         // Only show error toast for manual refreshes to avoid spam during live updates
         if (!isLiveRefresh) {
-          toast.error(res.message ?? 'Failed to fetch activities.');
+          showErrorToast(res.message ?? 'Failed to fetch activities.', toast);
         }
         return false;
       }
@@ -184,9 +184,7 @@ export function ActivityLog() {
       if (isMountedRef.current) {
         // Only show error toast for manual refreshes to avoid spam during live updates
         if (!isLiveRefresh) {
-          toast.error(
-            err instanceof Error ? err.message : 'Failed to fetch activities.',
-          );
+          showErrorToast(err, toast);
         }
       }
       return false;
@@ -331,11 +329,11 @@ export function ActivityLog() {
         setActivities([]);
         toast.success(`All activities cleaned up successfully. Deleted ${res.result.mirrorJobsDeleted} mirror jobs and ${res.result.eventsDeleted} events.`);
       } else {
-        toast.error(res.error || 'Failed to cleanup activities.');
+        showErrorToast(res.error || 'Failed to cleanup activities.', toast);
       }
     } catch (error) {
       console.error('Error cleaning up activities:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to cleanup activities.');
+      showErrorToast(error, toast);
     } finally {
       setIsInitialLoading(false);
     }

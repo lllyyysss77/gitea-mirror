@@ -5,7 +5,7 @@ import type { MirrorJob, Organization } from "@/lib/db/schema";
 import { OrganizationList } from "./OrganizationsList";
 import AddOrganizationDialog from "./AddOrganizationDialog";
 import { useAuth } from "@/hooks/useAuth";
-import { apiRequest } from "@/lib/utils";
+import { apiRequest, showErrorToast } from "@/lib/utils";
 import {
   membershipRoleEnum,
   type AddOrganizationApiRequest,
@@ -193,12 +193,10 @@ export function Organization() {
           searchTerm: org,
         }));
       } else {
-        toast.error(response.error || "Error adding organization");
+        showErrorToast(response.error || "Error adding organization", toast);
       }
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Error adding organization"
-      );
+      showErrorToast(error, toast);
     } finally {
       setIsLoading(false);
     }
@@ -250,12 +248,10 @@ export function Organization() {
           })
         );
       } else {
-        toast.error(response.error || "Error starting mirror jobs");
+        showErrorToast(response.error || "Error starting mirror jobs", toast);
       }
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Error starting mirror jobs"
-      );
+      showErrorToast(error, toast);
     } finally {
       // Reset loading states - we'll let the SSE updates handle status changes
       setLoadingOrgIds(new Set());

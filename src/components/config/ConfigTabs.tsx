@@ -14,7 +14,7 @@ import type {
 } from '@/types/config';
 import { Button } from '../ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { apiRequest } from '@/lib/utils';
+import { apiRequest, showErrorToast } from '@/lib/utils';
 import { RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -134,16 +134,13 @@ export function ConfigTabs() {
           'Configuration saved successfully! Now import your GitHub data to begin.',
         );
       } else {
-        toast.error(
+        showErrorToast(
           `Failed to save configuration: ${result.message || 'Unknown error'}`,
+          toast
         );
       }
     } catch (error) {
-      toast.error(
-        `An error occurred while saving the configuration: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
+      showErrorToast(error, toast);
     }
   };
 
@@ -198,18 +195,13 @@ export function ConfigTabs() {
             console.warn('Failed to fetch updated config after auto-save:', fetchError);
           }
         } else {
-          toast.error(
+          showErrorToast(
             `Auto-save failed: ${result.message || 'Unknown error'}`,
-            { duration: 3000 }
+            toast
           );
         }
       } catch (error) {
-        toast.error(
-          `Auto-save error: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-          { duration: 3000 }
-        );
+        showErrorToast(error, toast);
       } finally {
         setIsAutoSavingSchedule(false);
       }
@@ -266,18 +258,13 @@ export function ConfigTabs() {
             console.warn('Failed to fetch updated config after auto-save:', fetchError);
           }
         } else {
-          toast.error(
+          showErrorToast(
             `Auto-save failed: ${result.message || 'Unknown error'}`,
-            { duration: 3000 }
+            toast
           );
         }
       } catch (error) {
-        toast.error(
-          `Auto-save error: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-          { duration: 3000 }
-        );
+        showErrorToast(error, toast);
       } finally {
         setIsAutoSavingCleanup(false);
       }
