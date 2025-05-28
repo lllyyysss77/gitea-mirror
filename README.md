@@ -513,6 +513,36 @@ Try the following steps:
 >
 > This setup provides a complete containerized deployment for the Gitea Mirror application.
 
+#### Docker Volume Types and Permissions
+
+> [!IMPORTANT]
+> **Named Volumes vs Bind Mounts**: If you encounter SQLite permission errors even when using Docker, check your volume configuration:
+
+**✅ Named Volumes (Recommended):**
+```yaml
+volumes:
+  - gitea-mirror-data:/app/data  # Docker manages permissions automatically
+```
+
+**⚠️ Bind Mounts (Requires Manual Permission Setup):**
+```yaml
+volumes:
+  - /host/path/to/data:/app/data  # Host filesystem permissions apply
+```
+
+**If using bind mounts**, ensure the host directory is owned by UID 1001 (the `gitea-mirror` user):
+```bash
+# Set correct ownership for bind mount
+sudo chown -R 1001:1001 /host/path/to/data
+sudo chmod -R 755 /host/path/to/data
+```
+
+**Why named volumes work better:**
+- Docker automatically handles permissions
+- Better portability across different hosts
+- No manual permission setup required
+- Used by our official docker-compose.yml
+
 
 #### Database Maintenance
 
