@@ -37,7 +37,7 @@ export function VersionInfo() {
   return (
     <div className="text-xs text-muted-foreground text-center pt-2 pb-3 border-t border-border mt-2">
       {versionInfo.updateAvailable ? (
-        <div className="flex flex-col">
+        <div className="flex flex-col gap-1">
           <span>v{versionInfo.current}</span>
           <span className="text-primary">v{versionInfo.latest} available</span>
         </div>
