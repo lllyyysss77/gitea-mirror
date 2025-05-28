@@ -81,6 +81,11 @@ export function RepositoryList({ repositories }: RepositoryListProps) {
                         Private
                       </span>
                     )}
+                    {repo.isForked && (
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs">
+                        Fork
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-xs text-muted-foreground">

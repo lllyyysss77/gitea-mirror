@@ -249,6 +249,11 @@ export default function RepositoryTable({
                       Private
                     </span>
                   )}
+                  {repo.isForked && (
+                    <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs">
+                      Fork
+                    </span>
+                  )}
                 </div>
 
                 {/* Owner  */}

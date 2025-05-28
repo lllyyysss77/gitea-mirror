@@ -152,6 +152,9 @@ export const organizationSchema = z.object({
   errorMessage: z.string().optional(),
 
   repositoryCount: z.number().default(0),
+  publicRepositoryCount: z.number().optional(),
+  privateRepositoryCount: z.number().optional(),
+  forkRepositoryCount: z.number().optional(),
 
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date().default(() => new Date()),

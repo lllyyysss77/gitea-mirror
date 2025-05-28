@@ -33,6 +33,9 @@ export interface GitOrg {
   isIncluded: boolean;
   status: RepoStatus;
   repositoryCount: number;
+  publicRepositoryCount?: number;
+  privateRepositoryCount?: number;
+  forkRepositoryCount?: number;
   createdAt: Date;
   updatedAt: Date;
 }

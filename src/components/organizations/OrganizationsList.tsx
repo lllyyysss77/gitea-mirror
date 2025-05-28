@@ -118,10 +118,38 @@ export function OrganizationList({
               </span>
             </div>
 
-            <p className="text-sm text-muted-foreground mb-4">
-              {org.repositoryCount}{" "}
-              {org.repositoryCount === 1 ? "repository" : "repositories"}
-            </p>
+            <div className="text-sm text-muted-foreground mb-4">
+              <div className="flex items-center justify-between">
+                <span className="font-medium">
+                  {org.repositoryCount}{" "}
+                  {org.repositoryCount === 1 ? "repository" : "repositories"}
+                </span>
+              </div>
+              {(org.publicRepositoryCount !== undefined ||
+                org.privateRepositoryCount !== undefined ||
+                org.forkRepositoryCount !== undefined) && (
+                <div className="flex gap-4 mt-2 text-xs">
+                  {org.publicRepositoryCount !== undefined && (
+                    <span className="flex items-center gap-1">
+                      <div className="h-2 w-2 rounded-full bg-green-500" />
+                      {org.publicRepositoryCount} public
+                    </span>
+                  )}
+                  {org.privateRepositoryCount !== undefined && org.privateRepositoryCount > 0 && (
+                    <span className="flex items-center gap-1">
+                      <div className="h-2 w-2 rounded-full bg-orange-500" />
+                      {org.privateRepositoryCount} private
+                    </span>
+                  )}
+                  {org.forkRepositoryCount !== undefined && org.forkRepositoryCount > 0 && (
+                    <span className="flex items-center gap-1">
+                      <div className="h-2 w-2 rounded-full bg-blue-500" />
+                      {org.forkRepositoryCount} fork{org.forkRepositoryCount !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
 
             <div className="flex items-center justify-between">
               <div className="flex items-center">
