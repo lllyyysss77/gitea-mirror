@@ -69,7 +69,7 @@ Easily configure your GitHub and Gitea connections, set up automatic mirroring s
 
 ## Getting Started
 
-See the [Quick Start Guide](docs/quickstart.md) for detailed instructions on getting up and running quickly.
+See the [Quick Start Guide](src/content/docs/quickstart.md) for detailed instructions on getting up and running quickly.
 
 ### Prerequisites
 
@@ -284,7 +284,7 @@ bun run check-db
 
 ### Configuration
 
-Gitea Mirror can be configured through environment variables or through the web UI. See the [Configuration Guide](docs/configuration.md) for more details.
+Gitea Mirror can be configured through environment variables or through the web UI. See the [Configuration Guide](src/content/docs/configuration.md) for more details.
 
 Key configuration options include:
 
