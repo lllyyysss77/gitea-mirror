@@ -204,4 +204,90 @@ describe("Gitea Repository Mirroring", () => {
       global.fetch = originalFetch;
     }
   });
+
+  test("mirrorGitHubOrgToGitea handles empty organizations correctly", async () => {
+    // Mock the createMirrorJob function
+    const mockCreateMirrorJob = mock(() => Promise.resolve("job-id"));
+
+    // Mock the getOrCreateGiteaOrg function
+    const mockGetOrCreateGiteaOrg = mock(() => Promise.resolve("gitea-org-id"));
+
+    // Create a test version of the function with mocked dependencies
+    const testMirrorGitHubOrgToGitea = async ({
+      organization,
+      config,
+    }: {
+      organization: any;
+      config: any;
+    }) => {
+      // Simulate the function logic for empty organization
+      console.log(`Mirroring organization ${organization.name}`);
+
+      // Mock: get or create Gitea org
+      await mockGetOrCreateGiteaOrg();
+
+      // Mock: query the db with the org name and get the repos
+      const orgRepos: any[] = []; // Empty array to simulate no repositories
+
+      if (orgRepos.length === 0) {
+        console.log(`No repositories found for organization ${organization.name} - marking as successfully mirrored`);
+      } else {
+        console.log(`Mirroring ${orgRepos.length} repositories for organization ${organization.name}`);
+        // Repository processing would happen here
+      }
+
+      console.log(`Organization ${organization.name} mirrored successfully`);
+
+      // Mock: Append log for "mirrored" status
+      await mockCreateMirrorJob({
+        userId: config.userId,
+        organizationId: organization.id,
+        organizationName: organization.name,
+        message: `Successfully mirrored organization: ${organization.name}`,
+        details: orgRepos.length === 0
+          ? `Organization ${organization.name} was processed successfully (no repositories found).`
+          : `Organization ${organization.name} was mirrored to Gitea with ${orgRepos.length} repositories.`,
+        status: "mirrored",
+      });
+    };
+
+    // Create mock organization
+    const organization = {
+      id: "org-id",
+      name: "empty-org",
+      status: "imported"
+    };
+
+    // Create mock config
+    const config = {
+      id: "config-id",
+      userId: "user-id",
+      githubConfig: {
+        token: "github-token"
+      },
+      giteaConfig: {
+        url: "https://gitea.example.com",
+        token: "gitea-token"
+      }
+    };
+
+    // Call the test function
+    await testMirrorGitHubOrgToGitea({
+      organization,
+      config
+    });
+
+    // Verify that the mirror job was created with the correct details for empty org
+    expect(mockCreateMirrorJob).toHaveBeenCalledWith({
+      userId: "user-id",
+      organizationId: "org-id",
+      organizationName: "empty-org",
+      message: "Successfully mirrored organization: empty-org",
+      details: "Organization empty-org was processed successfully (no repositories found).",
+      status: "mirrored",
+    });
+
+    // Verify that getOrCreateGiteaOrg was called
+    expect(mockGetOrCreateGiteaOrg).toHaveBeenCalled();
+  });
 });

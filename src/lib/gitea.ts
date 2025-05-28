@@ -629,60 +629,59 @@ export async function mirrorGitHubOrgToGitea({
       .where(eq(repositories.organization, organization.name));
 
     if (orgRepos.length === 0) {
-      console.log(`No repositories found for organization ${organization.name}`);
-      return;
-    }
+      console.log(`No repositories found for organization ${organization.name} - marking as successfully mirrored`);
+    } else {
+      console.log(`Mirroring ${orgRepos.length} repositories for organization ${organization.name}`);
 
-    console.log(`Mirroring ${orgRepos.length} repositories for organization ${organization.name}`);
+      // Import the processWithRetry function
+      const { processWithRetry } = await import("@/lib/utils/concurrency");
 
-    // Import the processWithRetry function
-    const { processWithRetry } = await import("@/lib/utils/concurrency");
+      // Process repositories in parallel with concurrency control
+      await processWithRetry(
+        orgRepos,
+        async (repo) => {
+          // Prepare repository data
+          const repoData = {
+            ...repo,
+            status: repo.status as RepoStatus,
+            visibility: repo.visibility as RepositoryVisibility,
+            lastMirrored: repo.lastMirrored ?? undefined,
+            errorMessage: repo.errorMessage ?? undefined,
+            organization: repo.organization ?? undefined,
+            forkedFrom: repo.forkedFrom ?? undefined,
+            mirroredLocation: repo.mirroredLocation || "",
+          };
 
-    // Process repositories in parallel with concurrency control
-    await processWithRetry(
-      orgRepos,
-      async (repo) => {
-        // Prepare repository data
-        const repoData = {
-          ...repo,
-          status: repo.status as RepoStatus,
-          visibility: repo.visibility as RepositoryVisibility,
-          lastMirrored: repo.lastMirrored ?? undefined,
-          errorMessage: repo.errorMessage ?? undefined,
-          organization: repo.organization ?? undefined,
-          forkedFrom: repo.forkedFrom ?? undefined,
-          mirroredLocation: repo.mirroredLocation || "",
-        };
+          // Log the start of mirroring
+          console.log(`Starting mirror for repository: ${repo.name} in organization ${organization.name}`);
 
-        // Log the start of mirroring
-        console.log(`Starting mirror for repository: ${repo.name} in organization ${organization.name}`);
+          // Mirror the repository
+          await mirrorGitHubRepoToGiteaOrg({
+            octokit,
+            config,
+            repository: repoData,
+            giteaOrgId,
+            orgName: organization.name,
+          });
 
-        // Mirror the repository
-        await mirrorGitHubRepoToGiteaOrg({
-          octokit,
-          config,
-          repository: repoData,
-          giteaOrgId,
-          orgName: organization.name,
-        });
-
-        return repo;
-      },
-      {
-        concurrencyLimit: 3, // Process 3 repositories at a time
-        maxRetries: 2,
-        retryDelay: 2000,
-        onProgress: (completed, total, result) => {
-          const percentComplete = Math.round((completed / total) * 100);
-          if (result) {
-            console.log(`Mirrored repository "${result.name}" in organization ${organization.name} (${completed}/${total}, ${percentComplete}%)`);
-          }
+          return repo;
         },
-        onRetry: (repo, error, attempt) => {
-          console.log(`Retrying repository ${repo.name} in organization ${organization.name} (attempt ${attempt}): ${error.message}`);
+        {
+          concurrencyLimit: 3, // Process 3 repositories at a time
+          maxRetries: 2,
+          retryDelay: 2000,
+          onProgress: (completed, total, result) => {
+            const percentComplete = Math.round((completed / total) * 100);
+            if (result) {
+              console.log(`Mirrored repository "${result.name}" in organization ${organization.name} (${completed}/${total}, ${percentComplete}%)`);
+            }
+          },
+          onRetry: (repo, error, attempt) => {
+            console.log(`Retrying repository ${repo.name} in organization ${organization.name} (attempt ${attempt}): ${error.message}`);
+          }
         }
-      }
-    );
+      );
+    }
 
     console.log(`Organization ${organization.name} mirrored successfully`);
 
@@ -703,7 +702,9 @@ export async function mirrorGitHubOrgToGitea({
       organizationId: organization.id,
       organizationName: organization.name,
       message: `Successfully mirrored organization: ${organization.name}`,
-      details: `Organization ${organization.name} was mirrored to Gitea.`,
+      details: orgRepos.length === 0
+        ? `Organization ${organization.name} was processed successfully (no repositories found).`
+        : `Organization ${organization.name} was mirrored to Gitea with ${orgRepos.length} repositories.`,
       status: repoStatusEnum.parse("mirrored"),
     });
   } catch (error) {
