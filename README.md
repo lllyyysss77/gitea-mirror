@@ -282,6 +282,36 @@ bun run reset-users
 bun run check-db
 ```
 
+##### Database Permissions for Direct Installation
+
+> [!IMPORTANT]
+> **If you're running the application directly** (not using Docker), you may encounter SQLite permission errors. This is because SQLite requires both read/write access to the database file and write access to the directory containing the database.
+
+**Common Error:**
+```
+Error: [ERROR] SQLiteError: attempt to write a readonly database
+```
+
+**Solution:**
+```bash
+# Ensure the data directory exists and has proper permissions
+mkdir -p data
+chmod 755 data
+
+# If the database file already exists, ensure it's writable
+chmod 644 data/gitea-mirror.db
+
+# Make sure the user running the application owns the data directory
+chown -R $(whoami) data/
+```
+
+**Why Docker doesn't have this issue:**
+- Docker containers run with a dedicated user (`gitea-mirror`) that owns the `/app/data` directory
+- The container setup ensures proper permissions are set during image build
+- Volume mounts are handled by Docker with appropriate permissions
+
+**Recommended approach:** Use Docker or Docker Compose for deployment to avoid permission issues entirely.
+
 ### Configuration
 
 Gitea Mirror can be configured through environment variables or through the web UI. See the [Configuration Guide](src/content/docs/configuration.md) for more details.
