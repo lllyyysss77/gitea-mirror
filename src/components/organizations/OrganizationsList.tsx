@@ -172,7 +172,7 @@ export function OrganizationList({
                   htmlFor={`include-${org.id}`}
                   className="ml-2 text-sm select-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  Include in mirroring
+                  Enable mirroring
                 </label>
 
                 {isLoading && (

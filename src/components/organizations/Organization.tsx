@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Search, RefreshCw, FlipHorizontal, Plus } from "lucide-react";
+import { Search, RefreshCw, FlipHorizontal } from "lucide-react";
 import type { MirrorJob, Organization } from "@/lib/db/schema";
 import { OrganizationList } from "./OrganizationsList";
 import AddOrganizationDialog from "./AddOrganizationDialog";
@@ -26,6 +26,7 @@ import { useFilterParams } from "@/hooks/useFilterParams";
 import { toast } from "sonner";
 import { useConfigStatus } from "@/hooks/useConfigStatus";
 import { useNavigation } from "@/components/layout/MainLayout";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 
 export function Organization() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -34,6 +35,7 @@ export function Organization() {
   const { user } = useAuth();
   const { isGitHubConfigured } = useConfigStatus();
   const { navigationKey } = useNavigation();
+  const { registerRefreshCallback } = useLiveRefresh();
   const { filter, setFilter } = useFilterParams({
     searchTerm: "",
     membershipRole: "",
@@ -62,19 +64,23 @@ export function Organization() {
     onMessage: handleNewMessage,
   });
 
-  const fetchOrganizations = useCallback(async () => {
+  const fetchOrganizations = useCallback(async (isLiveRefresh = false) => {
     if (!user?.id) {
       return false;
     }
 
     // Don't fetch organizations if GitHub is not configured
     if (!isGitHubConfigured) {
-      setIsLoading(false);
+      if (!isLiveRefresh) {
+        setIsLoading(false);
+      }
       return false;
     }
 
     try {
-      setIsLoading(true);
+      if (!isLiveRefresh) {
+        setIsLoading(true);
+      }
 
       const response = await apiRequest<OrganizationsApiResponse>(
         `/github/organizations?userId=${user.id}`,
@@ -87,27 +93,47 @@ export function Organization() {
         setOrganizations(response.organizations);
         return true;
       } else {
-        toast.error(response.error || "Error fetching organizations");
+        if (!isLiveRefresh) {
+          toast.error(response.error || "Error fetching organizations");
+        }
         return false;
       }
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Error fetching organizations"
-      );
+      if (!isLiveRefresh) {
+        toast.error(
+          error instanceof Error ? error.message : "Error fetching organizations"
+        );
+      }
       return false;
     } finally {
-      setIsLoading(false);
+      if (!isLiveRefresh) {
+        setIsLoading(false);
+      }
     }
   }, [user?.id, isGitHubConfigured]); // Only depend on user.id, not entire user object
 
   useEffect(() => {
     // Reset loading state when component becomes active
     setIsLoading(true);
-    fetchOrganizations();
+    fetchOrganizations(false); // Manual refresh, not live
   }, [fetchOrganizations, navigationKey]); // Include navigationKey to trigger on navigation
 
+  // Register with global live refresh system
+  useEffect(() => {
+    // Only register for live refresh if GitHub is configured
+    if (!isGitHubConfigured) {
+      return;
+    }
+
+    const unregister = registerRefreshCallback(() => {
+      fetchOrganizations(true); // Live refresh
+    });
+
+    return unregister;
+  }, [registerRefreshCallback, fetchOrganizations, isGitHubConfigured]);
+
   const handleRefresh = async () => {
-    const success = await fetchOrganizations();
+    const success = await fetchOrganizations(false);
     if (success) {
       toast.success("Organizations refreshed successfully.");
     }
@@ -140,6 +166,12 @@ export function Organization() {
             return updated ? updated : org;
           })
         );
+
+        // Refresh organization data to get updated repository breakdown
+        // Use a small delay to allow the backend to process the mirroring request
+        setTimeout(() => {
+          fetchOrganizations(true);
+        }, 1000);
       } else {
         toast.error(response.error || "Error starting mirror job");
       }
@@ -258,12 +290,7 @@ export function Organization() {
     }
   };
 
-  // Get unique organization names for combobox (since Organization has no owner field)
-  const ownerOptions = Array.from(
-    new Set(
-      organizations.map((org) => org.name).filter((v): v is string => !!v)
-    )
-  ).sort();
+
 
   return (
     <div className="flex flex-col gap-y-8">
