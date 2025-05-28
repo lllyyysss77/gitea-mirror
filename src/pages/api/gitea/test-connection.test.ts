@@ -1,5 +1,4 @@
 import { describe, test, expect, mock, beforeEach, afterEach } from "bun:test";
-import axios from "axios";
 
 // Mock the POST function
 const mockPOST = mock(async ({ request }) => {

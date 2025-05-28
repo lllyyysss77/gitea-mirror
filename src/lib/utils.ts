@@ -1,7 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import axios from "axios";
-import type { AxiosError, AxiosRequestConfig } from "axios";
+import { httpRequest, HttpError } from "@/lib/http-client";
 import type { RepoStatus } from "@/types/Repository";
 
 export const API_BASE = "/api";
@@ -41,10 +40,10 @@ export function safeParse<T>(value: unknown): T | undefined {
 
 export async function apiRequest<T>(
   endpoint: string,
-  options: AxiosRequestConfig = {}
+  options: RequestInit = {}
 ): Promise<T> {
   try {
-    const response = await axios<T>(`${API_BASE}${endpoint}`, {
+    const response = await httpRequest<T>(`${API_BASE}${endpoint}`, {
       headers: {
         "Content-Type": "application/json",
         ...(options.headers || {}),
@@ -54,10 +53,10 @@ export async function apiRequest<T>(
 
     return response.data;
   } catch (err) {
-    const error = err as AxiosError<{ message?: string }>;
+    const error = err as HttpError;
 
     const message =
-      error.response?.data?.message ||
+      error.response ||
       error.message ||
       "An unknown error occurred";
 

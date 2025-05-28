@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { ENV } from "@/lib/config";
 import { getRecoveryStatus, hasJobsNeedingRecovery } from "@/lib/recovery";
 import os from "os";
-import axios from "axios";
+import { httpGet } from "@/lib/http-client";
 
 // Track when the server started
 const serverStartTime = new Date();
@@ -197,9 +197,9 @@ async function checkLatestVersion(): Promise<string> {
 
   try {
     // Fetch the latest release from GitHub
-    const response = await axios.get(
+    const response = await httpGet(
       'https://api.github.com/repos/arunavo4/gitea-mirror/releases/latest',
-      { headers: { 'Accept': 'application/vnd.github.v3+json' } }
+      { 'Accept': 'application/vnd.github.v3+json' }
     );
 
     // Extract version from tag_name (remove 'v' prefix if present)

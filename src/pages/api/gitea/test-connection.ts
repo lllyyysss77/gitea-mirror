@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import axios from 'axios';
+import { httpGet, HttpError } from '@/lib/http-client';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -25,11 +25,9 @@ export const POST: APIRoute = async ({ request }) => {
     const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
 
     // Test the connection by fetching the authenticated user
-    const response = await axios.get(`${baseUrl}/api/v1/user`, {
-      headers: {
-        'Authorization': `token ${token}`,
-        'Accept': 'application/json',
-      },
+    const response = await httpGet(`${baseUrl}/api/v1/user`, {
+      'Authorization': `token ${token}`,
+      'Accept': 'application/json',
     });
 
     const data = response.data;
@@ -72,8 +70,8 @@ export const POST: APIRoute = async ({ request }) => {
     console.error('Gitea connection test failed:', error);
 
     // Handle specific error types
-    if (axios.isAxiosError(error) && error.response) {
-      if (error.response.status === 401) {
+    if (error instanceof HttpError) {
+      if (error.status === 401) {
         return new Response(
           JSON.stringify({
             success: false,
@@ -86,7 +84,7 @@ export const POST: APIRoute = async ({ request }) => {
             },
           }
         );
-      } else if (error.response.status === 404) {
+      } else if (error.status === 404) {
         return new Response(
           JSON.stringify({
             success: false,
@@ -99,23 +97,21 @@ export const POST: APIRoute = async ({ request }) => {
             },
           }
         );
+      } else if (error.status === 0) {
+        // Network error
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: 'Could not connect to Gitea server. Please check the URL.',
+          }),
+          {
+            status: 500,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
       }
-    }
-
-    // Handle connection errors
-    if (axios.isAxiosError(error) && (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND')) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Could not connect to Gitea server. Please check the URL.',
-        }),
-        {
-          status: 500,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
     }
 
     // Generic error response

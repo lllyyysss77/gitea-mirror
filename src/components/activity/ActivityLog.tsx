@@ -313,7 +313,6 @@ export function ActivityLog() {
       setIsInitialLoading(true);
       setShowCleanupDialog(false);
 
-      // Use fetch directly to avoid potential axios issues
       const response = await fetch('/api/activities/cleanup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
