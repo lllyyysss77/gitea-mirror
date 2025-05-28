@@ -46,11 +46,25 @@ export async function processInParallel<T, R>(
     const batchResults = await Promise.allSettled(batchPromises);
 
     // Process results and handle errors
-    for (const result of batchResults) {
+    for (let j = 0; j < batchResults.length; j++) {
+      const result = batchResults[j];
       if (result.status === 'fulfilled') {
         results.push(result.value);
       } else {
-        console.error('Error processing item:', result.reason);
+        const itemIndex = i + j;
+        console.error("=== BATCH ITEM PROCESSING ERROR ===");
+        console.error("Batch index:", Math.floor(i / concurrencyLimit));
+        console.error("Item index in batch:", j);
+        console.error("Global item index:", itemIndex);
+        console.error("Error type:", result.reason?.constructor?.name);
+        console.error("Error message:", result.reason instanceof Error ? result.reason.message : String(result.reason));
+
+        if (result.reason instanceof Error && result.reason.message.includes('JSON')) {
+          console.error("🚨 JSON parsing error in batch processing");
+          console.error("This indicates an API response issue from Gitea");
+        }
+
+        console.error("==================================");
       }
     }
   }
@@ -139,6 +153,21 @@ export async function processWithRetry<T, R>(
           const delay = retryDelay * Math.pow(2, attempt - 1);
           await new Promise(resolve => setTimeout(resolve, delay));
         } else {
+          // Enhanced error logging for final failure
+          console.error("=== ITEM PROCESSING FAILED (MAX RETRIES EXCEEDED) ===");
+          console.error("Item:", getItemId ? getItemId(item) : 'unknown');
+          console.error("Error type:", lastError.constructor.name);
+          console.error("Error message:", lastError.message);
+          console.error("Attempts made:", maxRetries + 1);
+
+          if (lastError.message.includes('JSON')) {
+            console.error("🚨 JSON-related error detected in item processing");
+            console.error("This suggests an issue with API responses from Gitea");
+          }
+
+          console.error("Stack trace:", lastError.stack);
+          console.error("================================================");
+
           throw lastError;
         }
       }
