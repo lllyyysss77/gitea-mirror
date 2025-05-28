@@ -137,8 +137,32 @@ export const mirrorGithubRepoToGitea = async ({
 
     if (isExisting) {
       console.log(
-        `Repository ${repository.name} already exists in Gitea. Skipping migration.`
+        `Repository ${repository.name} already exists in Gitea. Updating database status.`
       );
+
+      // Update database to reflect that the repository is already mirrored
+      await db
+        .update(repositories)
+        .set({
+          status: repoStatusEnum.parse("mirrored"),
+          updatedAt: new Date(),
+          lastMirrored: new Date(),
+          errorMessage: null,
+          mirroredLocation: `${config.giteaConfig.username}/${repository.name}`,
+        })
+        .where(eq(repositories.id, repository.id!));
+
+      // Append log for "mirrored" status
+      await createMirrorJob({
+        userId: config.userId,
+        repositoryId: repository.id,
+        repositoryName: repository.name,
+        message: `Repository ${repository.name} already exists in Gitea`,
+        details: `Repository ${repository.name} was found to already exist in Gitea and database status was updated.`,
+        status: "mirrored",
+      });
+
+      console.log(`Repository ${repository.name} database status updated to mirrored`);
       return;
     }
 
@@ -420,8 +444,32 @@ export async function mirrorGitHubRepoToGiteaOrg({
 
     if (isExisting) {
       console.log(
-        `Repository ${repository.name} already exists in Gitea. Skipping migration.`
+        `Repository ${repository.name} already exists in Gitea organization ${orgName}. Updating database status.`
       );
+
+      // Update database to reflect that the repository is already mirrored
+      await db
+        .update(repositories)
+        .set({
+          status: repoStatusEnum.parse("mirrored"),
+          updatedAt: new Date(),
+          lastMirrored: new Date(),
+          errorMessage: null,
+          mirroredLocation: `${orgName}/${repository.name}`,
+        })
+        .where(eq(repositories.id, repository.id!));
+
+      // Create a mirror job log entry
+      await createMirrorJob({
+        userId: config.userId,
+        repositoryId: repository.id,
+        repositoryName: repository.name,
+        message: `Repository ${repository.name} already exists in Gitea organization ${orgName}`,
+        details: `Repository ${repository.name} was found to already exist in Gitea organization ${orgName} and database status was updated.`,
+        status: "mirrored",
+      });
+
+      console.log(`Repository ${repository.name} database status updated to mirrored in organization ${orgName}`);
       return;
     }
 

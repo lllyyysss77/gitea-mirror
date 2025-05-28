@@ -232,6 +232,28 @@ else
   echo "❌ Startup recovery failed with exit code $RECOVERY_EXIT_CODE"
 fi
 
+# Run repository status repair to fix any inconsistent mirroring states
+echo "Running repository status repair..."
+if [ -f "dist/scripts/repair-mirrored-repos.js" ]; then
+  echo "Running repository repair using compiled script..."
+  bun dist/scripts/repair-mirrored-repos.js --startup
+  REPAIR_EXIT_CODE=$?
+elif [ -f "scripts/repair-mirrored-repos.ts" ]; then
+  echo "Running repository repair using TypeScript script..."
+  bun scripts/repair-mirrored-repos.ts --startup
+  REPAIR_EXIT_CODE=$?
+else
+  echo "Warning: Repository repair script not found. Skipping repair."
+  REPAIR_EXIT_CODE=0
+fi
+
+# Log repair result
+if [ $REPAIR_EXIT_CODE -eq 0 ]; then
+  echo "✅ Repository status repair completed successfully"
+else
+  echo "⚠️  Repository status repair completed with warnings (exit code $REPAIR_EXIT_CODE)"
+fi
+
 # Function to handle shutdown signals
 shutdown_handler() {
   echo "🛑 Received shutdown signal, forwarding to application..."
