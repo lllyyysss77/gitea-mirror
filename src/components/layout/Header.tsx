@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { SiGitea } from "react-icons/si";
+
 import { ModeToggle } from "@/components/theme/ModeToggle";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { toast } from "sonner";
@@ -64,7 +64,7 @@ export function Header({ currentPage, onNavigate }: HeaderProps) {
           }}
           className="flex items-center gap-2 py-1 hover:opacity-80 transition-opacity"
         >
-          <SiGitea className="h-6 w-6" />
+          <img src="/logo.svg" alt="Gitea Mirror" className="h-6 w-6" />
           <span className="text-xl font-bold">Gitea Mirror</span>
         </button>
 

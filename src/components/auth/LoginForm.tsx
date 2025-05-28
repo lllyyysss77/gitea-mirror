@@ -1,13 +1,13 @@
 'use client';
 
 import * as React from 'react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { SiGitea } from 'react-icons/si';
+
 import { toast, Toaster } from 'sonner';
 import { showErrorToast } from '@/lib/utils';
-import { FlipHorizontal } from 'lucide-react';
+
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -60,7 +60,7 @@ export function LoginForm() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <SiGitea className="h-10 w-10" />
+            <img src="/logo.svg" alt="Gitea Mirror" className="h-10 w-10" />
           </div>
           <CardTitle className="text-2xl">Gitea Mirror</CardTitle>
           <CardDescription>
