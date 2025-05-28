@@ -20,9 +20,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 interface GitHubConfigFormProps {
   config: GitHubConfig;
   setConfig: React.Dispatch<React.SetStateAction<GitHubConfig>>;
+  onAutoSave?: (githubConfig: GitHubConfig) => Promise<void>;
+  isAutoSaving?: boolean;
 }
 
-export function GitHubConfigForm({ config, setConfig }: GitHubConfigFormProps) {
+export function GitHubConfigForm({ config, setConfig, onAutoSave, isAutoSaving }: GitHubConfigFormProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,10 +45,17 @@ export function GitHubConfigForm({ config, setConfig }: GitHubConfigFormProps) {
       );
     }
 
-    setConfig({
+    const newConfig = {
       ...config,
       [name]: type === "checkbox" ? checked : value,
-    });
+    };
+
+    setConfig(newConfig);
+
+    // Auto-save for all field changes
+    if (onAutoSave) {
+      onAutoSave(newConfig);
+    }
   };
 
   const testConnection = async () => {

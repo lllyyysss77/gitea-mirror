@@ -21,19 +21,27 @@ import { toast } from "sonner";
 interface GiteaConfigFormProps {
   config: GiteaConfig;
   setConfig: React.Dispatch<React.SetStateAction<GiteaConfig>>;
+  onAutoSave?: (giteaConfig: GiteaConfig) => Promise<void>;
+  isAutoSaving?: boolean;
 }
 
-export function GiteaConfigForm({ config, setConfig }: GiteaConfigFormProps) {
+export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving }: GiteaConfigFormProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setConfig({
+    const newConfig = {
       ...config,
       [name]: value,
-    });
+    };
+    setConfig(newConfig);
+
+    // Auto-save for all field changes
+    if (onAutoSave) {
+      onAutoSave(newConfig);
+    }
   };
 
   const testConnection = async () => {

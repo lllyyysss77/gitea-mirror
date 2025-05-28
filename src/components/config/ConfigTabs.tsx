@@ -56,14 +56,18 @@ export function ConfigTabs() {
       retentionDays: 604800, // 7 days in seconds
     },
   });
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
-  const [isConfigSaved, setIsConfigSaved] = useState<boolean>(false);
+
   const [isAutoSavingSchedule, setIsAutoSavingSchedule] = useState<boolean>(false);
   const [isAutoSavingCleanup, setIsAutoSavingCleanup] = useState<boolean>(false);
+  const [isAutoSavingGitHub, setIsAutoSavingGitHub] = useState<boolean>(false);
+  const [isAutoSavingGitea, setIsAutoSavingGitea] = useState<boolean>(false);
   const autoSaveScheduleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const autoSaveCleanupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveGitHubTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveGiteaTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const isConfigFormValid = (): boolean => {
     const { githubConfig, giteaConfig } = config;
@@ -109,44 +113,9 @@ export function ConfigTabs() {
     }
   };
 
-  const handleSaveConfig = async () => {
-    if (!user?.id) return;
-    const reqPayload: SaveConfigApiRequest = {
-      userId: user.id,
-      githubConfig: config.githubConfig,
-      giteaConfig: config.giteaConfig,
-      scheduleConfig: config.scheduleConfig,
-      cleanupConfig: config.cleanupConfig,
-    };
-    try {
-      const response = await fetch('/api/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(reqPayload),
-      });
-      const result: SaveConfigApiResponse = await response.json();
-      if (result.success) {
-        await refreshUser();
-        setIsConfigSaved(true);
-        // Invalidate config cache so other components get fresh data
-        invalidateConfigCache();
-        toast.success(
-          'Configuration saved successfully! Now import your GitHub data to begin.',
-        );
-      } else {
-        showErrorToast(
-          `Failed to save configuration: ${result.message || 'Unknown error'}`,
-          toast
-        );
-      }
-    } catch (error) {
-      showErrorToast(error, toast);
-    }
-  };
-
   // Auto-save function specifically for schedule config changes
   const autoSaveScheduleConfig = useCallback(async (scheduleConfig: ScheduleConfig) => {
-    if (!user?.id || !isConfigSaved) return; // Only auto-save if config was previously saved
+    if (!user?.id) return;
 
     // Clear any existing timeout
     if (autoSaveScheduleTimeoutRef.current) {
@@ -206,11 +175,11 @@ export function ConfigTabs() {
         setIsAutoSavingSchedule(false);
       }
     }, 500); // 500ms debounce
-  }, [user?.id, isConfigSaved, config.githubConfig, config.giteaConfig, config.cleanupConfig]);
+  }, [user?.id, config.githubConfig, config.giteaConfig, config.cleanupConfig]);
 
   // Auto-save function specifically for cleanup config changes
   const autoSaveCleanupConfig = useCallback(async (cleanupConfig: DatabaseCleanupConfig) => {
-    if (!user?.id || !isConfigSaved) return; // Only auto-save if config was previously saved
+    if (!user?.id) return;
 
     // Clear any existing timeout
     if (autoSaveCleanupTimeoutRef.current) {
@@ -269,7 +238,101 @@ export function ConfigTabs() {
         setIsAutoSavingCleanup(false);
       }
     }, 500); // 500ms debounce
-  }, [user?.id, isConfigSaved, config.githubConfig, config.giteaConfig, config.scheduleConfig]);
+  }, [user?.id, config.githubConfig, config.giteaConfig, config.scheduleConfig]);
+
+  // Auto-save function specifically for GitHub config changes
+  const autoSaveGitHubConfig = useCallback(async (githubConfig: GitHubConfig) => {
+    if (!user?.id) return;
+
+    // Clear any existing timeout
+    if (autoSaveGitHubTimeoutRef.current) {
+      clearTimeout(autoSaveGitHubTimeoutRef.current);
+    }
+
+    // Debounce the auto-save to prevent excessive API calls
+    autoSaveGitHubTimeoutRef.current = setTimeout(async () => {
+      setIsAutoSavingGitHub(true);
+
+      const reqPayload: SaveConfigApiRequest = {
+        userId: user.id!,
+        githubConfig: githubConfig,
+        giteaConfig: config.giteaConfig,
+        scheduleConfig: config.scheduleConfig,
+        cleanupConfig: config.cleanupConfig,
+      };
+
+      try {
+        const response = await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(reqPayload),
+        });
+        const result: SaveConfigApiResponse = await response.json();
+
+        if (result.success) {
+          // Silent success - no toast for auto-save
+          // Invalidate config cache so other components get fresh data
+          invalidateConfigCache();
+        } else {
+          showErrorToast(
+            `Auto-save failed: ${result.message || 'Unknown error'}`,
+            toast
+          );
+        }
+      } catch (error) {
+        showErrorToast(error, toast);
+      } finally {
+        setIsAutoSavingGitHub(false);
+      }
+    }, 500); // 500ms debounce
+  }, [user?.id, config.giteaConfig, config.scheduleConfig, config.cleanupConfig]);
+
+  // Auto-save function specifically for Gitea config changes
+  const autoSaveGiteaConfig = useCallback(async (giteaConfig: GiteaConfig) => {
+    if (!user?.id) return;
+
+    // Clear any existing timeout
+    if (autoSaveGiteaTimeoutRef.current) {
+      clearTimeout(autoSaveGiteaTimeoutRef.current);
+    }
+
+    // Debounce the auto-save to prevent excessive API calls
+    autoSaveGiteaTimeoutRef.current = setTimeout(async () => {
+      setIsAutoSavingGitea(true);
+
+      const reqPayload: SaveConfigApiRequest = {
+        userId: user.id!,
+        githubConfig: config.githubConfig,
+        giteaConfig: giteaConfig,
+        scheduleConfig: config.scheduleConfig,
+        cleanupConfig: config.cleanupConfig,
+      };
+
+      try {
+        const response = await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(reqPayload),
+        });
+        const result: SaveConfigApiResponse = await response.json();
+
+        if (result.success) {
+          // Silent success - no toast for auto-save
+          // Invalidate config cache so other components get fresh data
+          invalidateConfigCache();
+        } else {
+          showErrorToast(
+            `Auto-save failed: ${result.message || 'Unknown error'}`,
+            toast
+          );
+        }
+      } catch (error) {
+        showErrorToast(error, toast);
+      } finally {
+        setIsAutoSavingGitea(false);
+      }
+    }, 500); // 500ms debounce
+  }, [user?.id, config.githubConfig, config.scheduleConfig, config.cleanupConfig]);
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -279,6 +342,12 @@ export function ConfigTabs() {
       }
       if (autoSaveCleanupTimeoutRef.current) {
         clearTimeout(autoSaveCleanupTimeoutRef.current);
+      }
+      if (autoSaveGitHubTimeoutRef.current) {
+        clearTimeout(autoSaveGitHubTimeoutRef.current);
+      }
+      if (autoSaveGiteaTimeoutRef.current) {
+        clearTimeout(autoSaveGiteaTimeoutRef.current);
       }
     };
   }, []);
@@ -304,7 +373,7 @@ export function ConfigTabs() {
             cleanupConfig:
               response.cleanupConfig || config.cleanupConfig,
           });
-          if (response.id) setIsConfigSaved(true);
+
         }
       } catch (error) {
         console.warn(
@@ -401,10 +470,10 @@ export function ConfigTabs() {
         <div className="flex gap-x-4">
           <Button
             onClick={handleImportGitHubData}
-            disabled={isSyncing || !isConfigSaved}
+            disabled={isSyncing || !isConfigFormValid()}
             title={
-              !isConfigSaved
-                ? 'Save configuration first'
+              !isConfigFormValid()
+                ? 'Please fill all required GitHub and Gitea fields'
                 : isSyncing
                 ? 'Import in progress'
                 : 'Import GitHub Data'
@@ -421,17 +490,6 @@ export function ConfigTabs() {
                 Import GitHub Data
               </>
             )}
-          </Button>
-          <Button
-            onClick={handleSaveConfig}
-            disabled={!isConfigFormValid()}
-            title={
-              !isConfigFormValid()
-                ? 'Please fill all required fields'
-                : 'Save Configuration'
-            }
-          >
-            Save Configuration
           </Button>
         </div>
       </div>
@@ -450,6 +508,8 @@ export function ConfigTabs() {
                     : update,
               }))
             }
+            onAutoSave={autoSaveGitHubConfig}
+            isAutoSaving={isAutoSavingGitHub}
           />
           <GiteaConfigForm
             config={config.giteaConfig}
@@ -462,6 +522,8 @@ export function ConfigTabs() {
                     : update,
               }))
             }
+            onAutoSave={autoSaveGiteaConfig}
+            isAutoSaving={isAutoSavingGitea}
           />
         </div>
         <div className="flex gap-x-4">
