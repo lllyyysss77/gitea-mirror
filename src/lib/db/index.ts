@@ -25,9 +25,220 @@ let sqlite: Database;
 try {
   sqlite = new Database(dbPath);
   console.log("Successfully connected to SQLite database using Bun's native driver");
+
+  // Ensure all required tables exist
+  ensureTablesExist(sqlite);
 } catch (error) {
   console.error("Error opening database:", error);
   throw error;
+}
+
+/**
+ * Ensure all required tables exist in the database
+ */
+function ensureTablesExist(db: Database) {
+  const requiredTables = [
+    "users",
+    "configs",
+    "repositories",
+    "organizations",
+    "mirror_jobs",
+    "events",
+  ];
+
+  for (const table of requiredTables) {
+    try {
+      // Check if table exists
+      const result = db.query(`SELECT name FROM sqlite_master WHERE type='table' AND name='${table}'`).get();
+
+      if (!result) {
+        console.warn(`⚠️  Table '${table}' is missing. Creating it now...`);
+        createTable(db, table);
+        console.log(`✅ Table '${table}' created successfully`);
+      }
+    } catch (error) {
+      console.error(`❌ Error checking/creating table '${table}':`, error);
+      throw error;
+    }
+  }
+}
+
+/**
+ * Create a specific table with its schema
+ */
+function createTable(db: Database, tableName: string) {
+  switch (tableName) {
+    case "users":
+      db.exec(`
+        CREATE TABLE users (
+          id TEXT PRIMARY KEY,
+          username TEXT NOT NULL,
+          password TEXT NOT NULL,
+          email TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        )
+      `);
+      break;
+
+    case "configs":
+      db.exec(`
+        CREATE TABLE configs (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          is_active INTEGER NOT NULL DEFAULT 1,
+          github_config TEXT NOT NULL,
+          gitea_config TEXT NOT NULL,
+          include TEXT NOT NULL DEFAULT '["*"]',
+          exclude TEXT NOT NULL DEFAULT '[]',
+          schedule_config TEXT NOT NULL,
+          cleanup_config TEXT NOT NULL,
+          created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+          updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+      `);
+      break;
+
+    case "repositories":
+      db.exec(`
+        CREATE TABLE repositories (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          config_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          full_name TEXT NOT NULL,
+          url TEXT NOT NULL,
+          clone_url TEXT NOT NULL,
+          owner TEXT NOT NULL,
+          organization TEXT,
+          mirrored_location TEXT DEFAULT '',
+          is_private INTEGER NOT NULL DEFAULT 0,
+          is_fork INTEGER NOT NULL DEFAULT 0,
+          forked_from TEXT,
+          has_issues INTEGER NOT NULL DEFAULT 0,
+          is_starred INTEGER NOT NULL DEFAULT 0,
+          language TEXT,
+          description TEXT,
+          default_branch TEXT NOT NULL,
+          visibility TEXT NOT NULL DEFAULT 'public',
+          status TEXT NOT NULL DEFAULT 'imported',
+          last_mirrored INTEGER,
+          error_message TEXT,
+          created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+          updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+          FOREIGN KEY (user_id) REFERENCES users(id),
+          FOREIGN KEY (config_id) REFERENCES configs(id)
+        )
+      `);
+
+      // Create indexes for repositories
+      db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_repositories_user_id ON repositories(user_id);
+        CREATE INDEX IF NOT EXISTS idx_repositories_config_id ON repositories(config_id);
+        CREATE INDEX IF NOT EXISTS idx_repositories_status ON repositories(status);
+        CREATE INDEX IF NOT EXISTS idx_repositories_owner ON repositories(owner);
+        CREATE INDEX IF NOT EXISTS idx_repositories_organization ON repositories(organization);
+        CREATE INDEX IF NOT EXISTS idx_repositories_is_fork ON repositories(is_fork);
+        CREATE INDEX IF NOT EXISTS idx_repositories_is_starred ON repositories(is_starred);
+      `);
+      break;
+
+    case "organizations":
+      db.exec(`
+        CREATE TABLE organizations (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          config_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          avatar_url TEXT NOT NULL,
+          membership_role TEXT NOT NULL DEFAULT 'member',
+          is_included INTEGER NOT NULL DEFAULT 1,
+          status TEXT NOT NULL DEFAULT 'imported',
+          last_mirrored INTEGER,
+          error_message TEXT,
+          repository_count INTEGER NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+          updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+          FOREIGN KEY (user_id) REFERENCES users(id),
+          FOREIGN KEY (config_id) REFERENCES configs(id)
+        )
+      `);
+
+      // Create indexes for organizations
+      db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_organizations_user_id ON organizations(user_id);
+        CREATE INDEX IF NOT EXISTS idx_organizations_config_id ON organizations(config_id);
+        CREATE INDEX IF NOT EXISTS idx_organizations_status ON organizations(status);
+        CREATE INDEX IF NOT EXISTS idx_organizations_is_included ON organizations(is_included);
+      `);
+      break;
+
+    case "mirror_jobs":
+      db.exec(`
+        CREATE TABLE mirror_jobs (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          repository_id TEXT,
+          repository_name TEXT,
+          organization_id TEXT,
+          organization_name TEXT,
+          details TEXT,
+          status TEXT NOT NULL DEFAULT 'imported',
+          message TEXT NOT NULL,
+          timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+          -- New fields for job resilience
+          job_type TEXT NOT NULL DEFAULT 'mirror',
+          batch_id TEXT,
+          total_items INTEGER,
+          completed_items INTEGER DEFAULT 0,
+          item_ids TEXT, -- JSON array as text
+          completed_item_ids TEXT DEFAULT '[]', -- JSON array as text
+          in_progress INTEGER NOT NULL DEFAULT 0, -- Boolean as integer
+          started_at TIMESTAMP,
+          completed_at TIMESTAMP,
+          last_checkpoint TIMESTAMP,
+
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+      `);
+
+      // Create indexes for mirror_jobs
+      db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_mirror_jobs_user_id ON mirror_jobs(user_id);
+        CREATE INDEX IF NOT EXISTS idx_mirror_jobs_batch_id ON mirror_jobs(batch_id);
+        CREATE INDEX IF NOT EXISTS idx_mirror_jobs_in_progress ON mirror_jobs(in_progress);
+        CREATE INDEX IF NOT EXISTS idx_mirror_jobs_job_type ON mirror_jobs(job_type);
+        CREATE INDEX IF NOT EXISTS idx_mirror_jobs_timestamp ON mirror_jobs(timestamp);
+      `);
+      break;
+
+    case "events":
+      db.exec(`
+        CREATE TABLE events (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          channel TEXT NOT NULL,
+          payload TEXT NOT NULL,
+          read INTEGER NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+          FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+      `);
+
+      // Create indexes for events
+      db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_events_user_channel ON events(user_id, channel);
+        CREATE INDEX IF NOT EXISTS idx_events_created_at ON events(created_at);
+        CREATE INDEX IF NOT EXISTS idx_events_read ON events(read);
+      `);
+      break;
+
+    default:
+      throw new Error(`Unknown table: ${tableName}`);
+  }
 }
 
 // Create drizzle instance with the SQLite client
