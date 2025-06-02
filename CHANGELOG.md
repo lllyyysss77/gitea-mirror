@@ -5,6 +5,18 @@ All notable changes to the Gitea Mirror project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.12.0] - 2025-01-27
+
+### Fixed
+- Fixed SQLite "no such table: mirror_jobs" error during application startup
+- Implemented automatic database table creation during database initialization
+- Resolved database schema inconsistencies between development and production environments
+
+### Improved
+- Enhanced database initialization process with automatic table creation and indexing
+- Added comprehensive error handling for database table creation
+- Integrated database repair functionality into application startup for better reliability
+
 ## [2.5.3] - 2025-05-22
 
 ### Added
