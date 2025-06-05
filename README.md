@@ -21,7 +21,7 @@ bun run setup && bun run dev
 
 # Using LXC Containers
 # For Proxmox VE (online) - Community script by Tobias ([CrazyWolf13](https://github.com/CrazyWolf13))
-curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/gitea-mirror-install.sh | bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/ct/gitea-mirror.sh)"
 
 # For local testing (offline-friendly)
 sudo LOCAL_REPO_DIR=~/Development/gitea-mirror ./scripts/gitea-mirror-lxc-local.sh
@@ -176,8 +176,8 @@ Gitea Mirror offers two deployment options for LXC containers:
 ```bash
 # One-command installation on Proxmox VE
 # Uses the community-maintained script by Tobias ([CrazyWolf13](https://github.com/CrazyWolf13))
-# at [community-scripts/ProxmoxVED](https://github.com/community-scripts/ProxmoxVED)
-curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/gitea-mirror-install.sh | bash
+# at [community-scripts/ProxmoxVE](https://github.com/community-scripts/ProxmoxVE)
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/ct/gitea-mirror.sh)"
 ```
 
 **2. Local testing (offline-friendly, works on developer laptops)**
@@ -591,3 +591,4 @@ sudo chmod -R 755 /host/path/to/data
 - [Octokit](https://github.com/octokit/rest.js/) - GitHub REST API client for JavaScript
 - [Shadcn UI](https://ui.shadcn.com/) - For the beautiful UI components
 - [Astro](https://astro.build/) - For the excellent web framework
+- [Community Scripts](https://community-scripts.github.io/ProxmoxVE/) - For the Proxmox VE installation script maintained by [CrazyWolf13](https://github.com/CrazyWolf13)

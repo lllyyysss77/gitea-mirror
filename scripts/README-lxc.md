@@ -19,13 +19,14 @@ Run **Gitea Mirror** in an isolated LXC container, either:
 
 ```bash
 # Community-maintained script for Proxmox VE by Tobias ([CrazyWolf13](https://github.com/CrazyWolf13))
-# at [community-scripts/ProxmoxVED](https://github.com/community-scripts/ProxmoxVED)
-sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/install/gitea-mirror-install.sh)"
+# at [community-scripts/ProxmoxVE](https://github.com/community-scripts/ProxmoxVE)
+# Official documentation: https://community-scripts.github.io/ProxmoxVE/scripts?id=gitea-mirror
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/ct/gitea-mirror.sh)"
 ```
 
 What it does:
 
-* Uses the community-maintained script from ProxmoxVED
+* Uses the community-maintained script from [Community Scripts for Proxmox VE](https://community-scripts.github.io/ProxmoxVE/)
 * Installs dependencies and Bun runtime
 * Clones & builds `arunavo4/gitea-mirror`
 * Creates a systemd service and starts it
