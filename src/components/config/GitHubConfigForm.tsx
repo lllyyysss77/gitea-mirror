@@ -242,6 +242,30 @@ export function GitHubConfigForm({ config, setConfig, onAutoSave, isAutoSaving }
 
             <div className="flex items-center">
               <Checkbox
+                id="mirror-wiki"
+                name="mirrorWiki"
+                checked={config.mirrorWiki}
+                onCheckedChange={(checked) =>
+                  handleChange({
+                    target: {
+                      name: "mirrorWiki",
+                      type: "checkbox",
+                      checked: Boolean(checked),
+                      value: "",
+                    },
+                  } as React.ChangeEvent<HTMLInputElement>)
+                }
+              />
+              <label
+                htmlFor="mirror-wiki"
+                className="ml-2 block text-sm select-none"
+              >
+                Mirror Wiki
+              </label>
+            </div>
+
+            <div className="flex items-center">
+              <Checkbox
                 id="preserve-org-structure"
                 name="preserveOrgStructure"
                 checked={config.preserveOrgStructure}

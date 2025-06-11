@@ -35,6 +35,7 @@ export function ConfigTabs() {
       skipForks: false,
       privateRepositories: false,
       mirrorIssues: false,
+      mirrorWiki: false,
       mirrorStarred: false,
       preserveOrgStructure: false,
       skipStarredIssues: false,

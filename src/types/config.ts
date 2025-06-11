@@ -31,6 +31,7 @@ export interface GitHubConfig {
   skipForks: boolean;
   privateRepositories: boolean;
   mirrorIssues: boolean;
+  mirrorWiki: boolean;
   mirrorStarred: boolean;
   preserveOrgStructure: boolean;
   skipStarredIssues: boolean;

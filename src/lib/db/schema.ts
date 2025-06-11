@@ -26,6 +26,7 @@ export const configSchema = z.object({
     skipForks: z.boolean().default(false),
     privateRepositories: z.boolean().default(false),
     mirrorIssues: z.boolean().default(false),
+    mirrorWiki: z.boolean().default(false),
     mirrorStarred: z.boolean().default(false),
     useSpecificUser: z.boolean().default(false),
     singleRepo: z.string().optional(),

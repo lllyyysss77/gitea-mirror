@@ -1,34 +1,74 @@
 import { describe, test, expect, mock, beforeEach, afterEach } from "bun:test";
+import type { MirrorRepoRequest } from "@/types/mirror";
 
-// Create a mock POST function
-const mockPOST = mock(async ({ request }) => {
-  const body = await request.json();
-
-  // Check for missing userId or repositoryIds
-  if (!body.userId || !body.repositoryIds) {
-    return new Response(
-      JSON.stringify({
-        error: "Missing userId or repositoryIds."
-      }),
-      { status: 400 }
-    );
-  }
-
-  // Success case
-  return new Response(
-    JSON.stringify({
-      success: true,
-      message: "Repository mirroring started",
-      batchId: "test-batch-id"
-    }),
-    { status: 200 }
-  );
-});
-
-// Create a mock module
-const mockModule = {
-  POST: mockPOST
+// Mock the database module
+const mockDb = {
+  select: mock(() => ({
+    from: mock(() => ({
+      where: mock(() => ({
+        limit: mock(() => Promise.resolve([{
+          id: "config-id",
+          userId: "user-id",
+          githubConfig: {
+            token: "github-token",
+            preserveOrgStructure: false,
+            mirrorIssues: false
+          },
+          giteaConfig: {
+            url: "https://gitea.example.com",
+            token: "gitea-token",
+            username: "giteauser"
+          }
+        }]))
+      }))
+    }))
+  }))
 };
+
+mock.module("@/lib/db", () => ({
+  db: mockDb,
+  configs: {},
+  repositories: {}
+}));
+
+// Mock the gitea module
+const mockMirrorGithubRepoToGitea = mock(() => Promise.resolve());
+const mockMirrorGitHubOrgRepoToGiteaOrg = mock(() => Promise.resolve());
+
+mock.module("@/lib/gitea", () => ({
+  mirrorGithubRepoToGitea: mockMirrorGithubRepoToGitea,
+  mirrorGitHubOrgRepoToGiteaOrg: mockMirrorGitHubOrgRepoToGiteaOrg
+}));
+
+// Mock the github module
+const mockCreateGitHubClient = mock(() => ({}));
+
+mock.module("@/lib/github", () => ({
+  createGitHubClient: mockCreateGitHubClient
+}));
+
+// Mock the concurrency module
+const mockProcessWithResilience = mock(() => Promise.resolve([]));
+
+mock.module("@/lib/utils/concurrency", () => ({
+  processWithResilience: mockProcessWithResilience
+}));
+
+// Mock drizzle-orm
+mock.module("drizzle-orm", () => ({
+  eq: mock(() => ({})),
+  inArray: mock(() => ({}))
+}));
+
+// Mock the types
+mock.module("@/types/Repository", () => ({
+  repositoryVisibilityEnum: {
+    parse: mock((value: string) => value)
+  },
+  repoStatusEnum: {
+    parse: mock((value: string) => value)
+  }
+}));
 
 describe("Repository Mirroring API", () => {
   // Mock console.log and console.error to prevent test output noise

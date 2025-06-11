@@ -55,6 +55,7 @@ The GitHub configuration section allows you to connect to GitHub and specify whi
 | Skip Forks | Skip forked repositories | `false` |
 | Private Repositories | Include private repositories | `false` |
 | Mirror Issues | Mirror issues from GitHub to Gitea | `false` |
+| Mirror Wiki | Mirror wiki pages from GitHub to Gitea | `false` |
 | Mirror Starred | Mirror starred repositories | `false` |
 | Mirror Organizations | Mirror organization repositories | `false` |
 | Only Mirror Orgs | Only mirror organization repositories | `false` |
