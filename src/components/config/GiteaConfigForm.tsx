@@ -14,9 +14,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { Checkbox } from "../ui/checkbox";
 import { giteaApi } from "@/lib/api";
 import type { GiteaConfig, GiteaOrgVisibility } from "@/types/config";
 import { toast } from "sonner";
+import { Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 interface GiteaConfigFormProps {
   config: GiteaConfig;
@@ -31,10 +34,27 @@ export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving }:
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
+    const checked = type === "checkbox" ? (e.target as HTMLInputElement).checked : undefined;
+
+    // Special handling for preserveOrgStructure changes
+    if (
+      name === "preserveOrgStructure" &&
+      config.preserveOrgStructure !== checked
+    ) {
+      toast.info(
+        "Changing this setting may affect how repositories are accessed in Gitea. " +
+          "Existing mirrored repositories will still be accessible during sync operations.",
+        {
+          duration: 6000,
+          position: "top-center",
+        }
+      );
+    }
+
     const newConfig = {
       ...config,
-      [name]: value,
+      [name]: type === "checkbox" ? checked : value,
     };
     setConfig(newConfig);
 
@@ -153,7 +173,7 @@ export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving }:
             htmlFor="organization"
             className="block text-sm font-medium mb-1.5"
           >
-            Default Organization (Optional)
+            Destination organisation (optional)
           </label>
           <input
             id="organization"
@@ -165,8 +185,49 @@ export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving }:
             placeholder="Organization name"
           />
           <p className="text-xs text-muted-foreground mt-1">
-            If specified, repositories will be mirrored to this organization.
+            Repos are created here if no per-repo org is set.
           </p>
+        </div>
+
+        <div className="flex items-center">
+          <Checkbox
+            id="preserve-org-structure"
+            name="preserveOrgStructure"
+            checked={config.preserveOrgStructure}
+            onCheckedChange={(checked) =>
+              handleChange({
+                target: {
+                  name: "preserveOrgStructure",
+                  type: "checkbox",
+                  checked: Boolean(checked),
+                  value: "",
+                },
+              } as React.ChangeEvent<HTMLInputElement>)
+            }
+          />
+          <label
+            htmlFor="preserve-org-structure"
+            className="ml-2 text-sm select-none flex items-center"
+          >
+            Mirror GitHub org / team hierarchy
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  className="ml-1 cursor-pointer align-middle text-muted-foreground"
+                  role="button"
+                  tabIndex={0}
+                >
+                  <Info size={16} />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="max-w-xs text-xs">
+                Creates nested orgs or prefixes in Gitea so the layout matches GitHub.
+                When enabled, organization repositories will be mirrored to
+                the same organization structure in Gitea. When disabled, all
+                repositories will be mirrored under your Gitea username.
+              </TooltipContent>
+            </Tooltip>
+          </label>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -222,7 +283,7 @@ export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving }:
               placeholder="github"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Organization for starred repositories (default: github)
+              Leave blank to use 'github'.
             </p>
           </div>
         </div>

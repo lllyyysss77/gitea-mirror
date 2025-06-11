@@ -30,21 +30,6 @@ export function GitHubConfigForm({ config, setConfig, onAutoSave, isAutoSaving }
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
 
-    // Special handling for preserveOrgStructure changes
-    if (
-      name === "preserveOrgStructure" &&
-      config.preserveOrgStructure !== checked
-    ) {
-      toast.info(
-        "Changing this setting may affect how repositories are accessed in Gitea. " +
-          "Existing mirrored repositories will still be accessible during sync operations.",
-        {
-          duration: 6000,
-          position: "top-center",
-        }
-      );
-    }
-
     const newConfig = {
       ...config,
       [name]: type === "checkbox" ? checked : value,
@@ -140,32 +125,10 @@ export function GitHubConfigForm({ config, setConfig, onAutoSave, isAutoSaving }
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-3">
-            <div className="flex items-center">
-              <Checkbox
-                id="skip-forks"
-                name="skipForks"
-                checked={config.skipForks}
-                onCheckedChange={(checked) =>
-                  handleChange({
-                    target: {
-                      name: "skipForks",
-                      type: "checkbox",
-                      checked: Boolean(checked),
-                      value: "",
-                    },
-                  } as React.ChangeEvent<HTMLInputElement>)
-                }
-              />
-              <label
-                htmlFor="skip-forks"
-                className="ml-2 block text-sm select-none"
-              >
-                Skip Forks
-              </label>
-            </div>
+        <div className="space-y-4">
+          <h4 className="text-sm font-medium text-foreground">Repository Access</h4>
 
+          <div className="space-y-3">
             <div className="flex items-center">
               <Checkbox
                 id="private-repositories"
@@ -186,7 +149,7 @@ export function GitHubConfigForm({ config, setConfig, onAutoSave, isAutoSaving }
                 htmlFor="private-repositories"
                 className="ml-2 block text-sm select-none"
               >
-                Mirror Private Repos
+                Include private repos
               </label>
             </div>
 
@@ -210,121 +173,7 @@ export function GitHubConfigForm({ config, setConfig, onAutoSave, isAutoSaving }
                 htmlFor="mirror-starred"
                 className="ml-2 block text-sm select-none"
               >
-                Mirror Starred Repos
-              </label>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center">
-              <Checkbox
-                id="mirror-issues"
-                name="mirrorIssues"
-                checked={config.mirrorIssues}
-                onCheckedChange={(checked) =>
-                  handleChange({
-                    target: {
-                      name: "mirrorIssues",
-                      type: "checkbox",
-                      checked: Boolean(checked),
-                      value: "",
-                    },
-                  } as React.ChangeEvent<HTMLInputElement>)
-                }
-              />
-              <label
-                htmlFor="mirror-issues"
-                className="ml-2 block text-sm select-none"
-              >
-                Mirror Issues
-              </label>
-            </div>
-
-            <div className="flex items-center">
-              <Checkbox
-                id="mirror-wiki"
-                name="mirrorWiki"
-                checked={config.mirrorWiki}
-                onCheckedChange={(checked) =>
-                  handleChange({
-                    target: {
-                      name: "mirrorWiki",
-                      type: "checkbox",
-                      checked: Boolean(checked),
-                      value: "",
-                    },
-                  } as React.ChangeEvent<HTMLInputElement>)
-                }
-              />
-              <label
-                htmlFor="mirror-wiki"
-                className="ml-2 block text-sm select-none"
-              >
-                Mirror Wiki
-              </label>
-            </div>
-
-            <div className="flex items-center">
-              <Checkbox
-                id="preserve-org-structure"
-                name="preserveOrgStructure"
-                checked={config.preserveOrgStructure}
-                onCheckedChange={(checked) =>
-                  handleChange({
-                    target: {
-                      name: "preserveOrgStructure",
-                      type: "checkbox",
-                      checked: Boolean(checked),
-                      value: "",
-                    },
-                  } as React.ChangeEvent<HTMLInputElement>)
-                }
-              />
-              <label
-                htmlFor="preserve-org-structure"
-                className="ml-2 text-sm select-none flex items-center"
-              >
-                Preserve Org Structure
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span
-                      className="ml-1 cursor-pointer align-middle text-muted-foreground"
-                      role="button"
-                      tabIndex={0}
-                    >
-                      <Info size={16} />
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="max-w-xs text-xs">
-                    When enabled, organization repositories will be mirrored to
-                    the same organization structure in Gitea. When disabled, all
-                    repositories will be mirrored under your Gitea username.
-                  </TooltipContent>
-                </Tooltip>
-              </label>
-            </div>
-
-            <div className="flex items-center">
-              <Checkbox
-                id="skip-starred-issues"
-                name="skipStarredIssues"
-                checked={config.skipStarredIssues}
-                onCheckedChange={(checked) =>
-                  handleChange({
-                    target: {
-                      name: "skipStarredIssues",
-                      type: "checkbox",
-                      checked: Boolean(checked),
-                      value: "",
-                    },
-                  } as React.ChangeEvent<HTMLInputElement>)
-                }
-              />
-              <label
-                htmlFor="skip-starred-issues"
-                className="ml-2 block text-sm select-none"
-              >
-                Skip Issues for Starred Repos
+                Mirror starred repos
               </label>
             </div>
           </div>

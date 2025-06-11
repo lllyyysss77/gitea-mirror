@@ -9,6 +9,7 @@ export interface GiteaConfig {
   organization: string;
   visibility: GiteaOrgVisibility;
   starredReposOrg: string;
+  preserveOrgStructure: boolean;
 }
 
 export interface ScheduleConfig {
@@ -28,12 +29,24 @@ export interface DatabaseCleanupConfig {
 export interface GitHubConfig {
   username: string;
   token: string;
-  skipForks: boolean;
   privateRepositories: boolean;
-  mirrorIssues: boolean;
-  mirrorWiki: boolean;
   mirrorStarred: boolean;
-  preserveOrgStructure: boolean;
+}
+
+export interface MirrorOptions {
+  mirrorReleases: boolean;
+  mirrorMetadata: boolean;
+  metadataComponents: {
+    issues: boolean;
+    pullRequests: boolean;
+    labels: boolean;
+    milestones: boolean;
+    wiki: boolean;
+  };
+}
+
+export interface AdvancedOptions {
+  skipForks: boolean;
   skipStarredIssues: boolean;
 }
 
@@ -43,6 +56,8 @@ export interface SaveConfigApiRequest {
   giteaConfig: GiteaConfig;
   scheduleConfig: ScheduleConfig;
   cleanupConfig: DatabaseCleanupConfig;
+  mirrorOptions?: MirrorOptions;
+  advancedOptions?: AdvancedOptions;
 }
 
 export interface SaveConfigApiResponse {
@@ -65,6 +80,8 @@ export interface ConfigApiResponse {
   giteaConfig: GiteaConfig;
   scheduleConfig: ScheduleConfig;
   cleanupConfig: DatabaseCleanupConfig;
+  mirrorOptions?: MirrorOptions;
+  advancedOptions?: AdvancedOptions;
   include: string[];
   exclude: string[];
   createdAt: Date;

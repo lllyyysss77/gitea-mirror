@@ -3,6 +3,9 @@ import { GitHubConfigForm } from './GitHubConfigForm';
 import { GiteaConfigForm } from './GiteaConfigForm';
 import { ScheduleConfigForm } from './ScheduleConfigForm';
 import { DatabaseCleanupConfigForm } from './DatabaseCleanupConfigForm';
+import { MirrorOptionsForm } from './MirrorOptionsForm';
+import { AdvancedOptionsForm } from './AdvancedOptionsForm';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import type {
   ConfigApiResponse,
   GiteaConfig,
@@ -11,6 +14,8 @@ import type {
   SaveConfigApiResponse,
   ScheduleConfig,
   DatabaseCleanupConfig,
+  MirrorOptions,
+  AdvancedOptions,
 } from '@/types/config';
 import { Button } from '../ui/button';
 import { useAuth } from '@/hooks/useAuth';
@@ -25,6 +30,8 @@ type ConfigState = {
   giteaConfig: GiteaConfig;
   scheduleConfig: ScheduleConfig;
   cleanupConfig: DatabaseCleanupConfig;
+  mirrorOptions: MirrorOptions;
+  advancedOptions: AdvancedOptions;
 };
 
 export function ConfigTabs() {
@@ -32,13 +39,8 @@ export function ConfigTabs() {
     githubConfig: {
       username: '',
       token: '',
-      skipForks: false,
       privateRepositories: false,
-      mirrorIssues: false,
-      mirrorWiki: false,
       mirrorStarred: false,
-      preserveOrgStructure: false,
-      skipStarredIssues: false,
     },
     giteaConfig: {
       url: '',
@@ -47,6 +49,7 @@ export function ConfigTabs() {
       organization: 'github-mirrors',
       visibility: 'public',
       starredReposOrg: 'github',
+      preserveOrgStructure: false,
     },
     scheduleConfig: {
       enabled: false,
@@ -55,6 +58,21 @@ export function ConfigTabs() {
     cleanupConfig: {
       enabled: false,
       retentionDays: 604800, // 7 days in seconds
+    },
+    mirrorOptions: {
+      mirrorReleases: false,
+      mirrorMetadata: false,
+      metadataComponents: {
+        issues: false,
+        pullRequests: false,
+        labels: false,
+        milestones: false,
+        wiki: false,
+      },
+    },
+    advancedOptions: {
+      skipForks: false,
+      skipStarredIssues: false,
     },
   });
   const { user } = useAuth();
@@ -65,10 +83,14 @@ export function ConfigTabs() {
   const [isAutoSavingCleanup, setIsAutoSavingCleanup] = useState<boolean>(false);
   const [isAutoSavingGitHub, setIsAutoSavingGitHub] = useState<boolean>(false);
   const [isAutoSavingGitea, setIsAutoSavingGitea] = useState<boolean>(false);
+  const [isAutoSavingMirrorOptions, setIsAutoSavingMirrorOptions] = useState<boolean>(false);
+  const [isAutoSavingAdvancedOptions, setIsAutoSavingAdvancedOptions] = useState<boolean>(false);
   const autoSaveScheduleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const autoSaveCleanupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const autoSaveGitHubTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const autoSaveGiteaTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveMirrorOptionsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveAdvancedOptionsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const isConfigFormValid = (): boolean => {
     const { githubConfig, giteaConfig } = config;
@@ -133,6 +155,8 @@ export function ConfigTabs() {
         giteaConfig: config.giteaConfig,
         scheduleConfig: scheduleConfig,
         cleanupConfig: config.cleanupConfig,
+        mirrorOptions: config.mirrorOptions,
+        advancedOptions: config.advancedOptions,
       };
 
       try {
@@ -197,6 +221,8 @@ export function ConfigTabs() {
         giteaConfig: config.giteaConfig,
         scheduleConfig: config.scheduleConfig,
         cleanupConfig: cleanupConfig,
+        mirrorOptions: config.mirrorOptions,
+        advancedOptions: config.advancedOptions,
       };
 
       try {
@@ -260,6 +286,8 @@ export function ConfigTabs() {
         giteaConfig: config.giteaConfig,
         scheduleConfig: config.scheduleConfig,
         cleanupConfig: config.cleanupConfig,
+        mirrorOptions: config.mirrorOptions,
+        advancedOptions: config.advancedOptions,
       };
 
       try {
@@ -307,6 +335,8 @@ export function ConfigTabs() {
         giteaConfig: giteaConfig,
         scheduleConfig: config.scheduleConfig,
         cleanupConfig: config.cleanupConfig,
+        mirrorOptions: config.mirrorOptions,
+        advancedOptions: config.advancedOptions,
       };
 
       try {
@@ -335,6 +365,104 @@ export function ConfigTabs() {
     }, 500); // 500ms debounce
   }, [user?.id, config.githubConfig, config.scheduleConfig, config.cleanupConfig]);
 
+  // Auto-save function specifically for mirror options changes
+  const autoSaveMirrorOptions = useCallback(async (mirrorOptions: MirrorOptions) => {
+    if (!user?.id) return;
+
+    // Clear any existing timeout
+    if (autoSaveMirrorOptionsTimeoutRef.current) {
+      clearTimeout(autoSaveMirrorOptionsTimeoutRef.current);
+    }
+
+    // Debounce the auto-save to prevent excessive API calls
+    autoSaveMirrorOptionsTimeoutRef.current = setTimeout(async () => {
+      setIsAutoSavingMirrorOptions(true);
+
+      const reqPayload: SaveConfigApiRequest = {
+        userId: user.id!,
+        githubConfig: config.githubConfig,
+        giteaConfig: config.giteaConfig,
+        scheduleConfig: config.scheduleConfig,
+        cleanupConfig: config.cleanupConfig,
+        mirrorOptions: mirrorOptions,
+        advancedOptions: config.advancedOptions,
+      };
+
+      try {
+        const response = await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(reqPayload),
+        });
+        const result: SaveConfigApiResponse = await response.json();
+
+        if (result.success) {
+          // Silent success - no toast for auto-save
+          // Invalidate config cache so other components get fresh data
+          invalidateConfigCache();
+        } else {
+          showErrorToast(
+            `Auto-save failed: ${result.message || 'Unknown error'}`,
+            toast
+          );
+        }
+      } catch (error) {
+        showErrorToast(error, toast);
+      } finally {
+        setIsAutoSavingMirrorOptions(false);
+      }
+    }, 500); // 500ms debounce
+  }, [user?.id, config.githubConfig, config.giteaConfig, config.scheduleConfig, config.cleanupConfig, config.advancedOptions]);
+
+  // Auto-save function specifically for advanced options changes
+  const autoSaveAdvancedOptions = useCallback(async (advancedOptions: AdvancedOptions) => {
+    if (!user?.id) return;
+
+    // Clear any existing timeout
+    if (autoSaveAdvancedOptionsTimeoutRef.current) {
+      clearTimeout(autoSaveAdvancedOptionsTimeoutRef.current);
+    }
+
+    // Debounce the auto-save to prevent excessive API calls
+    autoSaveAdvancedOptionsTimeoutRef.current = setTimeout(async () => {
+      setIsAutoSavingAdvancedOptions(true);
+
+      const reqPayload: SaveConfigApiRequest = {
+        userId: user.id!,
+        githubConfig: config.githubConfig,
+        giteaConfig: config.giteaConfig,
+        scheduleConfig: config.scheduleConfig,
+        cleanupConfig: config.cleanupConfig,
+        mirrorOptions: config.mirrorOptions,
+        advancedOptions: advancedOptions,
+      };
+
+      try {
+        const response = await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(reqPayload),
+        });
+        const result: SaveConfigApiResponse = await response.json();
+
+        if (result.success) {
+          // Silent success - no toast for auto-save
+          // Invalidate config cache so other components get fresh data
+          invalidateConfigCache();
+        } else {
+          showErrorToast(
+            `Auto-save failed: ${result.message || 'Unknown error'}`,
+            toast
+          );
+        }
+      } catch (error) {
+        showErrorToast(error, toast);
+      } finally {
+        setIsAutoSavingAdvancedOptions(false);
+      }
+    }, 500); // 500ms debounce
+  }, [user?.id, config.githubConfig, config.giteaConfig, config.scheduleConfig, config.cleanupConfig, config.mirrorOptions]);
+
   // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
@@ -349,6 +477,12 @@ export function ConfigTabs() {
       }
       if (autoSaveGiteaTimeoutRef.current) {
         clearTimeout(autoSaveGiteaTimeoutRef.current);
+      }
+      if (autoSaveMirrorOptionsTimeoutRef.current) {
+        clearTimeout(autoSaveMirrorOptionsTimeoutRef.current);
+      }
+      if (autoSaveAdvancedOptionsTimeoutRef.current) {
+        clearTimeout(autoSaveAdvancedOptionsTimeoutRef.current);
       }
     };
   }, []);
@@ -373,6 +507,10 @@ export function ConfigTabs() {
               response.scheduleConfig || config.scheduleConfig,
             cleanupConfig:
               response.cleanupConfig || config.cleanupConfig,
+            mirrorOptions:
+              response.mirrorOptions || config.mirrorOptions,
+            advancedOptions:
+              response.advancedOptions || config.advancedOptions,
           });
 
         }
@@ -496,72 +634,118 @@ export function ConfigTabs() {
       </div>
 
       {/* Content section */}
-      <div className="flex flex-col gap-y-4">
-        <div className="flex gap-x-4">
-          <GitHubConfigForm
-            config={config.githubConfig}
-            setConfig={update =>
-              setConfig(prev => ({
-                ...prev,
-                githubConfig:
-                  typeof update === 'function'
-                    ? update(prev.githubConfig)
-                    : update,
-              }))
-            }
-            onAutoSave={autoSaveGitHubConfig}
-            isAutoSaving={isAutoSavingGitHub}
-          />
-          <GiteaConfigForm
-            config={config.giteaConfig}
-            setConfig={update =>
-              setConfig(prev => ({
-                ...prev,
-                giteaConfig:
-                  typeof update === 'function'
-                    ? update(prev.giteaConfig)
-                    : update,
-              }))
-            }
-            onAutoSave={autoSaveGiteaConfig}
-            isAutoSaving={isAutoSavingGitea}
-          />
-        </div>
-        <div className="flex gap-x-4">
-          <div className="w-1/2">
-            <ScheduleConfigForm
-              config={config.scheduleConfig}
+      <Tabs defaultValue="connections" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="connections">Connections</TabsTrigger>
+          <TabsTrigger value="mirror">Mirror Options</TabsTrigger>
+          <TabsTrigger value="schedule">Schedule & Cleanup</TabsTrigger>
+          <TabsTrigger value="advanced">Advanced</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="connections" className="mt-6">
+          <div className="flex gap-x-4">
+            <GitHubConfigForm
+              config={config.githubConfig}
               setConfig={update =>
                 setConfig(prev => ({
                   ...prev,
-                  scheduleConfig:
+                  githubConfig:
                     typeof update === 'function'
-                      ? update(prev.scheduleConfig)
+                      ? update(prev.githubConfig)
                       : update,
                 }))
               }
-              onAutoSave={autoSaveScheduleConfig}
-              isAutoSaving={isAutoSavingSchedule}
+              onAutoSave={autoSaveGitHubConfig}
+              isAutoSaving={isAutoSavingGitHub}
             />
-          </div>
-          <div className="w-1/2">
-            <DatabaseCleanupConfigForm
-              config={config.cleanupConfig}
+            <GiteaConfigForm
+              config={config.giteaConfig}
               setConfig={update =>
                 setConfig(prev => ({
                   ...prev,
-                  cleanupConfig:
+                  giteaConfig:
                     typeof update === 'function'
-                      ? update(prev.cleanupConfig)
+                      ? update(prev.giteaConfig)
                       : update,
                 }))
               }
-              onAutoSave={autoSaveCleanupConfig}
-              isAutoSaving={isAutoSavingCleanup}
+              onAutoSave={autoSaveGiteaConfig}
+              isAutoSaving={isAutoSavingGitea}
             />
           </div>
-        </div>
-      </div>
+        </TabsContent>
+
+        <TabsContent value="mirror" className="mt-6">
+          <MirrorOptionsForm
+            config={config.mirrorOptions}
+            setConfig={update =>
+              setConfig(prev => ({
+                ...prev,
+                mirrorOptions:
+                  typeof update === 'function'
+                    ? update(prev.mirrorOptions)
+                    : update,
+              }))
+            }
+            onAutoSave={autoSaveMirrorOptions}
+            isAutoSaving={isAutoSavingMirrorOptions}
+          />
+        </TabsContent>
+
+        <TabsContent value="schedule" className="mt-6">
+          <div className="flex gap-x-4">
+            <div className="w-1/2">
+              <ScheduleConfigForm
+                config={config.scheduleConfig}
+                setConfig={update =>
+                  setConfig(prev => ({
+                    ...prev,
+                    scheduleConfig:
+                      typeof update === 'function'
+                        ? update(prev.scheduleConfig)
+                        : update,
+                  }))
+                }
+                onAutoSave={autoSaveScheduleConfig}
+                isAutoSaving={isAutoSavingSchedule}
+              />
+            </div>
+            <div className="w-1/2">
+              <DatabaseCleanupConfigForm
+                config={config.cleanupConfig}
+                setConfig={update =>
+                  setConfig(prev => ({
+                    ...prev,
+                    cleanupConfig:
+                      typeof update === 'function'
+                        ? update(prev.cleanupConfig)
+                        : update,
+                  }))
+                }
+                onAutoSave={autoSaveCleanupConfig}
+                isAutoSaving={isAutoSavingCleanup}
+              />
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="advanced" className="mt-6">
+          <AdvancedOptionsForm
+            config={config.advancedOptions}
+            setConfig={update =>
+              setConfig(prev => ({
+                ...prev,
+                advancedOptions:
+                  typeof update === 'function'
+                    ? update(prev.advancedOptions)
+                    : update,
+              }))
+            }
+            onAutoSave={autoSaveAdvancedOptions}
+            isAutoSaving={isAutoSavingAdvancedOptions}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
