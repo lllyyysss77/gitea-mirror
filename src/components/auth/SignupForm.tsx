@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { GitMerge } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import { showErrorToast } from '@/lib/utils';
 
@@ -66,7 +65,16 @@ export function SignupForm() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <GitMerge className="h-10 w-10" />
+            <img
+              src="/logo-light.svg"
+              alt="Gitea Mirror Logo"
+              className="h-10 w-10 dark:hidden"
+            />
+            <img
+              src="/logo-dark.svg"
+              alt="Gitea Mirror Logo"
+              className="h-10 w-10 hidden dark:block"
+            />
           </div>
           <CardTitle className="text-2xl">Create Admin Account</CardTitle>
           <CardDescription>

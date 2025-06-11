@@ -64,7 +64,16 @@ export function Header({ currentPage, onNavigate }: HeaderProps) {
           }}
           className="flex items-center gap-2 py-1 hover:opacity-80 transition-opacity"
         >
-          <img src="/logo.svg" alt="Gitea Mirror" className="h-6 w-6" />
+          <img
+            src="/logo-light.svg"
+            alt="Gitea Mirror Logo"
+            className="h-6 w-6 dark:hidden"
+          />
+          <img
+            src="/logo-dark.svg"
+            alt="Gitea Mirror Logo"
+            className="h-6 w-6 hidden dark:block"
+          />
           <span className="text-xl font-bold">Gitea Mirror</span>
         </button>
 
