@@ -6,7 +6,7 @@ import {
   repoStatusEnum,
   type RepositoryApiResponse,
 } from "@/types/Repository";
-import { jsonResponse } from "@/lib/utils";
+import { jsonResponse, createSecureErrorResponse } from "@/lib/utils";
 
 export const GET: APIRoute = async ({ request }) => {
   const url = new URL(request.url);
@@ -82,15 +82,6 @@ export const GET: APIRoute = async ({ request }) => {
       status: 200,
     });
   } catch (error) {
-    console.error("Error fetching repositories:", error);
-
-    return jsonResponse({
-      data: {
-        success: false,
-        error: error instanceof Error ? error.message : "Something went wrong",
-        message: "An error occurred while fetching repositories.",
-      },
-      status: 500,
-    });
+    return createSecureErrorResponse(error, "repositories fetch", 500);
   }
 };

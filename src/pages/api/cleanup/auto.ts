@@ -5,6 +5,7 @@
 
 import type { APIRoute } from 'astro';
 import { runAutomaticCleanup } from '@/lib/cleanup-service';
+import { createSecureErrorResponse } from '@/lib/utils';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -38,21 +39,7 @@ export const POST: APIRoute = async ({ request }) => {
       }
     );
   } catch (error) {
-    console.error('Error in manual cleanup trigger:', error);
-    
-    return new Response(
-      JSON.stringify({
-        success: false,
-        message: 'Failed to run automatic cleanup',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    return createSecureErrorResponse(error, "cleanup trigger", 500);
   }
 };
 

@@ -8,7 +8,7 @@ import {
 } from "@/types/organizations";
 import type { Organization } from "@/lib/db/schema";
 import { repoStatusEnum } from "@/types/Repository";
-import { jsonResponse } from "@/lib/utils";
+import { jsonResponse, createSecureErrorResponse } from "@/lib/utils";
 
 export const GET: APIRoute = async ({ request }) => {
   const url = new URL(request.url);
@@ -137,14 +137,6 @@ export const GET: APIRoute = async ({ request }) => {
 
     return jsonResponse({ data: resPayload, status: 200 });
   } catch (error) {
-    console.error("Error fetching organizations:", error);
-
-    return jsonResponse({
-      data: {
-        success: false,
-        error: error instanceof Error ? error.message : "Something went wrong",
-      },
-      status: 500,
-    });
+    return createSecureErrorResponse(error, "organizations fetch", 500);
   }
 };

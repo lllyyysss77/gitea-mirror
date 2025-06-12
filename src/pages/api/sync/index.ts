@@ -9,7 +9,7 @@ import {
   getGithubRepositories,
   getGithubStarredRepositories,
 } from "@/lib/github";
-import { jsonResponse } from "@/lib/utils";
+import { jsonResponse, createSecureErrorResponse } from "@/lib/utils";
 
 export const POST: APIRoute = async ({ request }) => {
   const url = new URL(request.url);
@@ -166,12 +166,6 @@ export const POST: APIRoute = async ({ request }) => {
       },
     });
   } catch (error) {
-    console.error("Error syncing GitHub data for user:", userId, error);
-    return jsonResponse({
-      data: {
-        error: error instanceof Error ? error.message : "Something went wrong",
-      },
-      status: 500,
-    });
+    return createSecureErrorResponse(error, "GitHub data sync", 500);
   }
 };

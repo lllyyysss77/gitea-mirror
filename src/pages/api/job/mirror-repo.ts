@@ -9,6 +9,7 @@ import {
 } from "@/lib/gitea";
 import { createGitHubClient } from "@/lib/github";
 import { processWithResilience } from "@/lib/utils/concurrency";
+import { createSecureErrorResponse } from "@/lib/utils";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -198,18 +199,6 @@ export const POST: APIRoute = async ({ request }) => {
 
     console.error("=====================================");
 
-    return new Response(
-      JSON.stringify({
-        error:
-          error instanceof Error ? error.message : "An unknown error occurred",
-        errorType: error?.constructor?.name || "Unknown",
-        timestamp: new Date().toISOString(),
-        troubleshooting:
-          error instanceof SyntaxError && error.message.includes("JSON")
-            ? "JSON parsing error detected. Check Gitea server status and logs. Ensure Gitea is returning valid JSON responses."
-            : "Check application logs for more details",
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return createSecureErrorResponse(error, "mirror-repo API", 500);
   }
 };

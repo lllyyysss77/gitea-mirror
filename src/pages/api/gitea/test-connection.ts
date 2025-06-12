@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { httpGet, HttpError } from '@/lib/http-client';
+import { createSecureErrorResponse } from '@/lib/utils';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -115,17 +116,6 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Generic error response
-    return new Response(
-      JSON.stringify({
-        success: false,
-        message: `Gitea connection test failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      }),
-      {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    return createSecureErrorResponse(error, "Gitea connection test", 500);
   }
 };

@@ -4,7 +4,7 @@ import { configs, db, repositories } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 import { and, eq } from "drizzle-orm";
 import { type Repository } from "@/lib/db/schema";
-import { jsonResponse } from "@/lib/utils";
+import { jsonResponse, createSecureErrorResponse } from "@/lib/utils";
 import type {
   AddRepositoriesApiRequest,
   AddRepositoriesApiResponse,
@@ -126,12 +126,6 @@ export const POST: APIRoute = async ({ request }) => {
 
     return jsonResponse({ data: resPayload, status: 200 });
   } catch (error) {
-    console.error("Error inserting repository:", error);
-    return jsonResponse({
-      data: {
-        error: error instanceof Error ? error.message : "Something went wrong",
-      },
-      status: 500,
-    });
+    return createSecureErrorResponse(error, "repository sync", 500);
   }
 };

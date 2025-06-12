@@ -3,6 +3,7 @@ import { db, configs, users } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 import { eq } from "drizzle-orm";
 import { calculateCleanupInterval } from "@/lib/cleanup-service";
+import { createSecureErrorResponse } from "@/lib/utils";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -189,19 +190,7 @@ export const POST: APIRoute = async ({ request }) => {
       }
     );
   } catch (error) {
-    console.error("Error saving configuration:", error);
-    return new Response(
-      JSON.stringify({
-        success: false,
-        message:
-          "Error saving configuration: " +
-          (error instanceof Error ? error.message : "Unknown error"),
-      }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    return createSecureErrorResponse(error, "config save", 500);
   }
 };
 
@@ -277,16 +266,6 @@ export const GET: APIRoute = async ({ request }) => {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Error fetching configuration:", error);
-
-    return new Response(
-      JSON.stringify({
-        error: error instanceof Error ? error.message : "Something went wrong",
-      }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    return createSecureErrorResponse(error, "config fetch", 500);
   }
 };

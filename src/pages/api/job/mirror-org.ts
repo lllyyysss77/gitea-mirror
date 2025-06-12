@@ -6,6 +6,7 @@ import { createGitHubClient } from "@/lib/github";
 import { mirrorGitHubOrgToGitea } from "@/lib/gitea";
 import { repoStatusEnum } from "@/types/Repository";
 import { type MembershipRole } from "@/types/organizations";
+import { createSecureErrorResponse } from "@/lib/utils";
 import { processWithResilience } from "@/lib/utils/concurrency";
 import { v4 as uuidv4 } from "uuid";
 
@@ -149,13 +150,6 @@ export const POST: APIRoute = async ({ request }) => {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Error in mirroring organization:", error);
-    return new Response(
-      JSON.stringify({
-        error:
-          error instanceof Error ? error.message : "An unknown error occurred.",
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return createSecureErrorResponse(error, "mirror organization", 500);
   }
 };

@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 import { Octokit } from "@octokit/rest";
 import { configs, db, organizations, repositories } from "@/lib/db";
 import { and, eq } from "drizzle-orm";
-import { jsonResponse } from "@/lib/utils";
+import { jsonResponse, createSecureErrorResponse } from "@/lib/utils";
 import type {
   AddOrganizationApiRequest,
   AddOrganizationApiResponse,
@@ -125,12 +125,6 @@ export const POST: APIRoute = async ({ request }) => {
 
     return jsonResponse({ data: resPayload, status: 200 });
   } catch (error) {
-    console.error("Error inserting organization/repositories:", error);
-    return jsonResponse({
-      data: {
-        error: error instanceof Error ? error.message : "Something went wrong",
-      },
-      status: 500,
-    });
+    return createSecureErrorResponse(error, "organization sync", 500);
   }
 };

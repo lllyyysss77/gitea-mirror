@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { db, mirrorJobs, configs } from "@/lib/db";
 import { eq, sql } from "drizzle-orm";
+import { createSecureErrorResponse } from "@/lib/utils";
 import type { MirrorJob } from "@/lib/db/schema";
 import { repoStatusEnum } from "@/types/Repository";
 
@@ -45,14 +46,6 @@ export const GET: APIRoute = async ({ url }) => {
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error fetching mirror job activities:", error);
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error:
-          error instanceof Error ? error.message : "An unknown error occurred.",
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return createSecureErrorResponse(error, "activities fetch", 500);
   }
 };

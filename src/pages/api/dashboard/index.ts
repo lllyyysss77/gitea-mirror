@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { db, repositories, organizations, mirrorJobs, configs } from "@/lib/db";
 import { eq, count, and, sql, or } from "drizzle-orm";
-import { jsonResponse } from "@/lib/utils";
+import { jsonResponse, createSecureErrorResponse } from "@/lib/utils";
 import type { DashboardApiResponse } from "@/types/dashboard";
 import { repositoryVisibilityEnum, repoStatusEnum } from "@/types/Repository";
 import { membershipRoleEnum } from "@/types/organizations";
@@ -108,15 +108,6 @@ export const GET: APIRoute = async ({ request }) => {
 
     return jsonResponse({ data: successResponse });
   } catch (error) {
-    console.error("Error loading dashboard for user:", userId, error);
-
-    return jsonResponse({
-      data: {
-        success: false,
-        error: error instanceof Error ? error.message : "Internal server error",
-        message: "Failed to fetch dashboard data",
-      },
-      status: 500,
-    });
+    return createSecureErrorResponse(error, "dashboard data fetch", 500);
   }
 };

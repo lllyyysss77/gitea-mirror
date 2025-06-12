@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { publishEvent } from "@/lib/events";
 import { v4 as uuidv4 } from "uuid";
+import { createSecureErrorResponse } from "@/lib/utils";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -44,13 +45,6 @@ export const POST: APIRoute = async ({ request }) => {
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error publishing test event:", error);
-    return new Response(
-      JSON.stringify({
-        error: "Failed to publish event",
-        details: error instanceof Error ? error.message : String(error),
-      }),
-      { status: 500 }
-    );
+    return createSecureErrorResponse(error, "test-event API", 500);
   }
 };

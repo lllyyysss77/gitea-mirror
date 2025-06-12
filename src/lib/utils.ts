@@ -216,3 +216,76 @@ export const jsonResponse = ({
     headers: { "Content-Type": "application/json" },
   });
 };
+
+/**
+ * Securely handles errors for API responses by sanitizing error messages
+ * and preventing sensitive information exposure while maintaining proper logging
+ */
+export function createSecureErrorResponse(
+  error: unknown,
+  context: string,
+  status: number = 500
+): Response {
+  // Log the full error details server-side for debugging
+  console.error(`Error in ${context}:`, error);
+
+  // Log additional error details if it's an Error object
+  if (error instanceof Error) {
+    console.error(`Error name: ${error.name}`);
+    console.error(`Error message: ${error.message}`);
+    if (error.stack) {
+      console.error(`Error stack: ${error.stack}`);
+    }
+  }
+
+  // Determine safe error message for client
+  let clientMessage = "An internal server error occurred";
+
+  // Only expose specific safe error types to clients
+  if (error instanceof Error) {
+    // Safe error patterns that can be exposed (add more as needed)
+    const safeErrorPatterns = [
+      /missing required field/i,
+      /invalid.*format/i,
+      /not found/i,
+      /unauthorized/i,
+      /forbidden/i,
+      /bad request/i,
+      /validation.*failed/i,
+      /user id is required/i,
+      /no repositories found/i,
+      /config missing/i,
+      /invalid userid/i,
+      /no users found/i,
+      /missing userid/i,
+      /github token is required/i,
+      /invalid github token/i,
+      /invalid gitea token/i,
+      /username and password are required/i,
+      /invalid username or password/i,
+      /organization already exists/i,
+      /no configuration found/i,
+      /github token is missing/i,
+      /use post method/i,
+    ];
+
+    const isSafeError = safeErrorPatterns.some(pattern =>
+      pattern.test(error.message)
+    );
+
+    if (isSafeError) {
+      clientMessage = error.message;
+    }
+  }
+
+  return new Response(
+    JSON.stringify({
+      error: clientMessage,
+      timestamp: new Date().toISOString(),
+    }),
+    {
+      status,
+      headers: { "Content-Type": "application/json" },
+    }
+  );
+}

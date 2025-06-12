@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { db, mirrorJobs, events } from "@/lib/db";
 import { eq, count } from "drizzle-orm";
+import { createSecureErrorResponse } from "@/lib/utils";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -87,29 +88,6 @@ export const POST: APIRoute = async ({ request }) => {
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error cleaning up activities:", error);
-
-    // Provide more specific error messages
-    let errorMessage = "An unknown error occurred.";
-    if (error instanceof Error) {
-      errorMessage = error.message;
-
-      // Check for common database errors
-      if (error.message.includes("FOREIGN KEY constraint failed")) {
-        errorMessage = "Cannot delete activities due to database constraints. Some jobs may still be referenced by other records.";
-      } else if (error.message.includes("database is locked")) {
-        errorMessage = "Database is currently locked. Please try again in a moment.";
-      } else if (error.message.includes("no such table")) {
-        errorMessage = "Database tables are missing. Please check your database setup.";
-      }
-    }
-
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: errorMessage,
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return createSecureErrorResponse(error, "activities cleanup", 500);
   }
 };

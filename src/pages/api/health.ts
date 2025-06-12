@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { jsonResponse } from "@/lib/utils";
+import { jsonResponse, createSecureErrorResponse } from "@/lib/utils";
 import { db } from "@/lib/db";
 import { ENV } from "@/lib/config";
 import { getRecoveryStatus, hasJobsNeedingRecovery } from "@/lib/recovery";
@@ -69,19 +69,7 @@ export const GET: APIRoute = async () => {
       status: 200,
     });
   } catch (error) {
-    console.error("Health check failed:", error);
-
-    return jsonResponse({
-      data: {
-        status: "error",
-        timestamp: new Date().toISOString(),
-        error: error instanceof Error ? error.message : "Unknown error",
-        version: process.env.npm_package_version || "unknown",
-        latestVersion: "unknown",
-        updateAvailable: false,
-      },
-      status: 503, // Service Unavailable
-    });
+    return createSecureErrorResponse(error, "health check", 503);
   }
 };
 

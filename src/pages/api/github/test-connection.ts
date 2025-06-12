@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { Octokit } from "@octokit/rest";
+import { createSecureErrorResponse } from "@/lib/utils";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -83,19 +84,6 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Generic error response
-    return new Response(
-      JSON.stringify({
-        success: false,
-        message: `GitHub connection test failed: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
-      }),
-      {
-        status: 500,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    return createSecureErrorResponse(error, "GitHub connection test", 500);
   }
 };

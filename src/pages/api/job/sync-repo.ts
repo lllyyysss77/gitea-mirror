@@ -7,6 +7,7 @@ import { syncGiteaRepo } from "@/lib/gitea";
 import type { SyncRepoResponse } from "@/types/sync";
 import { processWithResilience } from "@/lib/utils/concurrency";
 import { v4 as uuidv4 } from "uuid";
+import { createSecureErrorResponse } from "@/lib/utils";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -143,13 +144,6 @@ export const POST: APIRoute = async ({ request }) => {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Error in syncing repositories:", error);
-    return new Response(
-      JSON.stringify({
-        error:
-          error instanceof Error ? error.message : "An unknown error occurred",
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return createSecureErrorResponse(error, "repository sync", 500);
   }
 };

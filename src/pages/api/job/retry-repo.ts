@@ -12,6 +12,7 @@ import { repoStatusEnum, repositoryVisibilityEnum } from "@/types/Repository";
 import type { RetryRepoRequest, RetryRepoResponse } from "@/types/retry";
 import { processWithRetry } from "@/lib/utils/concurrency";
 import { createMirrorJob } from "@/lib/helpers";
+import { createSecureErrorResponse } from "@/lib/utils";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -199,12 +200,6 @@ export const POST: APIRoute = async ({ request }) => {
       headers: { "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("Error retrying repo:", err);
-    return new Response(
-      JSON.stringify({
-        error: err instanceof Error ? err.message : "An unknown error occurred",
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return createSecureErrorResponse(err, "repository retry", 500);
   }
 };
