@@ -1,8 +1,8 @@
 // example.test.ts
-import { describe, it, expect } from "vitest";
+import { describe, test, expect } from "bun:test";
 
 describe("Example Test", () => {
-  it("should pass", () => {
+  test("should pass", () => {
     expect(true).toBe(true);
   });
 });

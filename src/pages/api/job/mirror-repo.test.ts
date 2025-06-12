@@ -1,34 +1,68 @@
 import { describe, test, expect, mock, beforeEach, afterEach } from "bun:test";
 import type { MirrorRepoRequest } from "@/types/mirror";
+import { POST } from "./mirror-repo";
 
 // Mock the database module
 const mockDb = {
   select: mock(() => ({
-    from: mock(() => ({
-      where: mock(() => ({
-        limit: mock(() => Promise.resolve([{
-          id: "config-id",
-          userId: "user-id",
-          githubConfig: {
-            token: "github-token",
-            preserveOrgStructure: false,
-            mirrorIssues: false
+    from: mock((table: any) => ({
+      where: mock(() => {
+        // Return config for configs table
+        if (table === mockConfigs) {
+          return {
+            limit: mock(() => Promise.resolve([{
+              id: "config-id",
+              userId: "user-id",
+              githubConfig: {
+                token: "github-token",
+                preserveOrgStructure: false,
+                mirrorIssues: false
+              },
+              giteaConfig: {
+                url: "https://gitea.example.com",
+                token: "gitea-token",
+                username: "giteauser"
+              }
+            }]))
+          };
+        }
+        // Return repositories for repositories table
+        return Promise.resolve([
+          {
+            id: "repo-id-1",
+            name: "test-repo-1",
+            visibility: "public",
+            status: "pending",
+            organization: null,
+            lastMirrored: null,
+            errorMessage: null,
+            forkedFrom: null,
+            mirroredLocation: ""
           },
-          giteaConfig: {
-            url: "https://gitea.example.com",
-            token: "gitea-token",
-            username: "giteauser"
+          {
+            id: "repo-id-2",
+            name: "test-repo-2",
+            visibility: "public",
+            status: "pending",
+            organization: null,
+            lastMirrored: null,
+            errorMessage: null,
+            forkedFrom: null,
+            mirroredLocation: ""
           }
-        }]))
-      }))
+        ]);
+      })
     }))
   }))
 };
 
+const mockConfigs = {};
+const mockRepositories = {};
+
 mock.module("@/lib/db", () => ({
   db: mockDb,
-  configs: {},
-  repositories: {}
+  configs: mockConfigs,
+  repositories: mockRepositories
 }));
 
 // Mock the gitea module
@@ -98,12 +132,13 @@ describe("Repository Mirroring API", () => {
       })
     });
 
-    const response = await mockModule.POST({ request } as any);
+    const response = await POST({ request } as any);
 
     expect(response.status).toBe(400);
 
     const data = await response.json();
-    expect(data.error).toBe("Missing userId or repositoryIds.");
+    expect(data.success).toBe(false);
+    expect(data.message).toBe("userId and repositoryIds are required.");
   });
 
   test("returns 400 if repositoryIds is missing", async () => {
@@ -117,12 +152,13 @@ describe("Repository Mirroring API", () => {
       })
     });
 
-    const response = await mockModule.POST({ request } as any);
+    const response = await POST({ request } as any);
 
     expect(response.status).toBe(400);
 
     const data = await response.json();
-    expect(data.error).toBe("Missing userId or repositoryIds.");
+    expect(data.success).toBe(false);
+    expect(data.message).toBe("userId and repositoryIds are required.");
   });
 
   test("returns 200 and starts mirroring repositories", async () => {
@@ -137,13 +173,13 @@ describe("Repository Mirroring API", () => {
       })
     });
 
-    const response = await mockModule.POST({ request } as any);
+    const response = await POST({ request } as any);
 
     expect(response.status).toBe(200);
 
     const data = await response.json();
     expect(data.success).toBe(true);
-    expect(data.message).toBe("Repository mirroring started");
-    expect(data.batchId).toBe("test-batch-id");
+    expect(data.message).toBe("Mirror job started.");
+    expect(data.repositories).toBeDefined();
   });
 });

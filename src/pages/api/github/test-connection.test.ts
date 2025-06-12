@@ -111,7 +111,7 @@ describe("GitHub Test Connection API", () => {
         })
       };
     });
-    
+
     const request = new Request("http://localhost/api/github/test-connection", {
       method: "POST",
       headers: {
@@ -121,13 +121,15 @@ describe("GitHub Test Connection API", () => {
         token: "invalid-token"
       })
     });
-    
+
     const response = await POST({ request } as any);
-    
+
     expect(response.status).toBe(500);
-    
+
     const data = await response.json();
-    expect(data.success).toBe(false);
-    expect(data.message).toContain("Bad credentials");
+    // The createSecureErrorResponse function returns an error field, not success
+    // It sanitizes error messages for security, so we expect the generic message
+    expect(data.error).toBeDefined();
+    expect(data.error).toBe("An internal server error occurred");
   });
 });
