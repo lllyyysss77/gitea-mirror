@@ -5,7 +5,7 @@ import { ScheduleConfigForm } from './ScheduleConfigForm';
 import { DatabaseCleanupConfigForm } from './DatabaseCleanupConfigForm';
 import { MirrorOptionsForm } from './MirrorOptionsForm';
 import { AdvancedOptionsForm } from './AdvancedOptionsForm';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+// Removed Tabs import as we're switching to grid layout
 import type {
   ConfigApiResponse,
   GiteaConfig,
@@ -537,51 +537,66 @@ export function ConfigTabs() {
           </div>
           <div className="flex gap-x-4">
             <Skeleton className="h-10 w-36" />
-            <Skeleton className="h-10 w-36" />
           </div>
         </div>
 
-        {/* Content section */}
-        <div className="flex flex-col gap-y-4">
-          <div className="flex gap-x-4">
-            <div className="w-1/2 border rounded-lg p-4">
-              <div className="flex justify-between items-center mb-4">
-                <Skeleton className="h-6 w-40" />
-                <Skeleton className="h-9 w-32" />
-              </div>
-              <div className="space-y-4">
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-32 w-full" />
-              </div>
+        {/* Content section - Grid layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* GitHub & Gitea connections */}
+          <div className="border rounded-lg p-4">
+            <div className="flex justify-between items-center mb-4">
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-9 w-32" />
             </div>
-            <div className="w-1/2 border rounded-lg p-4">
-              <div className="flex justify-between items-center mb-4">
-                <Skeleton className="h-6 w-40" />
-                <Skeleton className="h-9 w-32" />
-              </div>
-              <div className="space-y-4">
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-20 w-full" />
-              </div>
+            <div className="space-y-4">
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-32 w-full" />
             </div>
           </div>
-          <div className="flex gap-x-4">
-            <div className="w-1/2 border rounded-lg p-4">
-              <div className="space-y-4">
-                <Skeleton className="h-8 w-48" />
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-8 w-32" />
-              </div>
+          <div className="border rounded-lg p-4">
+            <div className="flex justify-between items-center mb-4">
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-9 w-32" />
             </div>
-            <div className="w-1/2 border rounded-lg p-4">
-              <div className="space-y-4">
-                <Skeleton className="h-8 w-48" />
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-8 w-32" />
-              </div>
+            <div className="space-y-4">
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
+            </div>
+          </div>
+
+          {/* Schedule & Database Cleanup */}
+          <div className="border rounded-lg p-4">
+            <div className="space-y-4">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-8 w-32" />
+            </div>
+          </div>
+          <div className="border rounded-lg p-4">
+            <div className="space-y-4">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-8 w-32" />
+            </div>
+          </div>
+        </div>
+
+        {/* Mirror Options & Advanced - Full width sections */}
+        <div className="space-y-4">
+          <div className="border rounded-lg p-4">
+            <Skeleton className="h-8 w-48 mb-4" />
+            <div className="space-y-4">
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+          </div>
+          <div className="border rounded-lg p-4">
+            <Skeleton className="h-8 w-48 mb-4" />
+            <div className="space-y-4">
+              <Skeleton className="h-16 w-full" />
             </div>
           </div>
         </div>
@@ -633,49 +648,42 @@ export function ConfigTabs() {
         </div>
       </div>
 
-      {/* Content section */}
-      <Tabs defaultValue="connections" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="connections">Connections</TabsTrigger>
-          <TabsTrigger value="mirror">Mirror Options</TabsTrigger>
-          <TabsTrigger value="schedule">Schedule & Cleanup</TabsTrigger>
-          <TabsTrigger value="advanced">Advanced</TabsTrigger>
-        </TabsList>
+      {/* Content section - Grid layout */}
+      <div className="space-y-6">
+        {/* GitHub & Gitea connections - Side by side */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <GitHubConfigForm
+            config={config.githubConfig}
+            setConfig={update =>
+              setConfig(prev => ({
+                ...prev,
+                githubConfig:
+                  typeof update === 'function'
+                    ? update(prev.githubConfig)
+                    : update,
+              }))
+            }
+            onAutoSave={autoSaveGitHubConfig}
+            isAutoSaving={isAutoSavingGitHub}
+          />
+          <GiteaConfigForm
+            config={config.giteaConfig}
+            setConfig={update =>
+              setConfig(prev => ({
+                ...prev,
+                giteaConfig:
+                  typeof update === 'function'
+                    ? update(prev.giteaConfig)
+                    : update,
+              }))
+            }
+            onAutoSave={autoSaveGiteaConfig}
+            isAutoSaving={isAutoSavingGitea}
+          />
+        </div>
 
-        <TabsContent value="connections" className="mt-6">
-          <div className="flex gap-x-4">
-            <GitHubConfigForm
-              config={config.githubConfig}
-              setConfig={update =>
-                setConfig(prev => ({
-                  ...prev,
-                  githubConfig:
-                    typeof update === 'function'
-                      ? update(prev.githubConfig)
-                      : update,
-                }))
-              }
-              onAutoSave={autoSaveGitHubConfig}
-              isAutoSaving={isAutoSavingGitHub}
-            />
-            <GiteaConfigForm
-              config={config.giteaConfig}
-              setConfig={update =>
-                setConfig(prev => ({
-                  ...prev,
-                  giteaConfig:
-                    typeof update === 'function'
-                      ? update(prev.giteaConfig)
-                      : update,
-                }))
-              }
-              onAutoSave={autoSaveGiteaConfig}
-              isAutoSaving={isAutoSavingGitea}
-            />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="mirror" className="mt-6">
+        {/* Mirror Options - Full width */}
+        <div>
           <MirrorOptionsForm
             config={config.mirrorOptions}
             setConfig={update =>
@@ -690,46 +698,42 @@ export function ConfigTabs() {
             onAutoSave={autoSaveMirrorOptions}
             isAutoSaving={isAutoSavingMirrorOptions}
           />
-        </TabsContent>
+        </div>
 
-        <TabsContent value="schedule" className="mt-6">
-          <div className="flex gap-x-4">
-            <div className="w-1/2">
-              <ScheduleConfigForm
-                config={config.scheduleConfig}
-                setConfig={update =>
-                  setConfig(prev => ({
-                    ...prev,
-                    scheduleConfig:
-                      typeof update === 'function'
-                        ? update(prev.scheduleConfig)
-                        : update,
-                  }))
-                }
-                onAutoSave={autoSaveScheduleConfig}
-                isAutoSaving={isAutoSavingSchedule}
-              />
-            </div>
-            <div className="w-1/2">
-              <DatabaseCleanupConfigForm
-                config={config.cleanupConfig}
-                setConfig={update =>
-                  setConfig(prev => ({
-                    ...prev,
-                    cleanupConfig:
-                      typeof update === 'function'
-                        ? update(prev.cleanupConfig)
-                        : update,
-                  }))
-                }
-                onAutoSave={autoSaveCleanupConfig}
-                isAutoSaving={isAutoSavingCleanup}
-              />
-            </div>
-          </div>
-        </TabsContent>
+        {/* Schedule & Database Cleanup - Side by side */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ScheduleConfigForm
+            config={config.scheduleConfig}
+            setConfig={update =>
+              setConfig(prev => ({
+                ...prev,
+                scheduleConfig:
+                  typeof update === 'function'
+                    ? update(prev.scheduleConfig)
+                    : update,
+              }))
+            }
+            onAutoSave={autoSaveScheduleConfig}
+            isAutoSaving={isAutoSavingSchedule}
+          />
+          <DatabaseCleanupConfigForm
+            config={config.cleanupConfig}
+            setConfig={update =>
+              setConfig(prev => ({
+                ...prev,
+                cleanupConfig:
+                  typeof update === 'function'
+                    ? update(prev.cleanupConfig)
+                    : update,
+              }))
+            }
+            onAutoSave={autoSaveCleanupConfig}
+            isAutoSaving={isAutoSavingCleanup}
+          />
+        </div>
 
-        <TabsContent value="advanced" className="mt-6">
+        {/* Advanced options - Full width */}
+        <div>
           <AdvancedOptionsForm
             config={config.advancedOptions}
             setConfig={update =>
@@ -744,8 +748,8 @@ export function ConfigTabs() {
             onAutoSave={autoSaveAdvancedOptions}
             isAutoSaving={isAutoSavingAdvancedOptions}
           />
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
     </div>
   );
 }

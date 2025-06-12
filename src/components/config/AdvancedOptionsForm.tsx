@@ -32,7 +32,7 @@ export function AdvancedOptionsForm({
   };
 
   return (
-    <Card>
+    <Card className="self-start">
       <CardHeader>
         <CardTitle className="text-lg font-semibold flex items-center justify-between">
           Advanced Options

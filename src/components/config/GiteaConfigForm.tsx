@@ -91,7 +91,7 @@ export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving }:
   };
 
   return (
-    <Card className="w-full">
+    <Card className="w-full self-start">
       <CardHeader className="flex flex-row items-center justify-between gap-4">
         <CardTitle className="text-lg font-semibold">
           Gitea Configuration

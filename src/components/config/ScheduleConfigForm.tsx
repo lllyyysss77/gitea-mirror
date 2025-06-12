@@ -54,7 +54,7 @@ export function ScheduleConfigForm({
   ];
 
   return (
-    <Card>
+    <Card className="self-start">
       <CardContent className="pt-6 relative">
         {isAutoSaving && (
           <div className="absolute top-4 right-4 flex items-center text-sm text-muted-foreground">
