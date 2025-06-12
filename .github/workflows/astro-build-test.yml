@@ -12,6 +12,10 @@ on:
       - 'README.md'
       - 'docs/**'
 
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   build-and-test:
     name: Build and Test Astro Project

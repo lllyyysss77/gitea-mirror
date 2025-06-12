@@ -18,6 +18,10 @@ on:
   schedule:
     - cron: '0 0 * * 0'  # Run weekly on Sunday at midnight
 
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   scan:
     name: Scan Docker Image
