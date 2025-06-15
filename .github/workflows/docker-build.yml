@@ -160,13 +160,3 @@ jobs:
         with:
           sarif_file: scout-results.sarif
 
-      # Docker Scout policy evaluation
-      - name: Docker Scout - Policy Evaluation
-        uses: docker/scout-action@v1
-        if: always() && github.event_name != 'pull_request'
-        with:
-          command: policy
-          image: ${{ env.REGISTRY }}/${{ env.IMAGE }}:latest
-          exit-code: false
-          write-comment: true
-          github-token: ${{ secrets.GITHUB_TOKEN }}
