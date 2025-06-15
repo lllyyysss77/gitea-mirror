@@ -4,18 +4,19 @@ import { v4 as uuidv4 } from "uuid";
 import { eq } from "drizzle-orm";
 import { calculateCleanupInterval } from "@/lib/cleanup-service";
 import { createSecureErrorResponse } from "@/lib/utils";
+import { mapUiToDbConfig, mapDbToUiConfig } from "@/lib/utils/config-mapper";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
     const body = await request.json();
-    const { userId, githubConfig, giteaConfig, scheduleConfig, cleanupConfig } = body;
+    const { userId, githubConfig, giteaConfig, scheduleConfig, cleanupConfig, mirrorOptions, advancedOptions } = body;
 
-    if (!userId || !githubConfig || !giteaConfig || !scheduleConfig || !cleanupConfig) {
+    if (!userId || !githubConfig || !giteaConfig || !scheduleConfig || !cleanupConfig || !mirrorOptions || !advancedOptions) {
       return new Response(
         JSON.stringify({
           success: false,
           message:
-            "userId, githubConfig, giteaConfig, scheduleConfig, and cleanupConfig are required.",
+            "userId, githubConfig, giteaConfig, scheduleConfig, cleanupConfig, mirrorOptions, and advancedOptions are required.",
         }),
         {
           status: 400,
@@ -33,6 +34,14 @@ export const POST: APIRoute = async ({ request }) => {
 
     const existingConfig = existingConfigResult[0];
 
+    // Map UI structure to database schema structure first
+    const { githubConfig: mappedGithubConfig, giteaConfig: mappedGiteaConfig } = mapUiToDbConfig(
+      githubConfig,
+      giteaConfig,
+      mirrorOptions,
+      advancedOptions
+    );
+    
     // Preserve tokens if fields are empty
     if (existingConfig) {
       try {
@@ -46,12 +55,12 @@ export const POST: APIRoute = async ({ request }) => {
             ? JSON.parse(existingConfig.giteaConfig)
             : existingConfig.giteaConfig;
 
-        if (!githubConfig.token && existingGithub.token) {
-          githubConfig.token = existingGithub.token;
+        if (!mappedGithubConfig.token && existingGithub.token) {
+          mappedGithubConfig.token = existingGithub.token;
         }
 
-        if (!giteaConfig.token && existingGitea.token) {
-          giteaConfig.token = existingGitea.token;
+        if (!mappedGiteaConfig.token && existingGitea.token) {
+          mappedGiteaConfig.token = existingGitea.token;
         }
       } catch (tokenError) {
         console.error("Failed to preserve tokens:", tokenError);
@@ -120,8 +129,8 @@ export const POST: APIRoute = async ({ request }) => {
       await db
         .update(configs)
         .set({
-          githubConfig,
-          giteaConfig,
+          githubConfig: mappedGithubConfig,
+          giteaConfig: mappedGiteaConfig,
           scheduleConfig: processedScheduleConfig,
           cleanupConfig: processedCleanupConfig,
           updatedAt: new Date(),
@@ -168,8 +177,8 @@ export const POST: APIRoute = async ({ request }) => {
       userId,
       name: "Default Configuration",
       isActive: true,
-      githubConfig,
-      giteaConfig,
+      githubConfig: mappedGithubConfig,
+      giteaConfig: mappedGiteaConfig,
       include: [],
       exclude: [],
       scheduleConfig: processedScheduleConfig,
@@ -214,33 +223,40 @@ export const GET: APIRoute = async ({ request }) => {
       .limit(1);
 
     if (config.length === 0) {
-      // Return a default empty configuration instead of a 404 error
+      // Return a default empty configuration with UI structure
+      const defaultDbConfig = {
+        githubConfig: {
+          username: "",
+          token: "",
+          skipForks: false,
+          privateRepositories: false,
+          mirrorIssues: false,
+          mirrorWiki: false,
+          mirrorStarred: false,
+          useSpecificUser: false,
+          preserveOrgStructure: false,
+          skipStarredIssues: false,
+        },
+        giteaConfig: {
+          url: "",
+          token: "",
+          username: "",
+          organization: "github-mirrors",
+          visibility: "public",
+          starredReposOrg: "github",
+          preserveOrgStructure: false,
+        },
+      };
+      
+      const uiConfig = mapDbToUiConfig(defaultDbConfig);
+      
       return new Response(
         JSON.stringify({
           id: null,
           userId: userId,
           name: "Default Configuration",
           isActive: true,
-          githubConfig: {
-            username: "",
-            token: "",
-            skipForks: false,
-            privateRepositories: false,
-            mirrorIssues: false,
-            mirrorWiki: false,
-            mirrorStarred: true,
-            useSpecificUser: false,
-            preserveOrgStructure: true,
-            skipStarredIssues: false,
-          },
-          giteaConfig: {
-            url: "",
-            token: "",
-            username: "",
-            organization: "github-mirrors",
-            visibility: "public",
-            starredReposOrg: "github",
-          },
+          ...uiConfig,
           scheduleConfig: {
             enabled: false,
             interval: 3600,
@@ -261,7 +277,14 @@ export const GET: APIRoute = async ({ request }) => {
       );
     }
 
-    return new Response(JSON.stringify(config[0]), {
+    // Map database structure to UI structure
+    const dbConfig = config[0];
+    const uiConfig = mapDbToUiConfig(dbConfig);
+    
+    return new Response(JSON.stringify({
+      ...dbConfig,
+      ...uiConfig,
+    }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
