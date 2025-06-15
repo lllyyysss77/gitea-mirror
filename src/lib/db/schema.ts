@@ -34,7 +34,6 @@ export const configSchema = z.object({
     excludeOrgs: z.array(z.string()).default([]),
     mirrorPublicOrgs: z.boolean().default(false),
     publicOrgs: z.array(z.string()).default([]),
-    preserveOrgStructure: z.boolean().default(false),
     skipStarredIssues: z.boolean().default(false),
   }),
   giteaConfig: z.object({
@@ -44,6 +43,8 @@ export const configSchema = z.object({
     organization: z.string().optional(),
     visibility: z.enum(["public", "private", "limited"]).default("public"),
     starredReposOrg: z.string().default("github"),
+    preserveOrgStructure: z.boolean().default(false),
+    mirrorStrategy: z.enum(["preserve", "single-org", "flat-user"]).optional(),
   }),
   include: z.array(z.string()).default(["*"]),
   exclude: z.array(z.string()).default([]),

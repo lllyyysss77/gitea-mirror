@@ -5,7 +5,6 @@ import { ScheduleConfigForm } from './ScheduleConfigForm';
 import { DatabaseCleanupConfigForm } from './DatabaseCleanupConfigForm';
 import { MirrorOptionsForm } from './MirrorOptionsForm';
 import { AdvancedOptionsForm } from './AdvancedOptionsForm';
-// Removed Tabs import as we're switching to grid layout
 import type {
   ConfigApiResponse,
   GiteaConfig,
@@ -679,6 +678,7 @@ export function ConfigTabs() {
             }
             onAutoSave={autoSaveGiteaConfig}
             isAutoSaving={isAutoSavingGitea}
+            githubUsername={config.githubConfig.username}
           />
         </div>
 

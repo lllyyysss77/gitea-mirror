@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,20 +16,62 @@ import {
 } from "../ui/select";
 import { Checkbox } from "../ui/checkbox";
 import { giteaApi } from "@/lib/api";
-import type { GiteaConfig, GiteaOrgVisibility } from "@/types/config";
+import type { GiteaConfig, GiteaOrgVisibility, MirrorStrategy } from "@/types/config";
 import { toast } from "sonner";
 import { Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { OrganizationStrategy } from "./OrganizationStrategy";
+import { Separator } from "../ui/separator";
 
 interface GiteaConfigFormProps {
   config: GiteaConfig;
   setConfig: React.Dispatch<React.SetStateAction<GiteaConfig>>;
   onAutoSave?: (giteaConfig: GiteaConfig) => Promise<void>;
   isAutoSaving?: boolean;
+  githubUsername?: string;
 }
 
-export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving }: GiteaConfigFormProps) {
+export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving, githubUsername }: GiteaConfigFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Derive the mirror strategy from existing config for backward compatibility
+  const getMirrorStrategy = (): MirrorStrategy => {
+    if (config.mirrorStrategy) return config.mirrorStrategy;
+    if (config.preserveOrgStructure) return "preserve";
+    if (config.organization && config.organization !== config.username) return "single-org";
+    return "flat-user";
+  };
+  
+  const [mirrorStrategy, setMirrorStrategy] = useState<MirrorStrategy>(getMirrorStrategy());
+  
+  // Update config when strategy changes
+  useEffect(() => {
+    const newConfig = { ...config };
+    
+    switch (mirrorStrategy) {
+      case "preserve":
+        newConfig.preserveOrgStructure = true;
+        newConfig.mirrorStrategy = "preserve";
+        break;
+      case "single-org":
+        newConfig.preserveOrgStructure = false;
+        newConfig.mirrorStrategy = "single-org";
+        if (!newConfig.organization) {
+          newConfig.organization = "github-mirrors";
+        }
+        break;
+      case "flat-user":
+        newConfig.preserveOrgStructure = false;
+        newConfig.mirrorStrategy = "flat-user";
+        newConfig.organization = "";
+        break;
+    }
+    
+    setConfig(newConfig);
+    if (onAutoSave) {
+      onAutoSave(newConfig);
+    }
+  }, [mirrorStrategy]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -168,124 +210,65 @@ export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving }:
           </p>
         </div>
 
+        <Separator className="my-2" />
+        
+        <OrganizationStrategy
+          strategy={mirrorStrategy}
+          destinationOrg={config.organization}
+          starredReposOrg={config.starredReposOrg}
+          onStrategyChange={setMirrorStrategy}
+          onDestinationOrgChange={(org) => {
+            const newConfig = { ...config, organization: org };
+            setConfig(newConfig);
+            if (onAutoSave) onAutoSave(newConfig);
+          }}
+          onStarredReposOrgChange={(org) => {
+            const newConfig = { ...config, starredReposOrg: org };
+            setConfig(newConfig);
+            if (onAutoSave) onAutoSave(newConfig);
+          }}
+          githubUsername={githubUsername}
+          giteaUsername={config.username}
+        />
+        
+        <Separator className="my-2" />
+        
         <div>
           <label
-            htmlFor="organization"
+            htmlFor="visibility"
             className="block text-sm font-medium mb-1.5"
           >
-            Destination organisation (optional)
+            Organization Visibility
           </label>
-          <input
-            id="organization"
-            name="organization"
-            type="text"
-            value={config.organization}
-            onChange={handleChange}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            placeholder="Organization name"
-          />
-          <p className="text-xs text-muted-foreground mt-1">
-            Repos are created here if no per-repo org is set.
-          </p>
-        </div>
-
-        <div className="flex items-center">
-          <Checkbox
-            id="preserve-org-structure"
-            name="preserveOrgStructure"
-            checked={config.preserveOrgStructure}
-            onCheckedChange={(checked) =>
+          <Select
+            name="visibility"
+            value={config.visibility}
+            onValueChange={(value) =>
               handleChange({
-                target: {
-                  name: "preserveOrgStructure",
-                  type: "checkbox",
-                  checked: Boolean(checked),
-                  value: "",
-                },
+                target: { name: "visibility", value },
               } as React.ChangeEvent<HTMLInputElement>)
             }
-          />
-          <label
-            htmlFor="preserve-org-structure"
-            className="ml-2 text-sm select-none flex items-center"
           >
-            Mirror GitHub org / team hierarchy
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span
-                  className="ml-1 cursor-pointer align-middle text-muted-foreground"
-                  role="button"
-                  tabIndex={0}
-                >
-                  <Info size={16} />
-                </span>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="max-w-xs text-xs">
-                Creates nested orgs or prefixes in Gitea so the layout matches GitHub.
-                When enabled, organization repositories will be mirrored to
-                the same organization structure in Gitea. When disabled, all
-                repositories will be mirrored under your Gitea username.
-              </TooltipContent>
-            </Tooltip>
-          </label>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label
-              htmlFor="visibility"
-              className="block text-sm font-medium mb-1.5"
-            >
-              Organization Visibility
-            </label>
-            <Select
-              name="visibility"
-              value={config.visibility}
-              onValueChange={(value) =>
-                handleChange({
-                  target: { name: "visibility", value },
-                } as React.ChangeEvent<HTMLInputElement>)
-              }
-            >
-              <SelectTrigger className="w-full border border-input dark:bg-background dark:hover:bg-background">
-                <SelectValue placeholder="Select visibility" />
-              </SelectTrigger>
-              <SelectContent className="bg-background text-foreground border border-input shadow-sm">
-                {(["public", "private", "limited"] as GiteaOrgVisibility[]).map(
-                  (option) => (
-                    <SelectItem
-                      key={option}
-                      value={option}
-                      className="cursor-pointer text-sm px-3 py-2 hover:bg-accent focus:bg-accent focus:text-accent-foreground"
-                    >
-                      {option.charAt(0).toUpperCase() + option.slice(1)}
-                    </SelectItem>
-                  )
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <label
-              htmlFor="starred-repos-org"
-              className="block text-sm font-medium mb-1.5"
-            >
-              Starred Repositories Organization
-            </label>
-            <input
-              id="starred-repos-org"
-              name="starredReposOrg"
-              type="text"
-              value={config.starredReposOrg}
-              onChange={handleChange}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              placeholder="github"
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Leave blank to use 'github'.
-            </p>
-          </div>
+            <SelectTrigger className="w-full border border-input dark:bg-background dark:hover:bg-background">
+              <SelectValue placeholder="Select visibility" />
+            </SelectTrigger>
+            <SelectContent className="bg-background text-foreground border border-input shadow-sm">
+              {(["public", "private", "limited"] as GiteaOrgVisibility[]).map(
+                (option) => (
+                  <SelectItem
+                    key={option}
+                    value={option}
+                    className="cursor-pointer text-sm px-3 py-2 hover:bg-accent focus:bg-accent focus:text-accent-foreground"
+                  >
+                    {option.charAt(0).toUpperCase() + option.slice(1)}
+                  </SelectItem>
+                )
+              )}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">
+            Visibility for newly created organizations
+          </p>
         </div>
       </CardContent>
 

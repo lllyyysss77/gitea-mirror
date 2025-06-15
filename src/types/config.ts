@@ -1,6 +1,7 @@
 import { type Config as ConfigType } from "@/lib/db/schema";
 
 export type GiteaOrgVisibility = "public" | "private" | "limited";
+export type MirrorStrategy = "preserve" | "single-org" | "flat-user";
 
 export interface GiteaConfig {
   url: string;
@@ -10,6 +11,7 @@ export interface GiteaConfig {
   visibility: GiteaOrgVisibility;
   starredReposOrg: string;
   preserveOrgStructure: boolean;
+  mirrorStrategy?: MirrorStrategy; // New field for the strategy
 }
 
 export interface ScheduleConfig {
