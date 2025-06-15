@@ -5,6 +5,12 @@ All notable changes to the Gitea Mirror project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.13.2] - 2025-06-15
+
+### Improved
+- Enhanced documentation design and layout
+- Updated README with improved formatting and content
+
 ## [2.13.1] - 2025-06-15
 
 ### Added
