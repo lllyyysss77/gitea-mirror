@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { githubApi } from "@/lib/api";
-import type { GitHubConfig } from "@/types/config";
+import type { GitHubConfig, MirrorOptions, AdvancedOptions } from "@/types/config";
 import { Input } from "../ui/input";
 import { Checkbox } from "../ui/checkbox";
 import { toast } from "sonner";
@@ -16,15 +16,34 @@ import { AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription } from "../ui/alert";
 import { Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { GitHubMirrorSettings } from "./GitHubMirrorSettings";
+import { Separator } from "../ui/separator";
 
 interface GitHubConfigFormProps {
   config: GitHubConfig;
   setConfig: React.Dispatch<React.SetStateAction<GitHubConfig>>;
+  mirrorOptions: MirrorOptions;
+  setMirrorOptions: React.Dispatch<React.SetStateAction<MirrorOptions>>;
+  advancedOptions: AdvancedOptions;
+  setAdvancedOptions: React.Dispatch<React.SetStateAction<AdvancedOptions>>;
   onAutoSave?: (githubConfig: GitHubConfig) => Promise<void>;
+  onMirrorOptionsAutoSave?: (mirrorOptions: MirrorOptions) => Promise<void>;
+  onAdvancedOptionsAutoSave?: (advancedOptions: AdvancedOptions) => Promise<void>;
   isAutoSaving?: boolean;
 }
 
-export function GitHubConfigForm({ config, setConfig, onAutoSave, isAutoSaving }: GitHubConfigFormProps) {
+export function GitHubConfigForm({ 
+  config, 
+  setConfig, 
+  mirrorOptions,
+  setMirrorOptions,
+  advancedOptions,
+  setAdvancedOptions,
+  onAutoSave, 
+  onMirrorOptionsAutoSave,
+  onAdvancedOptionsAutoSave,
+  isAutoSaving 
+}: GitHubConfigFormProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -125,59 +144,25 @@ export function GitHubConfigForm({ config, setConfig, onAutoSave, isAutoSaving }
           </p>
         </div>
 
-        <div className="space-y-4">
-          <h4 className="text-sm font-medium text-foreground">Repository Access</h4>
+        <Separator />
 
-          <div className="space-y-3">
-            <div className="flex items-center">
-              <Checkbox
-                id="private-repositories"
-                name="privateRepositories"
-                checked={config.privateRepositories}
-                onCheckedChange={(checked) =>
-                  handleChange({
-                    target: {
-                      name: "privateRepositories",
-                      type: "checkbox",
-                      checked: Boolean(checked),
-                      value: "",
-                    },
-                  } as React.ChangeEvent<HTMLInputElement>)
-                }
-              />
-              <label
-                htmlFor="private-repositories"
-                className="ml-2 block text-sm select-none"
-              >
-                Include private repos
-              </label>
-            </div>
-
-            <div className="flex items-center">
-              <Checkbox
-                id="mirror-starred"
-                name="mirrorStarred"
-                checked={config.mirrorStarred}
-                onCheckedChange={(checked) =>
-                  handleChange({
-                    target: {
-                      name: "mirrorStarred",
-                      type: "checkbox",
-                      checked: Boolean(checked),
-                      value: "",
-                    },
-                  } as React.ChangeEvent<HTMLInputElement>)
-                }
-              />
-              <label
-                htmlFor="mirror-starred"
-                className="ml-2 block text-sm select-none"
-              >
-                Mirror starred repos
-              </label>
-            </div>
-          </div>
-        </div>
+        <GitHubMirrorSettings
+          githubConfig={config}
+          mirrorOptions={mirrorOptions}
+          advancedOptions={advancedOptions}
+          onGitHubConfigChange={(newConfig) => {
+            setConfig(newConfig);
+            if (onAutoSave) onAutoSave(newConfig);
+          }}
+          onMirrorOptionsChange={(newOptions) => {
+            setMirrorOptions(newOptions);
+            if (onMirrorOptionsAutoSave) onMirrorOptionsAutoSave(newOptions);
+          }}
+          onAdvancedOptionsChange={(newOptions) => {
+            setAdvancedOptions(newOptions);
+            if (onAdvancedOptionsAutoSave) onAdvancedOptionsAutoSave(newOptions);
+          }}
+        />
       </CardContent>
 
       <CardFooter className="flex-col items-start">

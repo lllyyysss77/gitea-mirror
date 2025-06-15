@@ -3,8 +3,6 @@ import { GitHubConfigForm } from './GitHubConfigForm';
 import { GiteaConfigForm } from './GiteaConfigForm';
 import { ScheduleConfigForm } from './ScheduleConfigForm';
 import { DatabaseCleanupConfigForm } from './DatabaseCleanupConfigForm';
-import { MirrorOptionsForm } from './MirrorOptionsForm';
-import { AdvancedOptionsForm } from './AdvancedOptionsForm';
 import type {
   ConfigApiResponse,
   GiteaConfig,
@@ -540,62 +538,52 @@ export function ConfigTabs() {
         </div>
 
         {/* Content section - Grid layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* GitHub & Gitea connections */}
-          <div className="border rounded-lg p-4">
-            <div className="flex justify-between items-center mb-4">
-              <Skeleton className="h-6 w-40" />
-              <Skeleton className="h-9 w-32" />
-            </div>
-            <div className="space-y-4">
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-32 w-full" />
-            </div>
-          </div>
-          <div className="border rounded-lg p-4">
-            <div className="flex justify-between items-center mb-4">
-              <Skeleton className="h-6 w-40" />
-              <Skeleton className="h-9 w-32" />
-            </div>
-            <div className="space-y-4">
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-20 w-full" />
-            </div>
-          </div>
-
-          {/* Schedule & Database Cleanup */}
-          <div className="border rounded-lg p-4">
-            <div className="space-y-4">
-              <Skeleton className="h-8 w-48" />
-              <Skeleton className="h-16 w-full" />
-              <Skeleton className="h-8 w-32" />
-            </div>
-          </div>
-          <div className="border rounded-lg p-4">
-            <div className="space-y-4">
-              <Skeleton className="h-8 w-48" />
-              <Skeleton className="h-16 w-full" />
-              <Skeleton className="h-8 w-32" />
-            </div>
-          </div>
-        </div>
-
-        {/* Mirror Options & Advanced - Full width sections */}
         <div className="space-y-4">
-          <div className="border rounded-lg p-4">
-            <Skeleton className="h-8 w-48 mb-4" />
-            <div className="space-y-4">
-              <Skeleton className="h-16 w-full" />
-              <Skeleton className="h-24 w-full" />
+          {/* GitHub & Gitea connections - Side by side */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="border rounded-lg p-4">
+              <div className="flex justify-between items-center mb-4">
+                <Skeleton className="h-6 w-40" />
+                <Skeleton className="h-9 w-32" />
+              </div>
+              <div className="space-y-4">
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-1 w-full" />
+                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-48 w-full" />
+                <Skeleton className="h-32 w-full" />
+              </div>
+            </div>
+            <div className="border rounded-lg p-4">
+              <div className="flex justify-between items-center mb-4">
+                <Skeleton className="h-6 w-40" />
+                <Skeleton className="h-9 w-32" />
+              </div>
+              <div className="space-y-4">
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-64 w-full" />
+              </div>
             </div>
           </div>
-          <div className="border rounded-lg p-4">
-            <Skeleton className="h-8 w-48 mb-4" />
-            <div className="space-y-4">
-              <Skeleton className="h-16 w-full" />
+
+          {/* Schedule & Database Cleanup - Side by side */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="border rounded-lg p-4">
+              <div className="space-y-4">
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-8 w-32" />
+              </div>
+            </div>
+            <div className="border rounded-lg p-4">
+              <div className="space-y-4">
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-8 w-32" />
+              </div>
             </div>
           </div>
         </div>
@@ -662,7 +650,29 @@ export function ConfigTabs() {
                     : update,
               }))
             }
+            mirrorOptions={config.mirrorOptions}
+            setMirrorOptions={update =>
+              setConfig(prev => ({
+                ...prev,
+                mirrorOptions:
+                  typeof update === 'function'
+                    ? update(prev.mirrorOptions)
+                    : update,
+              }))
+            }
+            advancedOptions={config.advancedOptions}
+            setAdvancedOptions={update =>
+              setConfig(prev => ({
+                ...prev,
+                advancedOptions:
+                  typeof update === 'function'
+                    ? update(prev.advancedOptions)
+                    : update,
+              }))
+            }
             onAutoSave={autoSaveGitHubConfig}
+            onMirrorOptionsAutoSave={autoSaveMirrorOptions}
+            onAdvancedOptionsAutoSave={autoSaveAdvancedOptions}
             isAutoSaving={isAutoSavingGitHub}
           />
           <GiteaConfigForm
@@ -679,24 +689,6 @@ export function ConfigTabs() {
             onAutoSave={autoSaveGiteaConfig}
             isAutoSaving={isAutoSavingGitea}
             githubUsername={config.githubConfig.username}
-          />
-        </div>
-
-        {/* Mirror Options - Full width */}
-        <div>
-          <MirrorOptionsForm
-            config={config.mirrorOptions}
-            setConfig={update =>
-              setConfig(prev => ({
-                ...prev,
-                mirrorOptions:
-                  typeof update === 'function'
-                    ? update(prev.mirrorOptions)
-                    : update,
-              }))
-            }
-            onAutoSave={autoSaveMirrorOptions}
-            isAutoSaving={isAutoSavingMirrorOptions}
           />
         </div>
 
@@ -729,24 +721,6 @@ export function ConfigTabs() {
             }
             onAutoSave={autoSaveCleanupConfig}
             isAutoSaving={isAutoSavingCleanup}
-          />
-        </div>
-
-        {/* Advanced options - Full width */}
-        <div>
-          <AdvancedOptionsForm
-            config={config.advancedOptions}
-            setConfig={update =>
-              setConfig(prev => ({
-                ...prev,
-                advancedOptions:
-                  typeof update === 'function'
-                    ? update(prev.advancedOptions)
-                    : update,
-              }))
-            }
-            onAutoSave={autoSaveAdvancedOptions}
-            isAutoSaving={isAutoSavingAdvancedOptions}
           />
         </div>
       </div>
