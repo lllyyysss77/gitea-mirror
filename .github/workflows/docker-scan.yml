@@ -8,6 +8,7 @@ on:
       - '.dockerignore'
       - 'package.json'
       - 'bun.lock*'
+      - '.github/workflows/docker-scan.yml'
   pull_request:
     branches: [ main ]
     paths:
@@ -15,6 +16,7 @@ on:
       - '.dockerignore'
       - 'package.json'
       - 'bun.lock*'
+      - '.github/workflows/docker-scan.yml'
   schedule:
     - cron: '0 0 * * 0'  # Run weekly on Sunday at midnight
 
