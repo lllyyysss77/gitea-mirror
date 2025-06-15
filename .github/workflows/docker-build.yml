@@ -1,14 +1,29 @@
-name: Build and Push Docker Images
+name: Docker Build, Push & Security Scan
 
 on:
   push:
     branches: [main]
     tags: ['v*']
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'package.json'
+      - 'bun.lock*'
+      - '.github/workflows/docker-build.yml'
   pull_request:
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'package.json'
+      - 'bun.lock*'
+      - '.github/workflows/docker-build.yml'
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly security scan on Sunday at midnight
 
 env:
   REGISTRY: ghcr.io
   IMAGE: ${{ github.repository }}
+  SHA: ${{ github.event.pull_request.head.sha || github.event.after }}
 
 jobs:
   docker:
@@ -17,13 +32,22 @@ jobs:
     permissions:
       contents: write
       packages: write
+      security-events: write
+      pull-requests: write
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
 
-      - uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: network=host
 
-      - uses: docker/login-action@v3
+      - name: Log into registry
+        uses: docker/login-action@v3
         if: github.event_name != 'pull_request'
         with:
           registry: ${{ env.REGISTRY }}
@@ -42,12 +66,75 @@ jobs:
             echo "No version tag, using 'latest'"
           fi
 
-      - uses: docker/build-push-action@v5
+      # Extract metadata for Docker
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE }}
+          labels: |
+            org.opencontainers.image.revision=${{ env.SHA }}
+          tags: |
+            type=edge,branch=$repo.default_branch
+            type=semver,pattern=v{{version}}
+            type=sha,prefix=,suffix=,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ steps.tag_version.outputs.VERSION }}
+
+      # Build and push Docker image
+      - name: Build and push Docker image
+        id: build-and-push
+        uses: docker/build-push-action@v5
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ steps.tag_version.outputs.VERSION }}
+          load: ${{ github.event_name == 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Docker Scout comprehensive security analysis
+      - name: Docker Scout - Vulnerability Analysis & Recommendations
+        uses: docker/scout-action@v1.18.1
+        with:
+          command: cves,recommendations
+          image: ${{ steps.meta.outputs.tags }}
+          sarif-file: scout-results.sarif
+          summary: true
+          exit-code: true
+          only-severities: critical,high
+          write-comment: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Compare to latest for PRs and pushes
+      - name: Docker Scout - Compare to Latest
+        uses: docker/scout-action@v1.18.1
+        if: github.event_name == 'pull_request'
+        with:
+          command: compare
+          image: ${{ steps.meta.outputs.tags }}
+          to: ${{ env.REGISTRY }}/${{ env.IMAGE }}:latest
+          ignore-unchanged: true
+          only-severities: critical,high
+          write-comment: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Upload security scan results to GitHub Security tab
+      - name: Upload Docker Scout scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: scout-results.sarif
+
+      # Docker Scout policy evaluation
+      - name: Docker Scout - Policy Evaluation
+        uses: docker/scout-action@v1.18.1
+        if: always()
+        with:
+          command: policy
+          image: ${{ steps.meta.outputs.tags }}
+          exit-code: false
+          write-comment: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
