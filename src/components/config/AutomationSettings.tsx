@@ -1,0 +1,335 @@
+import React, { useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import {
+  Clock,
+  Database,
+  RefreshCw,
+  Calendar,
+  Activity,
+  Zap,
+  Info
+} from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import type { ScheduleConfig, DatabaseCleanupConfig } from "@/types/config";
+import { formatDate } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+
+interface AutomationSettingsProps {
+  scheduleConfig: ScheduleConfig;
+  cleanupConfig: DatabaseCleanupConfig;
+  onScheduleChange: (config: ScheduleConfig) => void;
+  onCleanupChange: (config: DatabaseCleanupConfig) => void;
+  isAutoSavingSchedule?: boolean;
+  isAutoSavingCleanup?: boolean;
+}
+
+const scheduleIntervals = [
+  { label: "Every hour", value: 3600 },
+  { label: "Every 2 hours", value: 7200 },
+  { label: "Every 4 hours", value: 14400 },
+  { label: "Every 8 hours", value: 28800 },
+  { label: "Every 12 hours", value: 43200 },
+  { label: "Daily", value: 86400 },
+  { label: "Every 2 days", value: 172800 },
+  { label: "Weekly", value: 604800 },
+];
+
+const retentionPeriods = [
+  { label: "1 day", value: 86400 },
+  { label: "3 days", value: 259200 },
+  { label: "1 week", value: 604800 },
+  { label: "2 weeks", value: 1209600 },
+  { label: "1 month", value: 2592000 },
+  { label: "2 months", value: 5184000 },
+  { label: "3 months", value: 7776000 },
+];
+
+function getCleanupInterval(retentionSeconds: number): number {
+  const days = retentionSeconds / 86400;
+  if (days <= 1) return 21600; // 6 hours
+  if (days <= 3) return 43200; // 12 hours
+  if (days <= 7) return 86400; // 24 hours
+  if (days <= 30) return 172800; // 48 hours
+  return 604800; // 1 week
+}
+
+function getCleanupFrequencyText(retentionSeconds: number): string {
+  const days = retentionSeconds / 86400;
+  if (days <= 1) return "every 6 hours";
+  if (days <= 3) return "every 12 hours";
+  if (days <= 7) return "daily";
+  if (days <= 30) return "every 2 days";
+  return "weekly";
+}
+
+export function AutomationSettings({
+  scheduleConfig,
+  cleanupConfig,
+  onScheduleChange,
+  onCleanupChange,
+  isAutoSavingSchedule,
+  isAutoSavingCleanup,
+}: AutomationSettingsProps) {
+  // Update nextRun for cleanup when settings change
+  useEffect(() => {
+    if (cleanupConfig.enabled && !cleanupConfig.nextRun) {
+      const cleanupInterval = getCleanupInterval(cleanupConfig.retentionDays);
+      const nextRun = new Date(Date.now() + cleanupInterval * 1000);
+      onCleanupChange({ ...cleanupConfig, nextRun });
+    }
+  }, [cleanupConfig.enabled, cleanupConfig.retentionDays]);
+
+  return (
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="text-lg font-semibold flex items-center gap-2">
+          <Zap className="h-5 w-5" />
+          Automation & Maintenance
+        </CardTitle>
+      </CardHeader>
+      
+      <CardContent className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Automatic Mirroring Section */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium flex items-center gap-2">
+                <RefreshCw className="h-4 w-4" />
+                Automatic Mirroring
+              </h3>
+              {isAutoSavingSchedule && (
+                <Activity className="h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-start space-x-3">
+                <Checkbox
+                  id="enable-auto-mirror"
+                  checked={scheduleConfig.enabled}
+                  onCheckedChange={(checked) =>
+                    onScheduleChange({ ...scheduleConfig, enabled: !!checked })
+                  }
+                />
+                <div className="space-y-0.5 flex-1">
+                  <Label
+                    htmlFor="enable-auto-mirror"
+                    className="text-sm font-normal cursor-pointer"
+                  >
+                    Enable automatic repository syncing
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Periodically check GitHub for changes and mirror them to Gitea
+                  </p>
+                </div>
+              </div>
+
+              {scheduleConfig.enabled && (
+                <div className="ml-6 space-y-3">
+                  <div>
+                    <Label htmlFor="mirror-interval" className="text-sm">
+                      Sync frequency
+                    </Label>
+                    <Select
+                      value={scheduleConfig.interval.toString()}
+                      onValueChange={(value) =>
+                        onScheduleChange({
+                          ...scheduleConfig,
+                          interval: parseInt(value, 10),
+                        })
+                      }
+                    >
+                      <SelectTrigger id="mirror-interval" className="mt-1.5">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {scheduleIntervals.map((option) => (
+                          <SelectItem
+                            key={option.value}
+                            value={option.value.toString()}
+                          >
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2 p-3 bg-muted/50 dark:bg-muted/20 rounded-md">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5" />
+                    Last sync
+                  </span>
+                  <span className="font-medium">
+                    {scheduleConfig.lastRun
+                      ? formatDate(scheduleConfig.lastRun)
+                      : "Never"}
+                  </span>
+                </div>
+                {scheduleConfig.enabled && scheduleConfig.nextRun && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5">
+                      <Calendar className="h-3.5 w-3.5" />
+                      Next sync
+                    </span>
+                    <span className="font-medium">
+                      {formatDate(scheduleConfig.nextRun)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Database Cleanup Section */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium flex items-center gap-2">
+                <Database className="h-4 w-4" />
+                Database Maintenance
+              </h3>
+              {isAutoSavingCleanup && (
+                <Activity className="h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-start space-x-3">
+                <Checkbox
+                  id="enable-auto-cleanup"
+                  checked={cleanupConfig.enabled}
+                  onCheckedChange={(checked) =>
+                    onCleanupChange({ ...cleanupConfig, enabled: !!checked })
+                  }
+                />
+                <div className="space-y-0.5 flex-1">
+                  <Label
+                    htmlFor="enable-auto-cleanup"
+                    className="text-sm font-normal cursor-pointer"
+                  >
+                    Enable automatic database cleanup
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Remove old activity logs and events to optimize storage
+                  </p>
+                </div>
+              </div>
+
+              {cleanupConfig.enabled && (
+                <div className="ml-6 space-y-3">
+                  <div>
+                    <Label htmlFor="retention-period" className="text-sm flex items-center gap-2">
+                      Data retention period
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Info className="h-3 w-3 text-muted-foreground" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-xs">
+                            <p className="text-xs">
+                              Activity logs and events older than this will be removed. 
+                              Cleanup frequency is automatically optimized based on your retention period.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </Label>
+                    <Select
+                      value={cleanupConfig.retentionDays.toString()}
+                      onValueChange={(value) =>
+                        onCleanupChange({
+                          ...cleanupConfig,
+                          retentionDays: parseInt(value, 10),
+                        })
+                      }
+                    >
+                      <SelectTrigger id="retention-period" className="mt-1.5">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {retentionPeriods.map((option) => (
+                          <SelectItem
+                            key={option.value}
+                            value={option.value.toString()}
+                          >
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {cleanupConfig.enabled && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Cleanup runs {getCleanupFrequencyText(cleanupConfig.retentionDays)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2 p-3 bg-muted/50 dark:bg-muted/20 rounded-md">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5" />
+                    Last cleanup
+                  </span>
+                  <span className="font-medium">
+                    {cleanupConfig.lastRun
+                      ? formatDate(cleanupConfig.lastRun)
+                      : "Never"}
+                  </span>
+                </div>
+                {cleanupConfig.enabled && cleanupConfig.nextRun && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5">
+                      <Calendar className="h-3.5 w-3.5" />
+                      Next cleanup
+                    </span>
+                    <span className="font-medium">
+                      {cleanupConfig.nextRun
+                        ? formatDate(cleanupConfig.nextRun)
+                        : "Calculating..."}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 p-4 bg-blue-50/50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900">
+          <div className="flex gap-3">
+            <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                Background Operations
+              </p>
+              <p className="text-xs text-blue-800 dark:text-blue-200/80">
+                These automated tasks run in the background to keep your mirrors up-to-date and maintain optimal database performance. 
+                Choose intervals that match your workflow and repository update frequency.
+              </p>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
