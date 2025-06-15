@@ -31,9 +31,9 @@ const strategyConfig = {
     title: "Mirror GitHub Structure",
     icon: FolderTree,
     description: "Keep the same organization structure as GitHub",
-    color: "text-blue-600",
-    bgColor: "bg-blue-50",
-    borderColor: "border-blue-200",
+    color: "text-blue-600 dark:text-blue-400",
+    bgColor: "bg-blue-50 dark:bg-blue-950/20",
+    borderColor: "border-blue-200 dark:border-blue-900",
     details: [
       "Personal repos → Your Gitea username",
       "Org repos → Same org name in Gitea",
@@ -44,9 +44,9 @@ const strategyConfig = {
     title: "Consolidate to One Org",
     icon: Building2,
     description: "Mirror all repositories into a single organization",
-    color: "text-purple-600",
-    bgColor: "bg-purple-50",
-    borderColor: "border-purple-200",
+    color: "text-purple-600 dark:text-purple-400",
+    bgColor: "bg-purple-50 dark:bg-purple-950/20",
+    borderColor: "border-purple-200 dark:border-purple-900",
     details: [
       "All repos in one place",
       "Simplified management",
@@ -57,9 +57,9 @@ const strategyConfig = {
     title: "Flat User Structure",
     icon: User,
     description: "Mirror all repositories under your user account",
-    color: "text-green-600",
-    bgColor: "bg-green-50",
-    borderColor: "border-green-200",
+    color: "text-green-600 dark:text-green-400",
+    bgColor: "bg-green-50 dark:bg-green-950/20",
+    borderColor: "border-green-200 dark:border-green-900",
     details: [
       "All repos under your username",
       "No organizations needed",
@@ -80,15 +80,15 @@ const StrategyVisualizer: React.FC<{
       <div className="flex-1">
         <div className="text-sm font-medium text-muted-foreground mb-3">GitHub</div>
         <div className="space-y-2">
-          <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+          <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
             <User className="h-4 w-4" />
             <span className="text-sm">{githubUsername}/my-repo</span>
           </div>
-          <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+          <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
             <Building2 className="h-4 w-4" />
             <span className="text-sm">my-org/team-repo</span>
           </div>
-          <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+          <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
             <Star className="h-4 w-4" />
             <span className="text-sm">awesome/starred-repo</span>
           </div>
@@ -102,16 +102,16 @@ const StrategyVisualizer: React.FC<{
       <div className="flex-1">
         <div className="text-sm font-medium text-muted-foreground mb-3">Gitea</div>
         <div className="space-y-2">
-          <div className="flex items-center gap-2 p-2 bg-blue-50 rounded">
-            <User className="h-4 w-4 text-blue-600" />
+          <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-950/30 rounded">
+            <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             <span className="text-sm">{giteaUsername}/my-repo</span>
           </div>
-          <div className="flex items-center gap-2 p-2 bg-blue-50 rounded">
-            <Building2 className="h-4 w-4 text-blue-600" />
+          <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-950/30 rounded">
+            <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             <span className="text-sm">my-org/team-repo</span>
           </div>
-          <div className="flex items-center gap-2 p-2 bg-blue-50 rounded">
-            <Building2 className="h-4 w-4 text-blue-600" />
+          <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-950/30 rounded">
+            <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             <span className="text-sm">{starredReposOrg || "starred"}/starred-repo</span>
           </div>
         </div>
@@ -124,15 +124,15 @@ const StrategyVisualizer: React.FC<{
       <div className="flex-1">
         <div className="text-sm font-medium text-muted-foreground mb-3">GitHub</div>
         <div className="space-y-2">
-          <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+          <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
             <User className="h-4 w-4" />
             <span className="text-sm">{githubUsername}/my-repo</span>
           </div>
-          <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+          <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
             <Building2 className="h-4 w-4" />
             <span className="text-sm">my-org/team-repo</span>
           </div>
-          <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+          <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
             <Star className="h-4 w-4" />
             <span className="text-sm">awesome/starred-repo</span>
           </div>
@@ -146,16 +146,16 @@ const StrategyVisualizer: React.FC<{
       <div className="flex-1">
         <div className="text-sm font-medium text-muted-foreground mb-3">Gitea</div>
         <div className="space-y-2">
-          <div className="flex items-center gap-2 p-2 bg-purple-50 rounded">
-            <Building2 className="h-4 w-4 text-purple-600" />
+          <div className="flex items-center gap-2 p-2 bg-purple-50 dark:bg-purple-950/30 rounded">
+            <Building2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
             <span className="text-sm">{destinationOrg || "github-mirrors"}/my-repo</span>
           </div>
-          <div className="flex items-center gap-2 p-2 bg-purple-50 rounded">
-            <Building2 className="h-4 w-4 text-purple-600" />
+          <div className="flex items-center gap-2 p-2 bg-purple-50 dark:bg-purple-950/30 rounded">
+            <Building2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
             <span className="text-sm">{destinationOrg || "github-mirrors"}/team-repo</span>
           </div>
-          <div className="flex items-center gap-2 p-2 bg-purple-50 rounded">
-            <Building2 className="h-4 w-4 text-purple-600" />
+          <div className="flex items-center gap-2 p-2 bg-purple-50 dark:bg-purple-950/30 rounded">
+            <Building2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
             <span className="text-sm">{starredReposOrg || "starred"}/starred-repo</span>
           </div>
         </div>
@@ -168,15 +168,15 @@ const StrategyVisualizer: React.FC<{
       <div className="flex-1">
         <div className="text-sm font-medium text-muted-foreground mb-3">GitHub</div>
         <div className="space-y-2">
-          <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+          <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
             <User className="h-4 w-4" />
             <span className="text-sm">{githubUsername}/my-repo</span>
           </div>
-          <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+          <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
             <Building2 className="h-4 w-4" />
             <span className="text-sm">my-org/team-repo</span>
           </div>
-          <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+          <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
             <Star className="h-4 w-4" />
             <span className="text-sm">awesome/starred-repo</span>
           </div>
@@ -190,16 +190,16 @@ const StrategyVisualizer: React.FC<{
       <div className="flex-1">
         <div className="text-sm font-medium text-muted-foreground mb-3">Gitea</div>
         <div className="space-y-2">
-          <div className="flex items-center gap-2 p-2 bg-green-50 rounded">
-            <User className="h-4 w-4 text-green-600" />
+          <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950/30 rounded">
+            <User className="h-4 w-4 text-green-600 dark:text-green-400" />
             <span className="text-sm">{giteaUsername}/my-repo</span>
           </div>
-          <div className="flex items-center gap-2 p-2 bg-green-50 rounded">
-            <User className="h-4 w-4 text-green-600" />
+          <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950/30 rounded">
+            <User className="h-4 w-4 text-green-600 dark:text-green-400" />
             <span className="text-sm">{giteaUsername}/team-repo</span>
           </div>
-          <div className="flex items-center gap-2 p-2 bg-green-50 rounded">
-            <Building2 className="h-4 w-4 text-green-600" />
+          <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950/30 rounded">
+            <Building2 className="h-4 w-4 text-green-600 dark:text-green-400" />
             <span className="text-sm">{starredReposOrg || "starred"}/starred-repo</span>
           </div>
         </div>
@@ -270,11 +270,11 @@ export const OrganizationStrategy: React.FC<OrganizationStrategyProps> = ({
                         
                         <div className={cn(
                           "rounded-lg p-2",
-                          isSelected ? config.bgColor : "bg-muted"
+                          isSelected ? config.bgColor : "bg-muted dark:bg-muted/50"
                         )}>
                           <Icon className={cn(
                             "h-5 w-5",
-                            isSelected ? config.color : "text-muted-foreground"
+                            isSelected ? config.color : "text-muted-foreground dark:text-muted-foreground/70"
                           )} />
                         </div>
                         
@@ -296,7 +296,7 @@ export const OrganizationStrategy: React.FC<OrganizationStrategyProps> = ({
                               <div key={idx} className="flex items-center gap-2">
                                 <div className={cn(
                                   "h-1.5 w-1.5 rounded-full",
-                                  isSelected ? config.bgColor : "bg-muted"
+                                  isSelected ? config.bgColor : "bg-muted dark:bg-muted/50"
                                 )} />
                                 <span className="text-xs text-muted-foreground">{detail}</span>
                               </div>
@@ -315,7 +315,7 @@ export const OrganizationStrategy: React.FC<OrganizationStrategyProps> = ({
 
       {strategy === "single-org" && (
         <div className="space-y-4">
-          <Card className="p-4 border-purple-200 bg-purple-50/50">
+          <Card className="p-4 border-purple-200 dark:border-purple-900 bg-purple-50/50 dark:bg-purple-950/20">
             <div className="space-y-3">
               <div>
                 <Label htmlFor="destinationOrg" className="flex items-center gap-2">
@@ -344,11 +344,11 @@ export const OrganizationStrategy: React.FC<OrganizationStrategyProps> = ({
         </div>
       )}
 
-      <Card className="p-4 border-orange-200 bg-orange-50/50">
+      <Card className="p-4 border-orange-200 dark:border-orange-900 bg-orange-50/50 dark:bg-orange-950/20">
         <div className="space-y-3">
           <div>
             <Label htmlFor="starredReposOrg" className="flex items-center gap-2">
-              <Star className="h-4 w-4 text-orange-600" />
+              <Star className="h-4 w-4 text-orange-600 dark:text-orange-400" />
               Starred Repositories Organization
               <TooltipProvider>
                 <Tooltip>
@@ -368,7 +368,7 @@ export const OrganizationStrategy: React.FC<OrganizationStrategyProps> = ({
               placeholder="starred"
               className="mt-1.5"
             />
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-xs text-muted-foreground dark:text-muted-foreground/70 mt-1">
               Keep starred repos organized separately from your own repositories
             </p>
           </div>
