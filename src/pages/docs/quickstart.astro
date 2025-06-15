@@ -178,72 +178,53 @@ bun run start</code></pre>
         <!-- LXC Installation -->
         <div>
           <h3 class="text-xl font-semibold mb-4 flex items-center gap-2">
-            📦 Using LXC Containers <span class="text-sm text-muted-foreground font-normal">(Recommended for server deployments)</span>
+            📦 Using LXC Containers <span class="text-sm text-muted-foreground font-normal">(Recommended for Proxmox VE)</span>
           </h3>
           
           <div class="bg-card rounded-lg border border-border p-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div class="space-y-4">
-                <h4 class="font-semibold flex items-center gap-2">
-                  <span>Proxmox VE</span>
-                  <span class="text-xs text-muted-foreground font-normal">(Online Installation)</span>
-                </h4>
-                
-                <p class="text-sm text-muted-foreground">For deploying on a Proxmox VE host with internet access:</p>
-                
-                <div class="bg-muted/30 rounded-lg p-4">
-                  <pre class="text-sm"><code># Optional env overrides: 
-# CTID HOSTNAME STORAGE DISK_SIZE 
-# CORES MEMORY BRIDGE IP_CONF
-sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/arunavo4/gitea-mirror/main/scripts/gitea-mirror-lxc-proxmox.sh)"</code></pre>
-                </div>
-                
-                <div class="text-sm text-muted-foreground space-y-1">
-                  <p class="font-medium">This script:</p>
-                  <ul class="space-y-1 pl-4">
-                    <li class="flex gap-2"><span>•</span> Creates a privileged LXC container</li>
-                    <li class="flex gap-2"><span>•</span> Installs Bun and dependencies</li>
-                    <li class="flex gap-2"><span>•</span> Clones and builds the application</li>
-                    <li class="flex gap-2"><span>•</span> Sets up a systemd service</li>
-                  </ul>
-                </div>
+            <div class="space-y-4">
+              <h4 class="font-semibold flex items-center gap-2">
+                <span>Proxmox VE Installation</span>
+                <span class="text-xs text-muted-foreground font-normal">(Community Script)</span>
+              </h4>
+              
+              <p class="text-sm text-muted-foreground mb-4">Deploy Gitea Mirror on Proxmox VE using the community-maintained script:</p>
+              
+              <div class="bg-muted/30 rounded-lg p-4 overflow-x-auto">
+                <pre class="text-sm whitespace-pre-wrap break-all"><code>bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/ct/gitea-mirror.sh)"</code></pre>
               </div>
               
-              <div class="space-y-4">
-                <h4 class="font-semibold flex items-center gap-2">
-                  <span>Local LXD</span>
-                  <span class="text-xs text-muted-foreground font-normal">(Offline-friendly)</span>
-                </h4>
-                
-                <p class="text-sm text-muted-foreground">For testing or environments without internet access:</p>
-                
-                <ol class="space-y-3 text-sm">
-                  <li>
-                    <span class="text-muted-foreground">1. Clone the repository locally:</span>
-                    <div class="bg-muted/30 rounded-lg p-3 mt-1">
-                      <pre><code>git clone https://github.com/arunavo4/gitea-mirror.git</code></pre>
-                    </div>
-                  </li>
-                  <li>
-                    <span class="text-muted-foreground">2. Download Bun installer:</span>
-                    <div class="bg-muted/30 rounded-lg p-3 mt-1">
-                      <pre><code>curl -L -o /tmp/bun-linux-x64.zip \
-  https://github.com/oven-sh/bun/releases/latest/download/bun-linux-x64.zip</code></pre>
-                    </div>
-                  </li>
-                  <li>
-                    <span class="text-muted-foreground">3. Run local LXC installer:</span>
-                    <div class="bg-muted/30 rounded-lg p-3 mt-1">
-                      <pre><code>sudo LOCAL_REPO_DIR=~/path/to/gitea-mirror \
-  ./gitea-mirror/scripts/gitea-mirror-lxc-local.sh</code></pre>
-                    </div>
-                  </li>
-                </ol>
+              <div class="mt-4 text-sm text-muted-foreground">
+                <p class="font-medium mb-2">This script will:</p>
+                <ul class="space-y-1 pl-4">
+                  <li class="flex gap-2"><span>•</span> Create a privileged Alpine Linux LXC container</li>
+                  <li class="flex gap-2"><span>•</span> Install Bun runtime and dependencies</li>
+                  <li class="flex gap-2"><span>•</span> Clone and build Gitea Mirror</li>
+                  <li class="flex gap-2"><span>•</span> Configure systemd service for automatic startup</li>
+                  <li class="flex gap-2"><span>•</span> Set up the application to run on port 4321</li>
+                </ul>
+              </div>
+              
+              <div class="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                <div class="flex gap-3">
+                  <div class="text-blue-600 dark:text-blue-500">
+                    <svg class="w-5 h-5 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                  </div>
+                  <div class="text-sm">
+                    <p class="font-semibold text-blue-600 dark:text-blue-500 mb-1">Note</p>
+                    <p>After installation, access Gitea Mirror at <code class="bg-blue-500/10 px-1 py-0.5 rounded">http://&lt;container-ip&gt;:4321</code></p>
+                  </div>
+                </div>
               </div>
             </div>
             
             <div class="mt-4 pt-4 border-t border-border">
-              <p class="text-sm text-muted-foreground">For more details, see the <a href="https://github.com/arunavo4/gitea-mirror/blob/main/scripts/README-lxc.md" class="text-primary hover:underline">LXC Container Deployment Guide</a>.</p>
+              <p class="text-sm text-muted-foreground">
+                For more information about the community script, visit the 
+                <a href="https://community-scripts.github.io/ProxmoxVE/scripts?id=gitea-mirror" class="text-primary hover:underline">Community Scripts documentation</a>.
+              </p>
             </div>
           </div>
         </div>

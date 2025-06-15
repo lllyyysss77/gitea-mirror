@@ -11,16 +11,16 @@ const envVars = [
 
 const githubOptions = [
   { name: 'Username', desc: 'Your GitHub username', default: '-' },
-  { name: 'Token', desc: 'GitHub personal access token', default: '-' },
-  { name: 'Skip Forks', desc: 'Skip forked repositories', default: 'false' },
+  { name: 'Token', desc: 'GitHub personal access token (Classic PAT)', default: '-' },
   { name: 'Private Repositories', desc: 'Include private repositories', default: 'false' },
+  { name: 'Mirror Starred', desc: 'Mirror repositories you\'ve starred', default: 'false' },
   { name: 'Mirror Issues', desc: 'Mirror issues from GitHub to Gitea', default: 'false' },
   { name: 'Mirror Wiki', desc: 'Mirror wiki pages from GitHub to Gitea', default: 'false' },
-  { name: 'Mirror Starred', desc: 'Mirror starred repositories', default: 'false' },
   { name: 'Mirror Organizations', desc: 'Mirror organization repositories', default: 'false' },
   { name: 'Only Mirror Orgs', desc: 'Only mirror organization repositories', default: 'false' },
   { name: 'Preserve Org Structure', desc: 'Maintain organization structure in Gitea', default: 'false' },
-  { name: 'Skip Starred Issues', desc: 'Skip mirroring issues for starred repositories', default: 'false' }
+  { name: 'Skip Forks', desc: 'Exclude repositories that are forks', default: 'false' },
+  { name: 'Skip Starred Issues', desc: 'Skip issues for starred repositories', default: 'false' }
 ];
 
 const giteaOptions = [
@@ -196,7 +196,7 @@ const giteaOptions = [
               </div>
               <div>
                 <h4 class="font-semibold text-blue-600 dark:text-blue-500 mb-2">Required Permissions</h4>
-                <p class="text-sm mb-3">Your GitHub token needs the following permissions:</p>
+                <p class="text-sm mb-3">You need to create a <span class="font-semibold">Classic GitHub PAT Token</span> with the following scopes:</p>
                 <ul class="space-y-1 text-sm">
                   <li class="flex gap-2">
                     <span class="text-blue-600 dark:text-blue-500">•</span>
@@ -204,13 +204,10 @@ const giteaOptions = [
                   </li>
                   <li class="flex gap-2">
                     <span class="text-blue-600 dark:text-blue-500">•</span>
-                    <span><code class="bg-blue-500/10 px-1 py-0.5 rounded">read:org</code> - Read organization membership</span>
-                  </li>
-                  <li class="flex gap-2">
-                    <span class="text-blue-600 dark:text-blue-500">•</span>
-                    <span><code class="bg-blue-500/10 px-1 py-0.5 rounded">read:user</code> - Read user profile data</span>
+                    <span><code class="bg-blue-500/10 px-1 py-0.5 rounded">admin:org</code> - Full control of orgs and teams, read and write org projects</span>
                   </li>
                 </ul>
+                <p class="text-sm mt-2">The organization access is required for mirroring organization repositories.</p>
               </div>
             </div>
           </div>
@@ -301,43 +298,14 @@ const giteaOptions = [
       <section class="mb-12">
         <h2 class="text-2xl font-bold mb-6">Advanced Configuration</h2>
 
-        <!-- Repository Filtering -->
-        <div class="mb-8">
-          <h3 class="text-xl font-semibold mb-4">Repository Filtering</h3>
-          
-          <div class="bg-gradient-to-r from-primary/5 to-transparent rounded-lg p-6 border-l-4 border-primary">
-            <p class="mb-4">You can include or exclude specific repositories using patterns:</p>
-            
-            <div class="space-y-4">
-              <div>
-                <h4 class="font-semibold mb-2">Include Patterns</h4>
-                <p class="text-sm text-muted-foreground">Only repositories matching these patterns will be mirrored</p>
-              </div>
-              
-              <div>
-                <h4 class="font-semibold mb-2">Exclude Patterns</h4>
-                <p class="text-sm text-muted-foreground">Repositories matching these patterns will be skipped</p>
-              </div>
-            </div>
-            
-            <div class="mt-6 bg-muted/30 rounded-lg p-4">
-              <h5 class="font-semibold mb-2">Example Patterns</h5>
-              <ul class="space-y-1 text-sm font-mono">
-                <li><code>*</code> - All repositories</li>
-                <li><code>org-name/*</code> - All repositories in a specific organization</li>
-                <li><code>username/repo-name</code> - A specific repository</li>
-              </ul>
-            </div>
-          </div>
-        </div>
 
         <!-- Database Management -->
         <div class="mb-8">
           <h3 class="text-xl font-semibold mb-4">Database Management</h3>
           <p class="text-muted-foreground mb-4">Gitea Mirror includes several database management tools that can be run from the command line:</p>
           
-          <div class="bg-muted/30 rounded-lg p-4">
-            <pre class="text-sm"><code>{`# Initialize the database (only if it doesn't exist)
+          <div class="bg-muted/30 rounded-lg p-4 overflow-x-auto">
+            <pre class="text-sm whitespace-pre-wrap break-all"><code>{`# Initialize the database (only if it doesn't exist)
 bun run init-db
 
 # Check database status
@@ -357,16 +325,8 @@ bun run cleanup-db`}</code></pre>
         <!-- Event Management -->
         <div class="mb-8">
           <h3 class="text-xl font-semibold mb-4">Event Management</h3>
-          <p class="text-muted-foreground mb-4">Events in Gitea Mirror (such as repository mirroring operations) are stored in the SQLite database. You can manage these events using the following scripts:</p>
+          <p class="text-muted-foreground mb-4">Events in Gitea Mirror (such as repository mirroring operations) are stored in the SQLite database and can be viewed in the Activity Log page.</p>
           
-          <div class="bg-muted/30 rounded-lg p-4 mb-4">
-            <pre class="text-sm"><code>{`# View all events in the database
-bun scripts/check-events.ts
-
-# Mark all events as read
-bun scripts/mark-events-read.ts`}</code></pre>
-          </div>
-
           <div class="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
             <div class="flex gap-3">
               <div class="text-green-600 dark:text-green-500">
@@ -375,8 +335,70 @@ bun scripts/mark-events-read.ts`}</code></pre>
                 </svg>
               </div>
               <div>
-                <p class="text-sm">For cleaning up old activities and events, use the cleanup button in the Activity Log page of the web interface.</p>
+                <p class="text-sm mb-2">Event Management Features:</p>
+                <ul class="space-y-1 text-sm">
+                  <li class="flex gap-2">
+                    <span class="text-green-600 dark:text-green-500">•</span>
+                    <span>View all events with filtering by type, status, and search</span>
+                  </li>
+                  <li class="flex gap-2">
+                    <span class="text-green-600 dark:text-green-500">•</span>
+                    <span>Real-time updates via Server-Sent Events (SSE)</span>
+                  </li>
+                  <li class="flex gap-2">
+                    <span class="text-green-600 dark:text-green-500">•</span>
+                    <span>Clean up old events using the cleanup button in the Activity Log</span>
+                  </li>
+                  <li class="flex gap-2">
+                    <span class="text-green-600 dark:text-green-500">•</span>
+                    <span>Automatic cleanup with configurable retention period</span>
+                  </li>
+                </ul>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Automatic Recovery System -->
+        <div class="mb-8">
+          <h3 class="text-xl font-semibold mb-4">Automatic Recovery System</h3>
+          <p class="text-muted-foreground mb-4">Gitea Mirror includes a robust recovery system that automatically handles interrupted operations:</p>
+          
+          <div class="bg-card rounded-lg border border-border p-6">
+            <ul class="space-y-3">
+              <li class="flex gap-2">
+                <span class="text-primary">✓</span>
+                <div>
+                  <span class="font-semibold">Startup Recovery:</span>
+                  <p class="text-sm text-muted-foreground mt-1">Automatically recovers interrupted jobs when the application starts</p>
+                </div>
+              </li>
+              <li class="flex gap-2">
+                <span class="text-primary">✓</span>
+                <div>
+                  <span class="font-semibold">Graceful Shutdown:</span>
+                  <p class="text-sm text-muted-foreground mt-1">Saves job state before shutting down to enable recovery on restart</p>
+                </div>
+              </li>
+              <li class="flex gap-2">
+                <span class="text-primary">✓</span>
+                <div>
+                  <span class="font-semibold">Job State Persistence:</span>
+                  <p class="text-sm text-muted-foreground mt-1">Stores mirror job progress in the database for resilience</p>
+                </div>
+              </li>
+            </ul>
+            
+            <div class="mt-4 bg-muted/30 rounded-lg p-4 overflow-x-auto">
+              <p class="text-sm font-medium mb-2">Manual recovery tools:</p>
+              <pre class="text-sm whitespace-pre-wrap break-all"><code>{`# Run startup recovery manually
+bun run startup-recovery
+
+# Fix interrupted jobs
+bun scripts/fix-interrupted-jobs.ts
+
+# Test recovery system
+bun run test-recovery`}</code></pre>
             </div>
           </div>
         </div>
@@ -408,8 +430,8 @@ bun scripts/mark-events-read.ts`}</code></pre>
               </li>
             </ul>
             
-            <div class="bg-muted/30 rounded-lg p-4">
-              <pre class="text-sm"><code>{`# Basic check (returns 200 OK if healthy)
+            <div class="bg-muted/30 rounded-lg p-4 overflow-x-auto">
+              <pre class="text-sm whitespace-pre-wrap break-all"><code>{`# Basic check (returns 200 OK if healthy)
 curl -I http://your-server:port/api/health
 
 # Detailed health information (JSON)

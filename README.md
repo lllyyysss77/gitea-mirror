@@ -167,36 +167,27 @@ docker compose up -d
 
 See [Docker build documentation](./scripts/README-docker.md) for more details.
 
-##### Using LXC Containers
+##### Using LXC Containers (Proxmox VE)
 
-Gitea Mirror offers two deployment options for LXC containers:
-
-**1. Proxmox VE (online, recommended for production)**
+For Proxmox VE users, Gitea Mirror can be deployed using the community-maintained script:
 
 ```bash
 # One-command installation on Proxmox VE
-# Uses the community-maintained script by Tobias ([CrazyWolf13](https://github.com/CrazyWolf13))
-# at [community-scripts/ProxmoxVE](https://github.com/community-scripts/ProxmoxVE)
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/ct/gitea-mirror.sh)"
 ```
 
-**2. Local testing (offline-friendly, works on developer laptops)**
+This community script:
+- Creates a privileged Alpine Linux LXC container
+- Installs Bun runtime environment
+- Clones and builds Gitea Mirror
+- Configures a systemd service for automatic startup
+- Sets up the application to run on port 4321
 
-```bash
-# Download the script
-curl -fsSL https://raw.githubusercontent.com/arunavo4/gitea-mirror/main/scripts/gitea-mirror-lxc-local.sh -o gitea-mirror-lxc-local.sh
-chmod +x gitea-mirror-lxc-local.sh
+> [!NOTE]
+> The script is maintained by the [Community Scripts for Proxmox VE](https://community-scripts.github.io/ProxmoxVE/) project.
+> For more information, visit the [Gitea Mirror script documentation](https://community-scripts.github.io/ProxmoxVE/scripts?id=gitea-mirror).
 
-# Run with your local repo directory
-sudo LOCAL_REPO_DIR=~/Development/gitea-mirror ./gitea-mirror-lxc-local.sh
-```
-
-Both scripts:
-- Set up a privileged Ubuntu 22.04 LXC container
-- Install Bun runtime environment
-- Build the application
-- Configure a systemd service
-- Start the service automatically
+After installation, access Gitea Mirror at `http://<container-ip>:4321`
 
 The application includes a health check endpoint at `/api/health` for monitoring.
 

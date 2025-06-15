@@ -41,11 +41,12 @@ import MainLayout from '../../layouts/main.astro';
             <h3 class="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Technology Stack</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               {[
-                { name: 'Astro', desc: 'Web framework for the frontend' },
+                { name: 'Astro', desc: 'Web framework for Server-Side Rendering (SSR)' },
                 { name: 'React', desc: 'Component library for interactive UI elements' },
+                { name: 'Tailwind CSS v4', desc: 'Utility-first CSS framework (with Vite plugin)' },
                 { name: 'Shadcn UI', desc: 'UI component library built on Tailwind CSS' },
                 { name: 'SQLite', desc: 'Database for storing configuration, state, and events' },
-                { name: 'Bun', desc: 'Runtime environment for the backend' },
+                { name: 'Bun', desc: 'JavaScript runtime and package manager' },
                 { name: 'Drizzle ORM', desc: 'Type-safe ORM for database interactions' }
               ].map(tech => (
                 <div class="flex items-start gap-3">
@@ -186,8 +187,12 @@ import MainLayout from '../../layouts/main.astro';
                 'Authentication and user management',
                 'GitHub API integration',
                 'Gitea API integration',
-                'Mirroring operations',
-                'Database interactions'
+                'Mirroring operations and job queue',
+                'Real-time updates via Server-Sent Events (SSE) at /api/sse/',
+                'Job recovery system for interrupted operations',
+                'Graceful shutdown handling',
+                'Scheduled automatic mirroring',
+                'Database interactions with Drizzle ORM'
               ].map(item => (
                 <div class="flex gap-3">
                   <span class="text-primary font-mono text-sm">▸</span>
@@ -288,7 +293,7 @@ import MainLayout from '../../layouts/main.astro';
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
           {[
             { icon: '🐳', name: 'Docker', desc: 'Run as a containerized application using Docker and docker-compose' },
-            { icon: '📦', name: 'LXC Containers', desc: 'Deploy in Linux Containers on Proxmox VE or local workstations' },
+            { icon: '📦', name: 'LXC Containers', desc: 'Deploy in Linux Containers on Proxmox VE using community script' },
             { icon: '🏃', name: 'Native', desc: 'Run directly on the host system using Bun runtime' }
           ].map(option => (
             <div class="bg-card rounded-lg border border-border p-4 hover:border-primary/50 transition-colors">
@@ -322,7 +327,7 @@ import MainLayout from '../../layouts/main.astro';
         </div>
         
         <div class="mt-4 text-sm text-muted-foreground">
-          <p><strong>Note:</strong> LXC deployment includes a community script by <a href="https://github.com/CrazyWolf13" class="text-primary hover:underline">Tobias/CrazyWolf13</a></p>
+          <p><strong>Note:</strong> LXC deployment is available through the <a href="https://community-scripts.github.io/ProxmoxVE/scripts?id=gitea-mirror" class="text-primary hover:underline">Proxmox VE Community Scripts</a> project.</p>
         </div>
       </section>
     </article>

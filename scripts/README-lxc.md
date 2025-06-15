@@ -1,42 +1,46 @@
 # LXC Container Deployment Guide
 
 ## Overview
-Run **Gitea Mirror** in an isolated LXC container, either:
+Run **Gitea Mirror** in an isolated LXC container:
 
-1. **Online, on a Proxmox VE host** – script pulls everything from GitHub
-2. **Offline / LAN-only, on a developer laptop** – script pushes your local checkout + Bun ZIP
+1. **Proxmox VE (Recommended)** – Using the community-maintained script
+2. **Local Development** – Using the local LXC script for testing
 
 ---
 
-## 1. Proxmox VE (online, recommended for prod)
+## 1. Proxmox VE Installation (Recommended)
 
 ### Prerequisites
-* Proxmox VE node with the default `vmbr0` bridge
-* Root shell on the node
-* Ubuntu 22.04 LXC template present (`pveam update && pveam download ...`)
+* Proxmox VE host with internet access
+* Root shell access on the Proxmox node
 
 ### One-command install
 
 ```bash
-# Community-maintained script for Proxmox VE by Tobias ([CrazyWolf13](https://github.com/CrazyWolf13))
-# at [community-scripts/ProxmoxVE](https://github.com/community-scripts/ProxmoxVE)
-# Official documentation: https://community-scripts.github.io/ProxmoxVE/scripts?id=gitea-mirror
+# Community-maintained script from the Proxmox VE Community Scripts project
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/ct/gitea-mirror.sh)"
 ```
 
-What it does:
+### What the script does:
 
-* Uses the community-maintained script from [Community Scripts for Proxmox VE](https://community-scripts.github.io/ProxmoxVE/)
-* Installs dependencies and Bun runtime
-* Clones & builds `arunavo4/gitea-mirror`
-* Creates a systemd service and starts it
-* Sets up a random `JWT_SECRET` for security
+* Creates a privileged Alpine Linux LXC container
+* Installs Bun runtime environment
+* Clones the Gitea Mirror repository
+* Builds the application
+* Configures a systemd service for automatic startup
+* Sets up the application to run on port 4321
+* Generates a secure `JWT_SECRET` automatically
 
-Browse to:
+### Accessing Gitea Mirror:
 
 ```
 http://<container-ip>:4321
 ```
+
+### Additional Information:
+* **Script Source**: [Community Scripts for Proxmox VE](https://github.com/community-scripts/ProxmoxVE)
+* **Documentation**: [Gitea Mirror Script Documentation](https://community-scripts.github.io/ProxmoxVE/scripts?id=gitea-mirror)
+* **Support**: [Community Scripts Discord](https://discord.gg/fiXVvSHnBU)
 
 ---
 
