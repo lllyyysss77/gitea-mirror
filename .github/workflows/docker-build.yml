@@ -106,7 +106,7 @@ jobs:
 
       # Docker Scout comprehensive security analysis
       - name: Docker Scout - Vulnerability Analysis & Recommendations
-        uses: docker/scout-action@v1.18.1
+        uses: docker/scout-action@v1
         with:
           command: cves,recommendations
           image: ${{ steps.meta.outputs.tags }}
@@ -119,7 +119,7 @@ jobs:
 
       # Compare to latest for PRs and pushes
       - name: Docker Scout - Compare to Latest
-        uses: docker/scout-action@v1.18.1
+        uses: docker/scout-action@v1
         if: github.event_name == 'pull_request'
         with:
           command: compare
@@ -139,7 +139,7 @@ jobs:
 
       # Docker Scout policy evaluation
       - name: Docker Scout - Policy Evaluation
-        uses: docker/scout-action@v1.18.1
+        uses: docker/scout-action@v1
         if: always()
         with:
           command: policy
