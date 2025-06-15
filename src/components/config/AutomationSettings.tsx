@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -9,8 +9,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import {
   Clock,
   Database,
@@ -28,7 +26,6 @@ import {
 } from "@/components/ui/tooltip";
 import type { ScheduleConfig, DatabaseCleanupConfig } from "@/types/config";
 import { formatDate } from "@/lib/utils";
-import { cn } from "@/lib/utils";
 
 interface AutomationSettingsProps {
   scheduleConfig: ScheduleConfig;
@@ -105,12 +102,12 @@ export function AutomationSettings({
       </CardHeader>
       
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Automatic Mirroring Section */}
-          <div className="space-y-4">
+          <div className="space-y-4 p-4 border border-border rounded-lg bg-card/50">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium flex items-center gap-2">
-                <RefreshCw className="h-4 w-4" />
+                <RefreshCw className="h-4 w-4 text-primary" />
                 Automatic Mirroring
               </h3>
               {isAutoSavingSchedule && (
@@ -173,7 +170,7 @@ export function AutomationSettings({
                 </div>
               )}
 
-              <div className="space-y-2 p-3 bg-muted/50 dark:bg-muted/20 rounded-md">
+              <div className="space-y-2 p-3 bg-muted/30 dark:bg-muted/10 rounded-md border border-border/50">
                 <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-1.5">
                     <Clock className="h-3.5 w-3.5" />
@@ -201,10 +198,10 @@ export function AutomationSettings({
           </div>
 
           {/* Database Cleanup Section */}
-          <div className="space-y-4">
+          <div className="space-y-4 p-4 border border-border rounded-lg bg-card/50">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium flex items-center gap-2">
-                <Database className="h-4 w-4" />
+                <Database className="h-4 w-4 text-primary" />
                 Database Maintenance
               </h3>
               {isAutoSavingCleanup && (
@@ -285,7 +282,7 @@ export function AutomationSettings({
                 </div>
               )}
 
-              <div className="space-y-2 p-3 bg-muted/50 dark:bg-muted/20 rounded-md">
+              <div className="space-y-2 p-3 bg-muted/30 dark:bg-muted/10 rounded-md border border-border/50">
                 <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-1.5">
                     <Clock className="h-3.5 w-3.5" />
