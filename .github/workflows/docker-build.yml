@@ -96,10 +96,10 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ github.event_name == 'pull_request' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
           push: ${{ github.event_name != 'pull_request' }}
           load: ${{ github.event_name == 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ github.event_name == 'pull_request' && 'gitea-mirror:scan' || steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -107,9 +107,24 @@ jobs:
       # Docker Scout comprehensive security analysis
       - name: Docker Scout - Vulnerability Analysis & Recommendations
         uses: docker/scout-action@v1
+        if: github.event_name != 'pull_request'
         with:
           command: cves,recommendations
-          image: ${{ steps.meta.outputs.tags }}
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ env.SHA }}
+          sarif-file: scout-results.sarif
+          summary: true
+          exit-code: true
+          only-severities: critical,high
+          write-comment: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Docker Scout for Pull Requests (using local image)
+      - name: Docker Scout - Vulnerability Analysis (PR)
+        uses: docker/scout-action@v1
+        if: github.event_name == 'pull_request'
+        with:
+          command: cves,recommendations
+          image: local://gitea-mirror:scan
           sarif-file: scout-results.sarif
           summary: true
           exit-code: true
@@ -123,7 +138,7 @@ jobs:
         if: github.event_name == 'pull_request'
         with:
           command: compare
-          image: ${{ steps.meta.outputs.tags }}
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ env.SHA }}
           to: ${{ env.REGISTRY }}/${{ env.IMAGE }}:latest
           ignore-unchanged: true
           only-severities: critical,high
@@ -143,7 +158,7 @@ jobs:
         if: always()
         with:
           command: policy
-          image: ${{ steps.meta.outputs.tags }}
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ env.SHA }}
           exit-code: false
           write-comment: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
