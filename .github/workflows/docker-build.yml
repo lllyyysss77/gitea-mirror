@@ -104,13 +104,20 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # Wait for image to be available in registry
+      - name: Wait for image availability
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "Waiting for image to be available in registry..."
+          sleep 5
+
       # Docker Scout comprehensive security analysis
       - name: Docker Scout - Vulnerability Analysis & Recommendations
         uses: docker/scout-action@v1
         if: github.event_name != 'pull_request'
         with:
           command: cves,recommendations
-          image: ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ env.SHA }}
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE }}:latest
           sarif-file: scout-results.sarif
           summary: true
           exit-code: true
@@ -138,7 +145,7 @@ jobs:
         if: github.event_name == 'pull_request'
         with:
           command: compare
-          image: ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ env.SHA }}
+          image: local://gitea-mirror:scan
           to: ${{ env.REGISTRY }}/${{ env.IMAGE }}:latest
           ignore-unchanged: true
           only-severities: critical,high
@@ -155,10 +162,10 @@ jobs:
       # Docker Scout policy evaluation
       - name: Docker Scout - Policy Evaluation
         uses: docker/scout-action@v1
-        if: always()
+        if: always() && github.event_name != 'pull_request'
         with:
           command: policy
-          image: ${{ env.REGISTRY }}/${{ env.IMAGE }}:${{ env.SHA }}
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE }}:latest
           exit-code: false
           write-comment: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
