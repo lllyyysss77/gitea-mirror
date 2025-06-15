@@ -1,18 +1,37 @@
 ---
-import { getCollection } from 'astro:content';
 import MainLayout from '../../layouts/main.astro';
 import { LuSettings, LuRocket, LuBookOpen } from 'react-icons/lu';
 
-// Helper to pick an icon based on doc.slug
-// We'll use inline conditional rendering instead of this function
+// Define our documentation pages directly
+const docs = [
+  {
+    slug: 'architecture',
+    title: 'Architecture',
+    description: 'Comprehensive overview of the Gitea Mirror application architecture.',
+    order: 1,
+    icon: LuBookOpen,
+    href: '/docs/architecture'
+  },
+  {
+    slug: 'configuration',
+    title: 'Configuration',
+    description: 'Guide to configuring Gitea Mirror for your environment.',
+    order: 2,
+    icon: LuSettings,
+    href: '/docs/configuration'
+  },
+  {
+    slug: 'quickstart',
+    title: 'Quick Start Guide',
+    description: 'Get started with Gitea Mirror quickly.',
+    order: 3,
+    icon: LuRocket,
+    href: '/docs/quickstart'
+  }
+];
 
-// Get all documentation entries, sorted by order
-const docs = await getCollection('docs');
-const sortedDocs = docs.sort((a, b) => {
-  const orderA = a.data.order || 999;
-  const orderB = b.data.order || 999;
-  return orderA - orderB;
-});
+// Sort by order
+const sortedDocs = docs.sort((a, b) => a.order - b.order);
 ---
 
 <MainLayout title="Documentation">
@@ -21,24 +40,25 @@ const sortedDocs = docs.sort((a, b) => {
     <p class="mb-10 text-lg text-muted-foreground text-center">Browse guides and technical docs for Gitea Mirror.</p>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-      {sortedDocs.map(doc => (
-        <a
-          href={`/docs/${doc.slug}`}
-          class="group block p-7 border border-border rounded-2xl bg-card hover:bg-muted transition-colors shadow-lg focus:ring-2 focus:ring-ring outline-none"
-          tabindex="0"
-        >
-          <div class="flex items-center gap-3 mb-2">
-            <div class="w-10 h-10 bg-muted rounded-full flex items-center justify-center text-muted-foreground">
-              {doc.slug === 'architecture' && <LuBookOpen className="w-5 h-5" />}
-              {doc.slug === 'configuration' && <LuSettings className="w-5 h-5" />}
-              {doc.slug === 'quickstart' && <LuRocket className="w-5 h-5" />}
-              {!['architecture', 'configuration', 'quickstart'].includes(doc.slug) && <LuBookOpen className="w-5 h-5" />}
+      {sortedDocs.map(doc => {
+        const Icon = doc.icon;
+        
+        return (
+          <a
+            href={doc.href}
+            class="group block p-7 border border-border rounded-2xl bg-card hover:bg-muted transition-colors shadow-lg focus:ring-2 focus:ring-ring outline-none"
+            tabindex="0"
+          >
+            <div class="flex items-center gap-3 mb-2">
+              <div class="w-10 h-10 bg-muted rounded-full flex items-center justify-center text-muted-foreground">
+                <Icon className="w-5 h-5" />
+              </div>
+              <h2 class="text-xl font-semibold group-hover:text-foreground transition">{doc.title}</h2>
             </div>
-            <h2 class="text-xl font-semibold group-hover:text-foreground transition">{doc.data.title}</h2>
-          </div>
-          <p class="text-muted-foreground">{doc.data.description}</p>
-        </a>
-      ))}
+            <p class="text-muted-foreground">{doc.description}</p>
+          </a>
+        );
+      })}
     </div>
   </main>
 </MainLayout>
