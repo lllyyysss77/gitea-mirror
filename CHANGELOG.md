@@ -5,6 +5,41 @@ All notable changes to the Gitea Mirror project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.13.0] - 2025-06-15
+
+### Added
+- Enhanced Configuration Interface with collapsible components and improved organization strategy UI
+- Wiki Mirroring Support in configuration settings
+- Auto-Save Functionality for all config forms, eliminating manual save buttons
+- Live Refresh functionality with configuration status hooks and enhanced UI components
+- Enhanced API Config Handling with mapping functions for UI and database structures
+- Secure Error Responses with createSecureErrorResponse for consistent error handling
+- Automatic Database Cleanup feature with configuration options and API support
+- Enhanced Job Recovery with improved database schema and recovery mechanisms
+- Fork tags to repository UI and enhanced organization cards with repository breakdown
+- Skeleton loaders and better loading state management across the application
+
+### Improved
+- Navigation context and component loading states across the application
+- Card components alignment and styling consistency
+- Error logging and structured error message parsing
+- HTTP client standardization across the application
+- Database initialization and management processes
+- Visual consistency with updated icons and custom logo integration
+
+### Fixed
+- Repository mirroring status inconsistencies
+- Organizations getting stuck on mirroring status when empty
+- JSON parsing errors and improved error handling
+- Broken documentation links in README
+- Various UI contrast and alignment issues
+
+### Changed
+- Migrated testing framework to Bun and updated test configurations
+- Implemented graceful shutdown and enhanced job recovery capabilities
+- Replaced SiGitea icons with custom logo
+- Updated various dependencies for improved stability and performance
+
 ## [2.12.0] - 2025-01-27
 
 ### Fixed
