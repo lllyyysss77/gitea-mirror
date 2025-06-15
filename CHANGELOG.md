@@ -5,6 +5,28 @@ All notable changes to the Gitea Mirror project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.13.1] - 2025-06-15
+
+### Added
+- Docker Hub authentication for Docker Scout security scanning
+- Comprehensive Docker workflow consolidation with build, push & security scan
+
+### Improved
+- Enhanced CI/CD pipeline reliability with better error handling
+- Updated Bun base image to latest version for improved security
+- Migrated from Trivy to Docker Scout for more comprehensive security scanning
+- Enhanced Docker workflow with wait steps for image availability
+
+### Fixed
+- Docker Scout action integration issues and image reference problems
+- Workflow reliability improvements with proper error handling
+- Security scanning workflow now continues on security issues without failing the build
+
+### Changed
+- Updated package dependencies to latest versions
+- Consolidated multiple Docker workflows into single comprehensive workflow
+- Enhanced security scanning with Docker Scout integration
+
 ## [2.13.0] - 2025-06-15
 
 ### Added
