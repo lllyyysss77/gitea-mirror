@@ -1,10 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
-import { Info, GitBranch, FolderTree, Package, Star, Building2, User } from "lucide-react";
+import { Info, GitBranch, FolderTree, Package, Star, Building2, User, ChevronDown, ChevronUp } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -12,6 +12,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 export type MirrorStrategy = "preserve" | "single-org" | "flat-user";
 
@@ -74,7 +79,12 @@ const StrategyVisualizer: React.FC<{
   starredReposOrg?: string;
   githubUsername?: string;
   giteaUsername?: string;
-}> = ({ strategy, destinationOrg, starredReposOrg, githubUsername = "you", giteaUsername = "you" }) => {
+}> = ({ strategy, destinationOrg, starredReposOrg, githubUsername, giteaUsername }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const displayGithubUsername = githubUsername || "<username>";
+  const displayGiteaUsername = giteaUsername || "<username>";
+  const isGithubPlaceholder = !githubUsername;
+  const isGiteaPlaceholder = !giteaUsername;
   const renderPreserveStructure = () => (
     <div className="flex items-center justify-between gap-8 p-6">
       <div className="flex-1">
@@ -82,7 +92,7 @@ const StrategyVisualizer: React.FC<{
         <div className="space-y-2">
           <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
             <User className="h-4 w-4" />
-            <span className="text-sm">{githubUsername}/my-repo</span>
+            <span className={cn("text-sm", isGithubPlaceholder && "text-muted-foreground italic")}>{displayGithubUsername}/my-repo</span>
           </div>
           <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
             <Building2 className="h-4 w-4" />
@@ -104,7 +114,7 @@ const StrategyVisualizer: React.FC<{
         <div className="space-y-2">
           <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-950/30 rounded">
             <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            <span className="text-sm">{giteaUsername}/my-repo</span>
+            <span className={cn("text-sm", isGiteaPlaceholder && "text-muted-foreground italic")}>{displayGiteaUsername}/my-repo</span>
           </div>
           <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-950/30 rounded">
             <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
@@ -126,7 +136,7 @@ const StrategyVisualizer: React.FC<{
         <div className="space-y-2">
           <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
             <User className="h-4 w-4" />
-            <span className="text-sm">{githubUsername}/my-repo</span>
+            <span className={cn("text-sm", isGithubPlaceholder && "text-muted-foreground italic")}>{displayGithubUsername}/my-repo</span>
           </div>
           <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
             <Building2 className="h-4 w-4" />
@@ -170,7 +180,7 @@ const StrategyVisualizer: React.FC<{
         <div className="space-y-2">
           <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
             <User className="h-4 w-4" />
-            <span className="text-sm">{githubUsername}/my-repo</span>
+            <span className={cn("text-sm", isGithubPlaceholder && "text-muted-foreground italic")}>{displayGithubUsername}/my-repo</span>
           </div>
           <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
             <Building2 className="h-4 w-4" />
@@ -192,11 +202,11 @@ const StrategyVisualizer: React.FC<{
         <div className="space-y-2">
           <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950/30 rounded">
             <User className="h-4 w-4 text-green-600 dark:text-green-400" />
-            <span className="text-sm">{giteaUsername}/my-repo</span>
+            <span className={cn("text-sm", isGiteaPlaceholder && "text-muted-foreground italic")}>{displayGiteaUsername}/my-repo</span>
           </div>
           <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950/30 rounded">
             <User className="h-4 w-4 text-green-600 dark:text-green-400" />
-            <span className="text-sm">{giteaUsername}/team-repo</span>
+            <span className={cn("text-sm", isGiteaPlaceholder && "text-muted-foreground italic")}>{displayGiteaUsername}/team-repo</span>
           </div>
           <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950/30 rounded">
             <Building2 className="h-4 w-4 text-green-600 dark:text-green-400" />
@@ -209,17 +219,30 @@ const StrategyVisualizer: React.FC<{
 
   return (
     <div className="mt-4">
-      <Card className="overflow-hidden">
-        <div className="bg-muted/50 p-3 border-b">
-          <h4 className="text-sm font-medium flex items-center gap-2">
-            <Package className="h-4 w-4" />
-            Repository Mapping Preview
-          </h4>
-        </div>
-        {strategy === "preserve" && renderPreserveStructure()}
-        {strategy === "single-org" && renderSingleOrg()}
-        {strategy === "flat-user" && renderFlatUser()}
-      </Card>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <Card className="overflow-hidden">
+          <CollapsibleTrigger className="w-full">
+            <div className="bg-muted/50 p-3 border-b hover:bg-muted/70 transition-colors cursor-pointer">
+              <h4 className="text-sm font-medium flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  Repository Mapping Preview
+                </span>
+                {isOpen ? (
+                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                )}
+              </h4>
+            </div>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            {strategy === "preserve" && renderPreserveStructure()}
+            {strategy === "single-org" && renderSingleOrg()}
+            {strategy === "flat-user" && renderFlatUser()}
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
     </div>
   );
 };
