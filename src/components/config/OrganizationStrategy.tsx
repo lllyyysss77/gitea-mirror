@@ -3,12 +3,6 @@ import { Card } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Info, GitBranch, FolderTree, Star, Building2, User, Building } from "lucide-react";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
