@@ -6,7 +6,6 @@ import { repositoryVisibilityEnum, repoStatusEnum } from "@/types/Repository";
 import { syncGiteaRepo } from "@/lib/gitea";
 import type { SyncRepoResponse } from "@/types/sync";
 import { processWithResilience } from "@/lib/utils/concurrency";
-import { v4 as uuidv4 } from "uuid";
 import { createSecureErrorResponse } from "@/lib/utils";
 
 export const POST: APIRoute = async ({ request }) => {
@@ -68,9 +67,6 @@ export const POST: APIRoute = async ({ request }) => {
       // Define the concurrency limit - adjust based on API rate limits
       const CONCURRENCY_LIMIT = 5;
 
-      // Generate a batch ID to group related repositories
-      const batchId = uuidv4();
-
       // Process repositories in parallel with resilience to container restarts
       await processWithResilience(
         repos,
@@ -84,6 +80,7 @@ export const POST: APIRoute = async ({ request }) => {
             errorMessage: repo.errorMessage ?? undefined,
             forkedFrom: repo.forkedFrom ?? undefined,
             visibility: repositoryVisibilityEnum.parse(repo.visibility),
+            mirroredLocation: repo.mirroredLocation || "",
           };
 
           // Log the start of syncing
@@ -100,7 +97,6 @@ export const POST: APIRoute = async ({ request }) => {
         {
           userId: config.userId || "",
           jobType: "sync",
-          batchId,
           getItemId: (repo) => repo.id,
           getItemName: (repo) => repo.name,
           concurrencyLimit: CONCURRENCY_LIMIT,
@@ -135,6 +131,7 @@ export const POST: APIRoute = async ({ request }) => {
         errorMessage: repo.errorMessage ?? undefined,
         forkedFrom: repo.forkedFrom ?? undefined,
         visibility: repositoryVisibilityEnum.parse(repo.visibility),
+        mirroredLocation: repo.mirroredLocation || "",
       })),
     };
 

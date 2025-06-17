@@ -93,6 +93,7 @@ export const POST: APIRoute = async ({ request }) => {
             lastMirrored: repo.lastMirrored ?? undefined,
             errorMessage: repo.errorMessage ?? undefined,
             forkedFrom: repo.forkedFrom ?? undefined,
+            mirroredLocation: repo.mirroredLocation || "",
           };
 
           // Log the start of retry operation
@@ -134,13 +135,14 @@ export const POST: APIRoute = async ({ request }) => {
               throw new Error("Octokit client is not initialized.");
             }
 
-            console.log(`Importing repo: ${repo.name} ${owner}`);
+            console.log(`Importing repo: ${repo.name} to owner: ${owner}`);
 
-            if (repo.organization && config.githubConfig.preserveOrgStructure) {
+            // Check if owner is different from the user (means it's going to an org)
+            if (owner !== config.giteaConfig?.username) {
               await mirrorGitHubOrgRepoToGiteaOrg({
                 config,
                 octokit,
-                orgName: repo.organization,
+                orgName: owner,
                 repository: {
                   ...repoData,
                   status: repoStatusEnum.parse("imported"),

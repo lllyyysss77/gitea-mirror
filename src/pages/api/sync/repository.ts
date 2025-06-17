@@ -97,6 +97,7 @@ export const POST: APIRoute = async ({ request }) => {
       status: "imported" as Repository["status"],
       lastMirrored: undefined,
       errorMessage: undefined,
+      mirroredLocation: "",
       createdAt: repoData.created_at
         ? new Date(repoData.created_at)
         : new Date(),

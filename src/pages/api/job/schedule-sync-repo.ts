@@ -112,6 +112,7 @@ export const POST: APIRoute = async ({ request }) => {
               organization: repo.organization ?? undefined,
               lastMirrored: repo.lastMirrored ?? undefined,
               errorMessage: repo.errorMessage ?? undefined,
+              mirroredLocation: repo.mirroredLocation || "",
               forkedFrom: repo.forkedFrom ?? undefined,
               visibility: repositoryVisibilityEnum.parse(repo.visibility),
             },
@@ -133,6 +134,7 @@ export const POST: APIRoute = async ({ request }) => {
         errorMessage: repo.errorMessage ?? undefined,
         forkedFrom: repo.forkedFrom ?? undefined,
         visibility: repositoryVisibilityEnum.parse(repo.visibility),
+        mirroredLocation: repo.mirroredLocation || "",
       })),
     };
 

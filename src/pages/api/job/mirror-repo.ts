@@ -6,6 +6,7 @@ import { repositoryVisibilityEnum, repoStatusEnum } from "@/types/Repository";
 import {
   mirrorGithubRepoToGitea,
   mirrorGitHubOrgRepoToGiteaOrg,
+  getGiteaRepoOwner,
 } from "@/lib/gitea";
 import { createGitHubClient } from "@/lib/github";
 import { processWithResilience } from "@/lib/utils/concurrency";
@@ -96,12 +97,20 @@ export const POST: APIRoute = async ({ request }) => {
           // Log the start of mirroring
           console.log(`Starting mirror for repository: ${repo.name}`);
 
-          // Mirror the repository based on whether it's in an organization
-          if (repo.organization && config.githubConfig.preserveOrgStructure) {
+          // Determine where the repository should be mirrored
+          const owner = getGiteaRepoOwner({
+            config,
+            repository: repoData,
+          });
+
+          console.log(`Repository ${repo.name} will be mirrored to owner: ${owner}`);
+
+          // Check if owner is different from the user (means it's going to an org)
+          if (owner !== config.giteaConfig?.username) {
             await mirrorGitHubOrgRepoToGiteaOrg({
               config,
               octokit,
-              orgName: repo.organization,
+              orgName: owner,
               repository: repoData,
             });
           } else {

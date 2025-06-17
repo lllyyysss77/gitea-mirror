@@ -26,13 +26,39 @@ export const getGiteaRepoOwner = ({
     throw new Error("Gitea username is required.");
   }
 
-  // if the config has preserveOrgStructure set to true, then use the org name as the owner
-  if (config.githubConfig.preserveOrgStructure && repository.organization) {
-    return repository.organization;
+  // Check if repository is starred - starred repos always go to starredReposOrg
+  if (repository.isStarred && config.giteaConfig.starredReposOrg) {
+    return config.giteaConfig.starredReposOrg;
   }
 
-  // if the config has preserveOrgStructure set to false, then use the gitea username as the owner
-  return config.giteaConfig.username;
+  // Get the mirror strategy - use preserveOrgStructure for backward compatibility
+  const mirrorStrategy = config.giteaConfig.mirrorStrategy || 
+    (config.githubConfig.preserveOrgStructure ? "preserve" : "flat-user");
+
+  switch (mirrorStrategy) {
+    case "preserve":
+      // Keep GitHub structure - org repos go to same org, personal repos to user
+      if (repository.organization) {
+        return repository.organization;
+      }
+      return config.giteaConfig.username;
+
+    case "single-org":
+      // All non-starred repos go to the destination organization
+      if (config.giteaConfig.organization) {
+        return config.giteaConfig.organization;
+      }
+      // Fallback to username if no organization specified
+      return config.giteaConfig.username;
+
+    case "flat-user":
+      // All non-starred repos go under the user account
+      return config.giteaConfig.username;
+
+    default:
+      // Default fallback
+      return config.giteaConfig.username;
+  }
 };
 
 export const isRepoPresentInGitea = async ({
