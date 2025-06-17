@@ -3,12 +3,18 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { 
   Info, 
   GitBranch, 
@@ -22,7 +28,8 @@ import {
   MessageSquare,
   Target,
   BookOpen,
-  GitFork
+  GitFork,
+  ChevronDown
 } from "lucide-react";
 import type { GitHubConfig, MirrorOptions, AdvancedOptions } from "@/types/config";
 import { cn } from "@/lib/utils";
@@ -105,23 +112,63 @@ export function GitHubMirrorSettings({
             </div>
           </div>
 
-          <div className="flex items-start space-x-3">
-            <Checkbox
-              id="starred-repos"
-              checked={githubConfig.mirrorStarred}
-              onCheckedChange={(checked) => handleGitHubChange('mirrorStarred', !!checked)}
-            />
-            <div className="space-y-0.5 flex-1">
-              <Label
-                htmlFor="starred-repos"
-                className="text-sm font-normal cursor-pointer flex items-center gap-2"
-              >
-                <Star className="h-3.5 w-3.5" />
-                Mirror starred repositories
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Include repositories you've starred on GitHub
-              </p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="flex items-start space-x-3">
+              <Checkbox
+                id="starred-repos"
+                checked={githubConfig.mirrorStarred}
+                onCheckedChange={(checked) => handleGitHubChange('mirrorStarred', !!checked)}
+              />
+              <div className="space-y-0.5 flex-1">
+                <Label
+                  htmlFor="starred-repos"
+                  className="text-sm font-normal cursor-pointer flex items-center gap-2"
+                >
+                  <Star className="h-3.5 w-3.5" />
+                  Mirror starred repositories
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Include repositories you've starred on GitHub
+                </p>
+              </div>
+            </div>
+
+            {/* Lightweight starred repos option - inline to prevent layout shift */}
+            <div className={cn(
+              "flex items-start space-x-3 transition-opacity duration-200",
+              githubConfig.mirrorStarred ? "opacity-100" : "opacity-0 pointer-events-none"
+            )}>
+              <Checkbox
+                id="skip-starred-metadata"
+                checked={advancedOptions.skipStarredIssues}
+                onCheckedChange={(checked) => handleAdvancedChange('skipStarredIssues', !!checked)}
+                disabled={!githubConfig.mirrorStarred}
+              />
+              <div className="space-y-0.5 flex-1">
+                <Label
+                  htmlFor="skip-starred-metadata"
+                  className="text-sm font-normal cursor-pointer flex items-center gap-2"
+                >
+                  Lightweight mirroring
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="h-3 w-3 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs">
+                        <p className="text-xs">
+                          When enabled, starred repositories will only mirror code, 
+                          skipping issues, PRs, and other metadata to reduce storage 
+                          and improve performance.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Only code, skip issues and metadata
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -172,7 +219,7 @@ export function GitHubMirrorSettings({
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="flex items-start space-x-3">
               <Checkbox
                 id="mirror-metadata"
@@ -193,92 +240,142 @@ export function GitHubMirrorSettings({
               </div>
             </div>
 
-            {/* Metadata sub-options */}
-            {mirrorOptions.mirrorMetadata && (
-              <div className="ml-7 space-y-2 p-3 bg-muted/30 dark:bg-muted/10 rounded-md">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="metadata-issues"
-                      checked={mirrorOptions.metadataComponents.issues}
-                      onCheckedChange={(checked) => handleMetadataComponentChange('issues', !!checked)}
-                      disabled={!isMetadataEnabled}
-                    />
-                    <Label
-                      htmlFor="metadata-issues"
-                      className="text-sm font-normal cursor-pointer flex items-center gap-1.5"
-                    >
-                      <MessageSquare className="h-3 w-3" />
-                      Issues
-                    </Label>
-                  </div>
+            {/* Metadata multi-select - inline to prevent layout shift */}
+            <div className={cn(
+              "flex items-center justify-end transition-opacity duration-200",
+              mirrorOptions.mirrorMetadata ? "opacity-100" : "opacity-0 pointer-events-none"
+            )}>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!mirrorOptions.mirrorMetadata}
+                    className="h-8 text-xs font-normal min-w-[140px] justify-between"
+                  >
+                    <span>
+                      {(() => {
+                        const selectedCount = Object.values(mirrorOptions.metadataComponents).filter(Boolean).length;
+                        const totalCount = Object.keys(mirrorOptions.metadataComponents).length;
+                        if (selectedCount === 0) return "No items selected";
+                        if (selectedCount === totalCount) return "All items selected";
+                        return `${selectedCount} of ${totalCount} selected`;
+                      })()}
+                    </span>
+                    <ChevronDown className="ml-2 h-3 w-3 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-64">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm font-medium">Metadata to mirror</div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto px-2 py-1 text-xs font-normal text-primary hover:text-primary/80"
+                        onClick={() => {
+                          const allSelected = Object.values(mirrorOptions.metadataComponents).every(Boolean);
+                          const newValue = !allSelected;
+                          
+                          // Update all metadata components at once
+                          onMirrorOptionsChange({
+                            ...mirrorOptions,
+                            metadataComponents: {
+                              issues: newValue,
+                              pullRequests: newValue,
+                              labels: newValue,
+                              milestones: newValue,
+                              wiki: newValue,
+                            },
+                          });
+                        }}
+                      >
+                        {Object.values(mirrorOptions.metadataComponents).every(Boolean) ? 'Deselect all' : 'Select all'}
+                      </Button>
+                    </div>
+                    
+                    <Separator className="my-2" />
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-3 py-1 px-1 rounded hover:bg-accent">
+                        <Checkbox
+                          id="metadata-issues-popup"
+                          checked={mirrorOptions.metadataComponents.issues}
+                          onCheckedChange={(checked) => handleMetadataComponentChange('issues', !!checked)}
+                        />
+                        <Label
+                          htmlFor="metadata-issues-popup"
+                          className="text-sm font-normal cursor-pointer flex items-center gap-2 flex-1"
+                        >
+                          <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
+                          Issues
+                        </Label>
+                      </div>
 
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="metadata-prs"
-                      checked={mirrorOptions.metadataComponents.pullRequests}
-                      onCheckedChange={(checked) => handleMetadataComponentChange('pullRequests', !!checked)}
-                      disabled={!isMetadataEnabled}
-                    />
-                    <Label
-                      htmlFor="metadata-prs"
-                      className="text-sm font-normal cursor-pointer flex items-center gap-1.5"
-                    >
-                      <GitPullRequest className="h-3 w-3" />
-                      Pull Requests
-                    </Label>
-                  </div>
+                      <div className="flex items-center space-x-3 py-1 px-1 rounded hover:bg-accent">
+                        <Checkbox
+                          id="metadata-prs-popup"
+                          checked={mirrorOptions.metadataComponents.pullRequests}
+                          onCheckedChange={(checked) => handleMetadataComponentChange('pullRequests', !!checked)}
+                        />
+                        <Label
+                          htmlFor="metadata-prs-popup"
+                          className="text-sm font-normal cursor-pointer flex items-center gap-2 flex-1"
+                        >
+                          <GitPullRequest className="h-3.5 w-3.5 text-muted-foreground" />
+                          Pull Requests
+                        </Label>
+                      </div>
 
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="metadata-labels"
-                      checked={mirrorOptions.metadataComponents.labels}
-                      onCheckedChange={(checked) => handleMetadataComponentChange('labels', !!checked)}
-                      disabled={!isMetadataEnabled}
-                    />
-                    <Label
-                      htmlFor="metadata-labels"
-                      className="text-sm font-normal cursor-pointer flex items-center gap-1.5"
-                    >
-                      <Tag className="h-3 w-3" />
-                      Labels
-                    </Label>
-                  </div>
+                      <div className="flex items-center space-x-3 py-1 px-1 rounded hover:bg-accent">
+                        <Checkbox
+                          id="metadata-labels-popup"
+                          checked={mirrorOptions.metadataComponents.labels}
+                          onCheckedChange={(checked) => handleMetadataComponentChange('labels', !!checked)}
+                        />
+                        <Label
+                          htmlFor="metadata-labels-popup"
+                          className="text-sm font-normal cursor-pointer flex items-center gap-2 flex-1"
+                        >
+                          <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                          Labels
+                        </Label>
+                      </div>
 
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="metadata-milestones"
-                      checked={mirrorOptions.metadataComponents.milestones}
-                      onCheckedChange={(checked) => handleMetadataComponentChange('milestones', !!checked)}
-                      disabled={!isMetadataEnabled}
-                    />
-                    <Label
-                      htmlFor="metadata-milestones"
-                      className="text-sm font-normal cursor-pointer flex items-center gap-1.5"
-                    >
-                      <Target className="h-3 w-3" />
-                      Milestones
-                    </Label>
-                  </div>
+                      <div className="flex items-center space-x-3 py-1 px-1 rounded hover:bg-accent">
+                        <Checkbox
+                          id="metadata-milestones-popup"
+                          checked={mirrorOptions.metadataComponents.milestones}
+                          onCheckedChange={(checked) => handleMetadataComponentChange('milestones', !!checked)}
+                        />
+                        <Label
+                          htmlFor="metadata-milestones-popup"
+                          className="text-sm font-normal cursor-pointer flex items-center gap-2 flex-1"
+                        >
+                          <Target className="h-3.5 w-3.5 text-muted-foreground" />
+                          Milestones
+                        </Label>
+                      </div>
 
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="metadata-wiki"
-                      checked={mirrorOptions.metadataComponents.wiki}
-                      onCheckedChange={(checked) => handleMetadataComponentChange('wiki', !!checked)}
-                      disabled={!isMetadataEnabled}
-                    />
-                    <Label
-                      htmlFor="metadata-wiki"
-                      className="text-sm font-normal cursor-pointer flex items-center gap-1.5"
-                    >
-                      <BookOpen className="h-3 w-3" />
-                      Wiki
-                    </Label>
+                      <div className="flex items-center space-x-3 py-1 px-1 rounded hover:bg-accent">
+                        <Checkbox
+                          id="metadata-wiki-popup"
+                          checked={mirrorOptions.metadataComponents.wiki}
+                          onCheckedChange={(checked) => handleMetadataComponentChange('wiki', !!checked)}
+                        />
+                        <Label
+                          htmlFor="metadata-wiki-popup"
+                          className="text-sm font-normal cursor-pointer flex items-center gap-2 flex-1"
+                        >
+                          <BookOpen className="h-3.5 w-3.5 text-muted-foreground" />
+                          Wiki
+                        </Label>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            )}
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
         </div>
       </div>
@@ -317,42 +414,6 @@ export function GitHubMirrorSettings({
               </p>
             </div>
           </div>
-
-          {githubConfig.mirrorStarred && (
-            <div className="flex items-start space-x-3">
-              <Checkbox
-                id="skip-starred-metadata"
-                checked={advancedOptions.skipStarredIssues}
-                onCheckedChange={(checked) => handleAdvancedChange('skipStarredIssues', !!checked)}
-              />
-              <div className="space-y-0.5 flex-1">
-                <Label
-                  htmlFor="skip-starred-metadata"
-                  className="text-sm font-normal cursor-pointer flex items-center gap-2"
-                >
-                  <Star className="h-3.5 w-3.5" />
-                  Lightweight starred repository mirroring
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <Info className="h-3 w-3 text-muted-foreground" />
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-xs">
-                        <p className="text-xs">
-                          When enabled, starred repositories will only mirror code, 
-                          skipping issues, PRs, and other metadata to reduce storage 
-                          and improve performance.
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Only mirror code from starred repos, skip issues and metadata
-                </p>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
