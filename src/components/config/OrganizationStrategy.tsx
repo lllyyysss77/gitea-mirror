@@ -3,7 +3,6 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Badge } from "@/components/ui/badge";
 import { Info, GitBranch, FolderTree, Package, Star, Building2, User, ChevronDown, ChevronUp, Globe, Lock, Shield } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -284,7 +283,7 @@ export const OrganizationStrategy: React.FC<OrganizationStrategyProps> = ({
       </div>
 
       <RadioGroup value={strategy} onValueChange={onStrategyChange}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4">
           {(Object.entries(strategyConfig) as [MirrorStrategy, typeof strategyConfig.preserve][]).map(([key, config]) => {
             const isSelected = strategy === key;
             const Icon = config.icon;
@@ -337,12 +336,11 @@ export const OrganizationStrategy: React.FC<OrganizationStrategyProps> = ({
                           </PopoverTrigger>
                           <PopoverContent side="left" align="center" className="w-64">
                             <div className="space-y-2">
-                              <h5 className="font-medium text-sm mb-2">Details</h5>
                               {config.details.map((detail, idx) => (
                                 <div key={idx} className="flex items-start gap-2">
                                   <div className={cn(
                                     "h-1.5 w-1.5 rounded-full mt-1.5 flex-shrink-0",
-                                    config.bgColor
+                                    "bg-muted-foreground"
                                   )} />
                                   <span className="text-xs text-muted-foreground">{detail}</span>
                                 </div>

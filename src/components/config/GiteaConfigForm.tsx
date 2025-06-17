@@ -3,23 +3,12 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
-import { Checkbox } from "../ui/checkbox";
 import { giteaApi } from "@/lib/api";
-import type { GiteaConfig, GiteaOrgVisibility, MirrorStrategy } from "@/types/config";
+import type { GiteaConfig, MirrorStrategy } from "@/types/config";
 import { toast } from "sonner";
-import { Info } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { OrganizationStrategy } from "./OrganizationStrategy";
 import { Separator } from "../ui/separator";
 
