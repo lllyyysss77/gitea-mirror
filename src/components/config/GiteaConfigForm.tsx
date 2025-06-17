@@ -10,6 +10,7 @@ import { giteaApi } from "@/lib/api";
 import type { GiteaConfig, MirrorStrategy } from "@/types/config";
 import { toast } from "sonner";
 import { OrganizationStrategy } from "./OrganizationStrategy";
+import { OrganizationConfiguration } from "./OrganizationConfiguration";
 import { Separator } from "../ui/separator";
 
 interface GiteaConfigFormProps {
@@ -205,8 +206,18 @@ export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving, g
           strategy={mirrorStrategy}
           destinationOrg={config.organization}
           starredReposOrg={config.starredReposOrg}
-          visibility={config.visibility}
           onStrategyChange={setMirrorStrategy}
+          githubUsername={githubUsername}
+          giteaUsername={config.username}
+        />
+        
+        <Separator />
+        
+        <OrganizationConfiguration
+          strategy={mirrorStrategy}
+          destinationOrg={config.organization}
+          starredReposOrg={config.starredReposOrg}
+          visibility={config.visibility}
           onDestinationOrgChange={(org) => {
             const newConfig = { ...config, organization: org };
             setConfig(newConfig);
@@ -222,8 +233,6 @@ export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving, g
             setConfig(newConfig);
             if (onAutoSave) onAutoSave(newConfig);
           }}
-          githubUsername={githubUsername}
-          giteaUsername={config.username}
         />
       </CardContent>
     </Card>
