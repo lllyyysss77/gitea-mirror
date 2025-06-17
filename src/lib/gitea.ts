@@ -416,7 +416,7 @@ export async function getOrCreateGiteaOrg({
         username: orgName,
         full_name: `${orgName} Org`,
         description: `Mirrored organization from GitHub ${orgName}`,
-        visibility: "public",
+        visibility: config.giteaConfig?.visibility || "public",
       }),
     });
 

@@ -210,12 +210,13 @@ export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving, g
           </p>
         </div>
 
-        <Separator className="my-2" />
+        <Separator />
         
         <OrganizationStrategy
           strategy={mirrorStrategy}
           destinationOrg={config.organization}
           starredReposOrg={config.starredReposOrg}
+          visibility={config.visibility}
           onStrategyChange={setMirrorStrategy}
           onDestinationOrgChange={(org) => {
             const newConfig = { ...config, organization: org };
@@ -227,54 +228,15 @@ export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving, g
             setConfig(newConfig);
             if (onAutoSave) onAutoSave(newConfig);
           }}
+          onVisibilityChange={(visibility) => {
+            const newConfig = { ...config, visibility };
+            setConfig(newConfig);
+            if (onAutoSave) onAutoSave(newConfig);
+          }}
           githubUsername={githubUsername}
           giteaUsername={config.username}
         />
-        
-        <Separator className="my-2" />
-        
-        <div>
-          <label
-            htmlFor="visibility"
-            className="block text-sm font-medium mb-1.5"
-          >
-            Organization Visibility
-          </label>
-          <Select
-            name="visibility"
-            value={config.visibility}
-            onValueChange={(value) =>
-              handleChange({
-                target: { name: "visibility", value },
-              } as React.ChangeEvent<HTMLInputElement>)
-            }
-          >
-            <SelectTrigger className="w-full border border-input dark:bg-background dark:hover:bg-background">
-              <SelectValue placeholder="Select visibility" />
-            </SelectTrigger>
-            <SelectContent className="bg-background text-foreground border border-input shadow-sm">
-              {(["public", "private", "limited"] as GiteaOrgVisibility[]).map(
-                (option) => (
-                  <SelectItem
-                    key={option}
-                    value={option}
-                    className="cursor-pointer text-sm px-3 py-2 hover:bg-accent focus:bg-accent focus:text-accent-foreground"
-                  >
-                    {option.charAt(0).toUpperCase() + option.slice(1)}
-                  </SelectItem>
-                )
-              )}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground mt-1">
-            Visibility for newly created organizations
-          </p>
-        </div>
       </CardContent>
-
-      <CardFooter className="">
-        {/* Footer content can be added here if needed */}
-      </CardFooter>
     </Card>
   );
 }
