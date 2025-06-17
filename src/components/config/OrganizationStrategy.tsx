@@ -22,9 +22,9 @@ interface OrganizationStrategyProps {
 
 const strategyConfig = {
   preserve: {
-    title: "Mirror GitHub Structure",
+    title: "Preserve Structure",
     icon: FolderTree,
-    description: "Keep the same organization structure as GitHub",
+    description: "Keep the exact same organization structure as GitHub",
     color: "text-blue-600 dark:text-blue-400",
     bgColor: "bg-blue-50 dark:bg-blue-950/20",
     borderColor: "border-blue-200 dark:border-blue-900",
@@ -34,9 +34,9 @@ const strategyConfig = {
     }
   },
   "single-org": {
-    title: "Consolidate to One Org",
+    title: "Single Organization",
     icon: Building2,
-    description: "Mirror all repositories into a single organization",
+    description: "Consolidate all repositories into one Gitea organization",
     color: "text-purple-600 dark:text-purple-400",
     bgColor: "bg-purple-50 dark:bg-purple-950/20",
     borderColor: "border-purple-200 dark:border-purple-900",
@@ -46,9 +46,9 @@ const strategyConfig = {
     }
   },
   "flat-user": {
-    title: "Flat User Structure",
+    title: "User Repositories",
     icon: User,
-    description: "Mirror all repositories under your user account",
+    description: "Place all repositories directly under your user account",
     color: "text-green-600 dark:text-green-400",
     bgColor: "bg-green-50 dark:bg-green-950/20",
     borderColor: "border-green-200 dark:border-green-900",
