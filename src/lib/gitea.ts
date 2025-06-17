@@ -263,7 +263,11 @@ export const mirrorGithubRepoToGitea = async ({
     });
 
     // clone issues
-    if (config.githubConfig.mirrorIssues) {
+    // Skip issues for starred repos if skipStarredIssues is enabled
+    const shouldMirrorIssues = config.githubConfig.mirrorIssues && 
+      !(repository.isStarred && config.githubConfig.skipStarredIssues);
+    
+    if (shouldMirrorIssues) {
       await mirrorGitRepoIssuesToGitea({
         config,
         octokit,
@@ -608,7 +612,11 @@ export async function mirrorGitHubRepoToGiteaOrg({
     });
 
     // Clone issues
-    if (config.githubConfig?.mirrorIssues) {
+    // Skip issues for starred repos if skipStarredIssues is enabled
+    const shouldMirrorIssues = config.githubConfig?.mirrorIssues && 
+      !(repository.isStarred && config.githubConfig?.skipStarredIssues);
+    
+    if (shouldMirrorIssues) {
       await mirrorGitRepoIssuesToGitea({
         config,
         octokit,

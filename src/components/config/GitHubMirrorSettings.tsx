@@ -225,7 +225,7 @@ export function GitHubMirrorSettings({
                               <div className="flex items-center gap-2 text-xs pl-2">
                                 <GitBranch className="h-3 w-3 text-muted-foreground" />
                                 <span>Source code</span>
-                                <Badge variant="secondary" className="ml-auto text-[10px] px-1 h-4">Always</Badge>
+                                <Badge variant="secondary" className="ml-auto text-[10px] px-2 h-4">Always</Badge>
                               </div>
                               
                               <div className={cn(
@@ -234,7 +234,7 @@ export function GitHubMirrorSettings({
                               )}>
                                 <Tag className="h-3 w-3 text-muted-foreground" />
                                 <span>Releases & Tags</span>
-                                {starredRepoContent.releases && <Badge variant="outline" className="ml-auto text-[10px] px-1 h-4">Included</Badge>}
+                                {starredRepoContent.releases && <Badge variant="outline" className="ml-auto text-[10px] px-2 h-4">Included</Badge>}
                               </div>
                               
                               <div className={cn(
@@ -243,7 +243,7 @@ export function GitHubMirrorSettings({
                               )}>
                                 <MessageSquare className="h-3 w-3 text-muted-foreground" />
                                 <span>Issues</span>
-                                {starredRepoContent.issues && <Badge variant="outline" className="ml-auto text-[10px] px-1 h-4">Included</Badge>}
+                                {starredRepoContent.issues && <Badge variant="outline" className="ml-auto text-[10px] px-2 h-4">Included</Badge>}
                               </div>
                               
                               <div className={cn(
@@ -252,7 +252,7 @@ export function GitHubMirrorSettings({
                               )}>
                                 <GitPullRequest className="h-3 w-3 text-muted-foreground" />
                                 <span>Pull Requests</span>
-                                {starredRepoContent.pullRequests && <Badge variant="outline" className="ml-auto text-[10px] px-1 h-4">Included</Badge>}
+                                {starredRepoContent.pullRequests && <Badge variant="outline" className="ml-auto text-[10px] px-2 h-4">Included</Badge>}
                               </div>
                               
                               <div className={cn(
@@ -261,7 +261,7 @@ export function GitHubMirrorSettings({
                               )}>
                                 <BookOpen className="h-3 w-3 text-muted-foreground" />
                                 <span>Wiki</span>
-                                {starredRepoContent.wiki && <Badge variant="outline" className="ml-auto text-[10px] px-1 h-4">Included</Badge>}
+                                {starredRepoContent.wiki && <Badge variant="outline" className="ml-auto text-[10px] px-2 h-4">Included</Badge>}
                               </div>
                             </div>
                             
