@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.15.0] - 2025-06-17
+
+### Added
+- Enhanced OrganizationConfiguration component with improved layout and metadata options
+- New GitHubMirrorSettings component with better organization and flexibility
+
+### Improved
+- Enhanced configuration interface layout and spacing across multiple components
+- Streamlined OrganizationStrategy component with cleaner imports and better organization
+- Improved responsive layout for larger screens in configuration forms
+- Better icon usage and clarity in configuration components
+- Enhanced tooltip descriptions and component organization
+
+### Fixed
+- Fixed mirror to single organization functionality
+- Resolved organization strategy layout issues
+- Cleaned up unused imports across multiple components
+
+### Refactored
+- Simplified component structures by removing unused imports and dependencies
+- Enhanced layout flexibility in GitHubConfigForm and GiteaConfigForm components
+- Improved component organization and code clarity
+
 ## [2.14.0] - 2025-06-17
 
 ### Added
