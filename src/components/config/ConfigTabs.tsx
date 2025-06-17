@@ -598,7 +598,7 @@ export function ConfigTabs() {
       {/* Content section - Grid layout */}
       <div className="space-y-6">
         {/* GitHub & Gitea connections - Side by side */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:items-stretch">
           <GitHubConfigForm
             config={config.githubConfig}
             setConfig={update =>

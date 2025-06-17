@@ -123,7 +123,7 @@ export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving, g
   };
 
   return (
-    <Card className="w-full self-start">
+    <Card className="w-full h-full flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between gap-4">
         <CardTitle className="text-lg font-semibold">
           Gitea Configuration
@@ -138,7 +138,7 @@ export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving, g
         </Button>
       </CardHeader>
 
-      <CardContent className="flex flex-col gap-y-6">
+      <CardContent className="flex flex-col gap-y-6 flex-1">
         <div>
           <label
             htmlFor="gitea-username"
