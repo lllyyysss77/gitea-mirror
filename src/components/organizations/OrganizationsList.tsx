@@ -1,14 +1,14 @@
 import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, RefreshCw, Building2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Plus, RefreshCw, Building2, Check, AlertCircle, Clock } from "lucide-react";
 import { SiGithub } from "react-icons/si";
 import type { Organization } from "@/lib/db/schema";
 import type { FilterParams } from "@/types/filter";
 import Fuse from "fuse.js";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Checkbox } from "@/components/ui/checkbox";
-import { getStatusColor } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 interface OrganizationListProps {
   organizations: Organization[];
@@ -19,6 +19,22 @@ interface OrganizationListProps {
   loadingOrgIds: Set<string>;
   onAddOrganization?: () => void;
 }
+
+// Helper function to get status badge variant and icon
+const getStatusBadge = (status: string | null) => {
+  switch (status) {
+    case "imported":
+      return { variant: "secondary" as const, label: "Not Mirrored", icon: null };
+    case "mirroring":
+      return { variant: "outline" as const, label: "Mirroring", icon: Clock };
+    case "mirrored":
+      return { variant: "default" as const, label: "Mirrored", icon: Check };
+    case "failed":
+      return { variant: "destructive" as const, label: "Failed", icon: AlertCircle };
+    default:
+      return { variant: "secondary" as const, label: "Unknown", icon: null };
+  }
+};
 
 export function OrganizationList({
   organizations,
@@ -93,29 +109,45 @@ export function OrganizationList({
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {filteredOrganizations.map((org, index) => {
         const isLoading = loadingOrgIds.has(org.id ?? "");
+        const statusBadge = getStatusBadge(org.status);
+        const StatusIcon = statusBadge.icon;
 
         return (
-          <Card key={index} className="overflow-hidden p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-muted-foreground" />
-                <a 
-                  href={`/repositories?organization=${encodeURIComponent(org.name || '')}`}
-                  className="font-medium hover:underline cursor-pointer"
-                >
-                  {org.name}
-                </a>
+          <Card 
+            key={index} 
+            className={cn(
+              "overflow-hidden p-4 transition-all hover:shadow-md min-h-[160px]",
+              isLoading && "opacity-75"
+            )}
+          >
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <Building2 className="h-5 w-5 text-muted-foreground" />
+                  <a 
+                    href={`/repositories?organization=${encodeURIComponent(org.name || '')}`}
+                    className="font-medium hover:underline cursor-pointer"
+                  >
+                    {org.name}
+                  </a>
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full capitalize ${
+                      org.membershipRole === "member"
+                        ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                        : "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                    }`}
+                  >
+                    {org.membershipRole}
+                  </span>
+                </div>
               </div>
-              <span
-                className={`text-xs px-2 py-1 rounded-full capitalize ${
-                  org.membershipRole === "member"
-                    ? "bg-blue-100 text-blue-800"
-                    : "bg-purple-100 text-purple-800"
-                }`}
-              >
-                {org.membershipRole}
-                {/* needs to be updated  */}
-              </span>
+              <Badge variant={statusBadge.variant} className="ml-2">
+                {StatusIcon && <StatusIcon className={cn(
+                  "h-3 w-3",
+                  org.status === "mirroring" && "animate-pulse"
+                )} />}
+                {statusBadge.label}
+              </Badge>
             </div>
 
             <div className="text-sm text-muted-foreground mb-4">
@@ -125,58 +157,96 @@ export function OrganizationList({
                   {org.repositoryCount === 1 ? "repository" : "repositories"}
                 </span>
               </div>
-              {(org.publicRepositoryCount !== undefined ||
-                org.privateRepositoryCount !== undefined ||
-                org.forkRepositoryCount !== undefined) && (
-                <div className="flex gap-4 mt-2 text-xs">
-                  {org.publicRepositoryCount !== undefined && (
-                    <span className="flex items-center gap-1">
-                      <div className="h-2 w-2 rounded-full bg-green-500" />
-                      {org.publicRepositoryCount} public
-                    </span>
-                  )}
-                  {org.privateRepositoryCount !== undefined && org.privateRepositoryCount > 0 && (
-                    <span className="flex items-center gap-1">
-                      <div className="h-2 w-2 rounded-full bg-orange-500" />
-                      {org.privateRepositoryCount} private
-                    </span>
-                  )}
-                  {org.forkRepositoryCount !== undefined && org.forkRepositoryCount > 0 && (
-                    <span className="flex items-center gap-1">
-                      <div className="h-2 w-2 rounded-full bg-blue-500" />
-                      {org.forkRepositoryCount} fork{org.forkRepositoryCount !== 1 ? 's' : ''}
-                    </span>
-                  )}
-                </div>
-              )}
+              {/* Always render this section to prevent layout shift */}
+              <div className="flex gap-4 mt-2 text-xs min-h-[20px]">
+                {isLoading || (org.status === "mirroring" && org.publicRepositoryCount === undefined) ? (
+                  <>
+                    <Skeleton className="h-3 w-16" />
+                    <Skeleton className="h-3 w-16" />
+                  </>
+                ) : (
+                  <>
+                    {org.publicRepositoryCount !== undefined ? (
+                      <span className="flex items-center gap-1">
+                        <div className="h-2 w-2 rounded-full bg-green-500" />
+                        {org.publicRepositoryCount} public
+                      </span>
+                    ) : null}
+                    {org.privateRepositoryCount !== undefined && org.privateRepositoryCount > 0 ? (
+                      <span className="flex items-center gap-1">
+                        <div className="h-2 w-2 rounded-full bg-orange-500" />
+                        {org.privateRepositoryCount} private
+                      </span>
+                    ) : null}
+                    {org.forkRepositoryCount !== undefined && org.forkRepositoryCount > 0 ? (
+                      <span className="flex items-center gap-1">
+                        <div className="h-2 w-2 rounded-full bg-blue-500" />
+                        {org.forkRepositoryCount} fork{org.forkRepositoryCount !== 1 ? 's' : ''}
+                      </span>
+                    ) : null}
+                    {/* Show a placeholder if no counts are available to maintain height */}
+                    {org.publicRepositoryCount === undefined && 
+                     org.privateRepositoryCount === undefined && 
+                     org.forkRepositoryCount === undefined && (
+                      <span className="invisible">Loading counts...</span>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Checkbox
-                  id={`include-${org.id}`}
-                  name={`include-${org.id}`}
-                  checked={org.status === "mirrored"}
-                  disabled={
-                    loadingOrgIds.has(org.id ?? "") ||
-                    org.status === "mirrored" ||
-                    org.status === "mirroring"
-                  }
-                  onCheckedChange={async (checked) => {
-                    if (checked && !org.isIncluded && org.id) {
-                      onMirror({ orgId: org.id });
-                    }
-                  }}
-                />
-                <label
-                  htmlFor={`include-${org.id}`}
-                  className="ml-2 text-sm select-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Enable mirroring
-                </label>
-
-                {isLoading && (
-                  <RefreshCw className="opacity-50 h-4 w-4 animate-spin ml-4" />
+              <div className="flex items-center gap-2">
+                {org.status === "imported" && (
+                  <Button
+                    size="sm"
+                    onClick={() => org.id && onMirror({ orgId: org.id })}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <RefreshCw className="h-3 w-3 animate-spin mr-2" />
+                        Starting...
+                      </>
+                    ) : (
+                      "Mirror"
+                    )}
+                  </Button>
+                )}
+                
+                {org.status === "mirroring" && (
+                  <Button size="sm" disabled variant="outline">
+                    <RefreshCw className="h-3 w-3 animate-spin mr-2" />
+                    Mirroring...
+                  </Button>
+                )}
+                
+                {org.status === "mirrored" && (
+                  <Button size="sm" disabled variant="secondary">
+                    <Check className="h-3 w-3 mr-2" />
+                    Mirrored
+                  </Button>
+                )}
+                
+                {org.status === "failed" && (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => org.id && onMirror({ orgId: org.id })}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <RefreshCw className="h-3 w-3 animate-spin mr-2" />
+                        Retrying...
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="h-3 w-3 mr-2" />
+                        Retry
+                      </>
+                    )}
+                  </Button>
                 )}
               </div>
 
@@ -185,18 +255,11 @@ export function OrganizationList({
                   href={`https://github.com/${org.name}`}
                   target="_blank"
                   rel="noopener noreferrer"
+                  title="View on GitHub"
                 >
                    <SiGithub className="h-4 w-4" />
                 </a>
               </Button>
-            </div>
-
-            {/* dont know if this looks good. maybe revised  */}
-            <div className="flex items-center gap-2 justify-end mt-4">
-              <div
-                className={`h-2 w-2 rounded-full ${getStatusColor(org.status)}`}
-              />
-              <span className="text-sm capitalize">{org.status}</span>
             </div>
           </Card>
         );
