@@ -160,15 +160,18 @@ export const mirrorGithubRepoToGitea = async ({
       throw new Error("Gitea username is required.");
     }
 
+    // Get the correct owner based on the strategy
+    const repoOwner = getGiteaRepoOwner({ config, repository });
+
     const isExisting = await isRepoPresentInGitea({
       config,
-      owner: config.giteaConfig.username,
+      owner: repoOwner,
       repoName: repository.name,
     });
 
     if (isExisting) {
       console.log(
-        `Repository ${repository.name} already exists in Gitea. Updating database status.`
+        `Repository ${repository.name} already exists in Gitea under ${repoOwner}. Updating database status.`
       );
 
       // Update database to reflect that the repository is already mirrored
@@ -179,7 +182,7 @@ export const mirrorGithubRepoToGitea = async ({
           updatedAt: new Date(),
           lastMirrored: new Date(),
           errorMessage: null,
-          mirroredLocation: `${config.giteaConfig.username}/${repository.name}`,
+          mirroredLocation: `${repoOwner}/${repository.name}`,
         })
         .where(eq(repositories.id, repository.id!));
 
@@ -189,7 +192,7 @@ export const mirrorGithubRepoToGitea = async ({
         repositoryId: repository.id,
         repositoryName: repository.name,
         message: `Repository ${repository.name} already exists in Gitea`,
-        details: `Repository ${repository.name} was found to already exist in Gitea and database status was updated.`,
+        details: `Repository ${repository.name} was found to already exist in Gitea under ${repoOwner} and database status was updated.`,
         status: "mirrored",
       });
 
@@ -238,6 +241,15 @@ export const mirrorGithubRepoToGitea = async ({
 
     const apiUrl = `${config.giteaConfig.url}/api/v1/repos/migrate`;
 
+    // Handle organization creation if needed for single-org or preserve strategies
+    if (repoOwner !== config.giteaConfig.username && !repository.isStarred) {
+      // Need to create the organization if it doesn't exist
+      await getOrCreateGiteaOrg({
+        orgName: repoOwner,
+        config,
+      });
+    }
+
     const response = await httpPost(
       apiUrl,
       {
@@ -246,7 +258,7 @@ export const mirrorGithubRepoToGitea = async ({
         mirror: true,
         wiki: config.githubConfig.mirrorWiki || false, // will mirror wiki if it exists
         private: repository.isPrivate,
-        repo_owner: config.giteaConfig.username,
+        repo_owner: repoOwner,
         description: "",
         service: "git",
       },
@@ -286,7 +298,7 @@ export const mirrorGithubRepoToGitea = async ({
         updatedAt: new Date(),
         lastMirrored: new Date(),
         errorMessage: null,
-        mirroredLocation: `${config.giteaConfig.username}/${repository.name}`,
+        mirroredLocation: `${repoOwner}/${repository.name}`,
       })
       .where(eq(repositories.id, repository.id!));
 
@@ -763,11 +775,37 @@ export async function mirrorGitHubOrgToGitea({
       status: repoStatusEnum.parse("mirroring"),
     });
 
-    const giteaOrgId = await getOrCreateGiteaOrg({
-      orgId: organization.id,
-      orgName: organization.name,
-      config,
-    });
+    // Get the mirror strategy - use preserveOrgStructure for backward compatibility
+    const mirrorStrategy = config.giteaConfig?.mirrorStrategy || 
+      (config.githubConfig?.preserveOrgStructure ? "preserve" : "flat-user");
+
+    let giteaOrgId: number;
+    let targetOrgName: string;
+
+    // Determine the target organization based on strategy
+    if (mirrorStrategy === "single-org" && config.giteaConfig?.organization) {
+      // For single-org strategy, use the configured destination organization
+      targetOrgName = config.giteaConfig.organization;
+      giteaOrgId = await getOrCreateGiteaOrg({
+        orgId: organization.id,
+        orgName: targetOrgName,
+        config,
+      });
+      console.log(`Using single organization strategy: all repos will go to ${targetOrgName}`);
+    } else if (mirrorStrategy === "preserve") {
+      // For preserve strategy, create/use an org with the same name as GitHub
+      targetOrgName = organization.name;
+      giteaOrgId = await getOrCreateGiteaOrg({
+        orgId: organization.id,
+        orgName: targetOrgName,
+        config,
+      });
+    } else {
+      // For flat-user strategy, we shouldn't create organizations at all
+      // Skip organization creation and let individual repos be handled by getGiteaRepoOwner
+      console.log(`Using flat-user strategy: repos will be placed under user account`);
+      targetOrgName = config.giteaConfig?.username || "";
+    }
 
     //query the db with the org name and get the repos
     const orgRepos = await db
@@ -805,17 +843,27 @@ export async function mirrorGitHubOrgToGitea({
 
           // Log the start of mirroring
           console.log(
-            `Starting mirror for repository: ${repo.name} in organization ${organization.name}`
+            `Starting mirror for repository: ${repo.name} from GitHub org ${organization.name}`
           );
 
-          // Mirror the repository
-          await mirrorGitHubRepoToGiteaOrg({
-            octokit,
-            config,
-            repository: repoData,
-            giteaOrgId,
-            orgName: organization.name,
-          });
+          // Mirror the repository based on strategy
+          if (mirrorStrategy === "flat-user") {
+            // For flat-user strategy, mirror directly to user account
+            await mirrorGithubRepoToGitea({
+              octokit,
+              repository: repoData,
+              config,
+            });
+          } else {
+            // For preserve and single-org strategies, use organization
+            await mirrorGitHubRepoToGiteaOrg({
+              octokit,
+              config,
+              repository: repoData,
+              giteaOrgId: giteaOrgId!,
+              orgName: targetOrgName,
+            });
+          }
 
           return repo;
         },
