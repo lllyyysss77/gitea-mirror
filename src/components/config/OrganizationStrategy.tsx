@@ -1,7 +1,7 @@
 import React from "react";
 import { Card } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Info, GitBranch, FolderTree, Star, Building2, User } from "lucide-react";
+import { Info, GitBranch, FolderTree, Star, Building2, User, Building } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -230,8 +230,11 @@ export const OrganizationStrategy: React.FC<OrganizationStrategyProps> = ({
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-base font-semibold mb-1">Organization Strategy</h3>
-        <p className="text-sm text-muted-foreground">
+        <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+            <Building className="h-4 w-4" />
+            Organization Strategy
+          </h4>
+        <p className="text-xs text-muted-foreground mb-4">
           Choose how your repositories will be organized in Gitea
         </p>
       </div>

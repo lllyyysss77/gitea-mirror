@@ -1,7 +1,7 @@
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Building2, Star, Globe, Lock, Shield, Info } from "lucide-react";
+import { Building2, Star, Globe, Lock, Shield, Info, MonitorCog } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -40,7 +40,7 @@ export const OrganizationConfiguration: React.FC<OrganizationConfigurationProps>
     <div className="space-y-4">
       <div>
         <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-          <Building2 className="h-4 w-4" />
+          <MonitorCog className="h-4 w-4" />
           Organization Configuration
         </h4>
       </div>

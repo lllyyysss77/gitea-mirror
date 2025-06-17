@@ -19,7 +19,6 @@ import {
   Info, 
   GitBranch, 
   Star, 
-  Building2, 
   Lock, 
   Archive,
   GitPullRequest,
@@ -29,7 +28,8 @@ import {
   Target,
   BookOpen,
   GitFork,
-  ChevronDown
+  ChevronDown,
+  Funnel
 } from "lucide-react";
 import type { GitHubConfig, MirrorOptions, AdvancedOptions } from "@/types/config";
 import { cn } from "@/lib/utils";
@@ -388,7 +388,7 @@ export function GitHubMirrorSettings({
       <div className="space-y-4">
         <div>
           <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
-            <Building2 className="h-4 w-4" />
+            <Funnel className="h-4 w-4" />
             Filtering & Behavior
           </h4>
           <p className="text-xs text-muted-foreground mb-4">
