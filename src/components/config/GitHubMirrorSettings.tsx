@@ -76,6 +76,18 @@ export function GitHubMirrorSettings({
 
   // When metadata is disabled, all components should be disabled
   const isMetadataEnabled = mirrorOptions.mirrorMetadata;
+  
+  // Calculate what content is included for starred repos
+  const starredRepoContent = {
+    code: true, // Always included
+    releases: !advancedOptions.skipStarredIssues && mirrorOptions.mirrorReleases,
+    issues: !advancedOptions.skipStarredIssues && mirrorOptions.mirrorMetadata && mirrorOptions.metadataComponents.issues,
+    pullRequests: !advancedOptions.skipStarredIssues && mirrorOptions.mirrorMetadata && mirrorOptions.metadataComponents.pullRequests,
+    wiki: !advancedOptions.skipStarredIssues && mirrorOptions.mirrorMetadata && mirrorOptions.metadataComponents.wiki,
+  };
+  
+  const starredContentCount = Object.entries(starredRepoContent).filter(([key, value]) => key !== 'code' && value).length;
+  const totalStarredOptions = 4; // releases, issues, PRs, wiki
 
   return (
     <div className="space-y-6">
@@ -112,7 +124,7 @@ export function GitHubMirrorSettings({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="flex items-start justify-between gap-4">
             <div className="flex items-start space-x-3">
               <Checkbox
                 id="starred-repos"
@@ -133,44 +145,136 @@ export function GitHubMirrorSettings({
               </div>
             </div>
 
-            {/* Lightweight starred repos option - inline to prevent layout shift */}
+            {/* Starred repos content selection - inline to prevent layout shift */}
             <div className={cn(
-              "flex items-start space-x-3 transition-all duration-200",
-              githubConfig.mirrorStarred 
-                ? "opacity-100 lg:pl-6 lg:border-l lg:border-border" 
-                : "opacity-0 pointer-events-none"
+              "flex items-center justify-end transition-opacity duration-200",
+              githubConfig.mirrorStarred ? "opacity-100" : "opacity-0 pointer-events-none"
             )}>
-              <Checkbox
-                id="skip-starred-metadata"
-                checked={advancedOptions.skipStarredIssues}
-                onCheckedChange={(checked) => handleAdvancedChange('skipStarredIssues', !!checked)}
-                disabled={!githubConfig.mirrorStarred}
-              />
-              <div className="space-y-0.5 flex-1">
-                <Label
-                  htmlFor="skip-starred-metadata"
-                  className="text-sm font-normal cursor-pointer flex items-center gap-2"
-                >
-                  Lightweight mirroring
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <Info className="h-3 w-3 text-muted-foreground" />
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-xs">
-                        <p className="text-xs">
-                          When enabled, starred repositories will only mirror code, 
-                          skipping issues, PRs, and other metadata to reduce storage 
-                          and improve performance.
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Only code, skip issues and metadata
-                </p>
-              </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!githubConfig.mirrorStarred}
+                    className="h-8 text-xs font-normal min-w-[140px] justify-between"
+                  >
+                    <span>
+                      {advancedOptions.skipStarredIssues ? (
+                        "Code only"
+                      ) : starredContentCount === 0 ? (
+                        "Code only"
+                      ) : starredContentCount === totalStarredOptions ? (
+                        "Full content"
+                      ) : (
+                        `${starredContentCount + 1} of ${totalStarredOptions + 1} selected`
+                      )}
+                    </span>
+                    <ChevronDown className="ml-2 h-3 w-3 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-72">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm font-medium">Starred repos content</div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                          </TooltipTrigger>
+                          <TooltipContent side="left" className="max-w-xs">
+                            <p className="text-xs">
+                              Choose what content to mirror from starred repositories. 
+                              Selecting "Lightweight mode" will only mirror code for better performance.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    
+                    <Separator className="my-2" />
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-3 py-1 px-1 rounded hover:bg-accent">
+                        <Checkbox
+                          id="starred-lightweight"
+                          checked={advancedOptions.skipStarredIssues}
+                          onCheckedChange={(checked) => handleAdvancedChange('skipStarredIssues', !!checked)}
+                        />
+                        <Label
+                          htmlFor="starred-lightweight"
+                          className="text-sm font-normal cursor-pointer flex-1"
+                        >
+                          <div className="space-y-0.5">
+                            <div className="font-medium">Lightweight mode</div>
+                            <div className="text-xs text-muted-foreground">
+                              Only mirror code, skip all metadata
+                            </div>
+                          </div>
+                        </Label>
+                      </div>
+                      
+                      {!advancedOptions.skipStarredIssues && (
+                        <>
+                          <Separator className="my-2" />
+                          <div className="space-y-2">
+                            <p className="text-xs font-medium text-muted-foreground">
+                              Content included for starred repos:
+                            </p>
+                            
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-2 text-xs pl-2">
+                                <GitBranch className="h-3 w-3 text-muted-foreground" />
+                                <span>Source code</span>
+                                <Badge variant="secondary" className="ml-auto text-[10px] px-1 h-4">Always</Badge>
+                              </div>
+                              
+                              <div className={cn(
+                                "flex items-center gap-2 text-xs pl-2",
+                                starredRepoContent.releases ? "" : "opacity-50"
+                              )}>
+                                <Tag className="h-3 w-3 text-muted-foreground" />
+                                <span>Releases & Tags</span>
+                                {starredRepoContent.releases && <Badge variant="outline" className="ml-auto text-[10px] px-1 h-4">Included</Badge>}
+                              </div>
+                              
+                              <div className={cn(
+                                "flex items-center gap-2 text-xs pl-2",
+                                starredRepoContent.issues ? "" : "opacity-50"
+                              )}>
+                                <MessageSquare className="h-3 w-3 text-muted-foreground" />
+                                <span>Issues</span>
+                                {starredRepoContent.issues && <Badge variant="outline" className="ml-auto text-[10px] px-1 h-4">Included</Badge>}
+                              </div>
+                              
+                              <div className={cn(
+                                "flex items-center gap-2 text-xs pl-2",
+                                starredRepoContent.pullRequests ? "" : "opacity-50"
+                              )}>
+                                <GitPullRequest className="h-3 w-3 text-muted-foreground" />
+                                <span>Pull Requests</span>
+                                {starredRepoContent.pullRequests && <Badge variant="outline" className="ml-auto text-[10px] px-1 h-4">Included</Badge>}
+                              </div>
+                              
+                              <div className={cn(
+                                "flex items-center gap-2 text-xs pl-2",
+                                starredRepoContent.wiki ? "" : "opacity-50"
+                              )}>
+                                <BookOpen className="h-3 w-3 text-muted-foreground" />
+                                <span>Wiki</span>
+                                {starredRepoContent.wiki && <Badge variant="outline" className="ml-auto text-[10px] px-1 h-4">Included</Badge>}
+                              </div>
+                            </div>
+                            
+                            <p className="text-[10px] text-muted-foreground mt-2">
+                              To include more content, enable them in the Content & Data section below
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
         </div>
