@@ -79,6 +79,13 @@ export async function POST({ request }: APIContext) {
    - Tracks status in database
    - Supports scheduled automatic mirroring
 
+6. **Mirror Strategies**: Three ways to organize repositories in Gitea:
+   - **preserve**: Maintains GitHub structure (default)
+   - **single-org**: All repos go to one organization
+   - **flat-user**: All repos go under user account
+   - Starred repos always go to separate organization (starredReposOrg)
+   - Routing logic in `getGiteaRepoOwner()` function
+
 ### Database Schema (SQLite)
 - `users` - User accounts and authentication
 - `configs` - GitHub/Gitea connection settings

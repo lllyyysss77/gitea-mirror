@@ -36,9 +36,9 @@ See the [LXC Container Deployment Guide](scripts/README-lxc.md).
 ## ✨ Features
 
 - 🔁 Sync public, private, or starred GitHub repos to Gitea
-- 🏢 Mirror entire organizations with structure preservation
+- 🏢 Mirror entire organizations with flexible organization strategies
 - 🐞 Optional mirroring of issues and labels
-- 🌟 Mirror your starred repositories
+- 🌟 Mirror your starred repositories to a dedicated organization
 - 🕹️ Modern user interface with toast notifications and smooth experience
 - 🧠 Smart filtering and job queue with detailed logs
 - 🛠️ Works with personal access tokens (GitHub + Gitea)
@@ -316,6 +316,28 @@ Key configuration options include:
 
 > [!IMPORTANT]
 > **SQLite is the only database required for Gitea Mirror**, handling both data storage and real-time event notifications.
+
+### Mirror Strategies
+
+Gitea Mirror offers three flexible strategies for organizing your repositories in Gitea:
+
+#### 1. **Preserve GitHub Structure** (Default)
+- Personal repositories → Your Gitea username
+- Organization repositories → Same organization name in Gitea
+- Maintains the exact structure from GitHub
+
+#### 2. **Single Organization**
+- All repositories → One designated organization
+- Simplifies management by consolidating everything
+- Requires specifying a destination organization name
+
+#### 3. **Flat User Structure**
+- All repositories → Your Gitea user account
+- No organizations needed
+- Simplest approach for personal use
+
+> [!NOTE]
+> **Starred Repositories**: Regardless of the chosen strategy, starred repositories are always mirrored to a separate organization (default: "starred") to keep them organized separately from your own repositories.
 
 ## 🚀 Development
 

@@ -18,7 +18,6 @@ const githubOptions = [
   { name: 'Mirror Wiki', desc: 'Mirror wiki pages from GitHub to Gitea', default: 'false' },
   { name: 'Mirror Organizations', desc: 'Mirror organization repositories', default: 'false' },
   { name: 'Only Mirror Orgs', desc: 'Only mirror organization repositories', default: 'false' },
-  { name: 'Preserve Org Structure', desc: 'Maintain organization structure in Gitea', default: 'false' },
   { name: 'Skip Forks', desc: 'Exclude repositories that are forks', default: 'false' },
   { name: 'Skip Starred Issues', desc: 'Skip issues for starred repositories', default: 'false' }
 ];
@@ -247,6 +246,74 @@ const giteaOptions = [
                 ))}
               </tbody>
             </table>
+          </div>
+
+          <!-- Mirror Strategies -->
+          <div class="bg-gradient-to-r from-primary/5 to-transparent rounded-lg p-6 border-l-4 border-primary mb-6">
+            <h4 class="font-semibold text-lg mb-4">Mirror Strategies</h4>
+            <p class="text-sm text-muted-foreground mb-4">Choose how your repositories will be organized in Gitea:</p>
+            
+            <div class="space-y-4">
+              <div class="bg-card rounded-lg border border-border p-4">
+                <h5 class="font-semibold text-base mb-2 flex items-center gap-2">
+                  <span class="text-blue-600 dark:text-blue-500">📁</span>
+                  Preserve GitHub Structure
+                </h5>
+                <p class="text-sm text-muted-foreground mb-2">Maintains the exact structure from GitHub:</p>
+                <ul class="space-y-1 text-sm ml-4">
+                  <li class="flex gap-2">
+                    <span class="text-muted-foreground">•</span>
+                    <span>Personal repos → Your Gitea username</span>
+                  </li>
+                  <li class="flex gap-2">
+                    <span class="text-muted-foreground">•</span>
+                    <span>Organization repos → Same organization name in Gitea</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="bg-card rounded-lg border border-border p-4">
+                <h5 class="font-semibold text-base mb-2 flex items-center gap-2">
+                  <span class="text-purple-600 dark:text-purple-500">🏢</span>
+                  Single Organization
+                </h5>
+                <p class="text-sm text-muted-foreground mb-2">Consolidates all repositories into one organization:</p>
+                <ul class="space-y-1 text-sm ml-4">
+                  <li class="flex gap-2">
+                    <span class="text-muted-foreground">•</span>
+                    <span>All repos → One designated organization</span>
+                  </li>
+                  <li class="flex gap-2">
+                    <span class="text-muted-foreground">•</span>
+                    <span>Requires setting "Organization" field</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="bg-card rounded-lg border border-border p-4">
+                <h5 class="font-semibold text-base mb-2 flex items-center gap-2">
+                  <span class="text-green-600 dark:text-green-500">👤</span>
+                  Flat User Structure
+                </h5>
+                <p class="text-sm text-muted-foreground mb-2">Mirrors all repositories under your user account:</p>
+                <ul class="space-y-1 text-sm ml-4">
+                  <li class="flex gap-2">
+                    <span class="text-muted-foreground">•</span>
+                    <span>All repos → Your Gitea username</span>
+                  </li>
+                  <li class="flex gap-2">
+                    <span class="text-muted-foreground">•</span>
+                    <span>No organizations needed</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            
+            <div class="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 mt-4">
+              <p class="text-sm">
+                <span class="font-semibold">Note:</span> Starred repositories are always mirrored to the "Starred Repos Org" (default: "starred") regardless of the chosen strategy.
+              </p>
+            </div>
           </div>
 
           <div class="pl-4 border-l-2 border-primary/20">

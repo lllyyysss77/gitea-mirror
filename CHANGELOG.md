@@ -5,6 +5,18 @@ All notable changes to the Gitea Mirror project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- Mirror strategies now properly route repositories based on selected strategy
+- Starred repositories now correctly go to the designated starred repos organization
+- Organization routing for single-org and flat-user strategies
+
+### Improved
+- Documentation now explains all three mirror strategies (preserve, single-org, flat-user)
+- Added detailed mirror strategy configuration guide
+- Updated CLAUDE.md with mirror strategy architecture information
+
 ## [2.13.2] - 2025-06-15
 
 ### Improved
