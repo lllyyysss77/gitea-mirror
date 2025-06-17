@@ -376,13 +376,13 @@ docker run -d \
   -e USER_UID=1000 \
   -e USER_GID=1000 \
   -e GITEA__database__DB_TYPE=sqlite3 \
-  -e GITEA__database__PATH=/data/gitea.db \
+  -e GITEA__database__PATH=/data/gitea/gitea.db \
   -e GITEA__server__DOMAIN=localhost \
   -e GITEA__server__ROOT_URL=http://localhost:3001/ \
   -e GITEA__server__SSH_DOMAIN=localhost \
   -e GITEA__server__SSH_PORT=2222 \
   -e GITEA__server__START_SSH_SERVER=true \
-  -e GITEA__security__INSTALL_LOCK=true \
+  -e GITEA__security__INSTALL_LOCK=false \
   -e GITEA__service__DISABLE_REGISTRATION=false \
   gitea/gitea:latest
 ```
