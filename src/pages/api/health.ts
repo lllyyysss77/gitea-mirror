@@ -58,7 +58,7 @@ export const GET: APIRoute = async () => {
       latestVersion: latestVersion,
       updateAvailable: latestVersion !== "unknown" &&
                        currentVersion !== "unknown" &&
-                       latestVersion !== currentVersion,
+                       compareVersions(currentVersion, latestVersion) < 0,
       database: dbStatus,
       recovery: recoveryStatus,
       system: systemInfo,
@@ -172,6 +172,28 @@ function formatBytes(bytes: number): string {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
 
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+/**
+ * Compare semantic versions
+ * Returns: 
+ *  -1 if v1 < v2
+ *   0 if v1 = v2
+ *   1 if v1 > v2
+ */
+function compareVersions(v1: string, v2: string): number {
+  const parts1 = v1.split('.').map(Number);
+  const parts2 = v2.split('.').map(Number);
+  
+  for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+    const part1 = parts1[i] || 0;
+    const part2 = parts2[i] || 0;
+    
+    if (part1 < part2) return -1;
+    if (part1 > part2) return 1;
+  }
+  
+  return 0;
 }
 
 /**
