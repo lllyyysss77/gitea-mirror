@@ -9,6 +9,13 @@ import { formatDate, getStatusColor } from "@/lib/utils";
 import type { FilterParams } from "@/types/filter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGiteaConfig } from "@/hooks/useGiteaConfig";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface RepositoryTableProps {
   repositories: Repository[];
@@ -20,6 +27,8 @@ interface RepositoryTableProps {
   onSync: ({ repoId }: { repoId: string }) => Promise<void>;
   onRetry: ({ repoId }: { repoId: string }) => Promise<void>;
   loadingRepoIds: Set<string>;
+  selectedRepoIds: Set<string>;
+  onSelectionChange: (selectedIds: Set<string>) => void;
 }
 
 export default function RepositoryTable({
@@ -32,6 +41,8 @@ export default function RepositoryTable({
   onSync,
   onRetry,
   loadingRepoIds,
+  selectedRepoIds,
+  onSelectionChange,
 }: RepositoryTableProps) {
   const tableParentRef = useRef<HTMLDivElement>(null);
   const { giteaConfig } = useGiteaConfig();
@@ -105,9 +116,36 @@ export default function RepositoryTable({
     overscan: 5,
   });
 
+  // Selection handlers
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allIds = new Set(filteredRepositories.map(repo => repo.id).filter((id): id is string => !!id));
+      onSelectionChange(allIds);
+    } else {
+      onSelectionChange(new Set());
+    }
+  };
+
+  const handleSelectRepo = (repoId: string, checked: boolean) => {
+    const newSelection = new Set(selectedRepoIds);
+    if (checked) {
+      newSelection.add(repoId);
+    } else {
+      newSelection.delete(repoId);
+    }
+    onSelectionChange(newSelection);
+  };
+
+  const isAllSelected = filteredRepositories.length > 0 && 
+    filteredRepositories.every(repo => repo.id && selectedRepoIds.has(repo.id));
+  const isPartiallySelected = selectedRepoIds.size > 0 && !isAllSelected;
+
   return isLoading ? (
     <div className="border rounded-md">
       <div className="h-[45px] flex items-center justify-between border-b bg-muted/50">
+        <div className="h-full p-3 flex items-center justify-center flex-[0.3]">
+          <Skeleton className="h-4 w-4" />
+        </div>
         <div className="h-full p-3 text-sm font-medium flex-[2.5]">
           Repository
         </div>
@@ -132,6 +170,9 @@ export default function RepositoryTable({
           key={i}
           className="h-[65px] flex items-center justify-between border-b bg-transparent"
         >
+          <div className="h-full p-3 flex items-center justify-center flex-[0.3]">
+            <Skeleton className="h-4 w-4" />
+          </div>
           <div className="h-full p-3 text-sm font-medium flex-[2.5]">
             <Skeleton className="h-full w-full" />
           </div>
@@ -187,6 +228,14 @@ export default function RepositoryTable({
     <div className="flex flex-col border rounded-md">
       {/* table header */}
       <div className="h-[45px] flex items-center justify-between border-b bg-muted/50">
+        <div className="h-full p-3 flex items-center justify-center flex-[0.3]">
+          <Checkbox 
+            checked={isAllSelected}
+            indeterminate={isPartiallySelected}
+            onCheckedChange={handleSelectAll}
+            aria-label="Select all repositories"
+          />
+        </div>
         <div className="h-full p-3 text-sm font-medium flex-[2.5]">
           Repository
         </div>
@@ -235,6 +284,15 @@ export default function RepositoryTable({
                 data-index={virtualRow.index}
                 className="h-[65px] flex items-center justify-between bg-transparent border-b hover:bg-muted/50" //the height is set according to the row content. right now the highest row is in the repo column which is arround 64.99px
               >
+                {/* Checkbox */}
+                <div className="h-full p-3 flex items-center justify-center flex-[0.3]">
+                  <Checkbox 
+                    checked={repo.id ? selectedRepoIds.has(repo.id) : false}
+                    onCheckedChange={(checked) => repo.id && handleSelectRepo(repo.id, !!checked)}
+                    aria-label={`Select ${repo.name}`}
+                  />
+                </div>
+
                 {/* Repository  */}
                 <div className="h-full p-3 flex items-center gap-2 flex-[2.5]">
                   <GitFork className="h-4 w-4 text-muted-foreground" />
@@ -277,12 +335,26 @@ export default function RepositoryTable({
 
                 {/* Status  */}
                 <div className="h-full p-3 flex items-center gap-x-2 flex-[1]">
-                  <div
-                    className={`h-2 w-2 rounded-full ${getStatusColor(
-                      repo.status
-                    )}`}
-                  />
-                  <span className="text-sm capitalize">{repo.status}</span>
+                  {repo.status === "failed" && repo.errorMessage ? (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-x-2 cursor-help">
+                            <div className={`h-2 w-2 rounded-full ${getStatusColor(repo.status)}`} />
+                            <span className="text-sm capitalize underline decoration-dotted">{repo.status}</span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-sm">{repo.errorMessage}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  ) : (
+                    <>
+                      <div className={`h-2 w-2 rounded-full ${getStatusColor(repo.status)}`} />
+                      <span className="text-sm capitalize">{repo.status}</span>
+                    </>
+                  )}
                 </div>
 
                 {/* Actions  */}

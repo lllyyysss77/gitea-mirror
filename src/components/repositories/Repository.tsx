@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Button } from "@/components/ui/button";
-import { Search, RefreshCw, FlipHorizontal } from "lucide-react";
+import { Search, RefreshCw, FlipHorizontal, RotateCcw, X } from "lucide-react";
 import type { MirrorRepoRequest, MirrorRepoResponse } from "@/types/mirror";
 import { useSSE } from "@/hooks/useSEE";
 import { useFilterParams } from "@/hooks/useFilterParams";
@@ -46,6 +46,7 @@ export default function Repository() {
     owner: "",
   });
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
+  const [selectedRepoIds, setSelectedRepoIds] = useState<Set<string>>(new Set());
 
   // Read organization filter from URL when component mounts
   useEffect(() => {
@@ -254,6 +255,143 @@ export default function Repository() {
     }
   };
 
+  // Bulk action handlers
+  const handleBulkMirror = async () => {
+    if (selectedRepoIds.size === 0) return;
+    
+    const selectedRepos = repositories.filter(repo => repo.id && selectedRepoIds.has(repo.id));
+    const eligibleRepos = selectedRepos.filter(
+      repo => repo.status === "imported" || repo.status === "failed"
+    );
+
+    if (eligibleRepos.length === 0) {
+      toast.info("No eligible repositories to mirror in selection");
+      return;
+    }
+
+    const repoIds = eligibleRepos.map(repo => repo.id as string);
+    
+    setLoadingRepoIds(prev => {
+      const newSet = new Set(prev);
+      repoIds.forEach(id => newSet.add(id));
+      return newSet;
+    });
+
+    try {
+      const response = await apiRequest<MirrorRepoResponse>("/job/mirror-repo", {
+        method: "POST",
+        data: { userId: user?.id, repositoryIds: repoIds }
+      });
+
+      if (response.success) {
+        toast.success(`Mirroring started for ${repoIds.length} repositories`);
+        setRepositories(prevRepos =>
+          prevRepos.map(repo => {
+            const updated = response.repositories.find(r => r.id === repo.id);
+            return updated ? updated : repo;
+          })
+        );
+        setSelectedRepoIds(new Set());
+      } else {
+        showErrorToast(response.error || "Error starting mirror jobs", toast);
+      }
+    } catch (error) {
+      showErrorToast(error, toast);
+    } finally {
+      setLoadingRepoIds(new Set());
+    }
+  };
+
+  const handleBulkSync = async () => {
+    if (selectedRepoIds.size === 0) return;
+    
+    const selectedRepos = repositories.filter(repo => repo.id && selectedRepoIds.has(repo.id));
+    const eligibleRepos = selectedRepos.filter(
+      repo => repo.status === "mirrored" || repo.status === "synced"
+    );
+
+    if (eligibleRepos.length === 0) {
+      toast.info("No eligible repositories to sync in selection");
+      return;
+    }
+
+    const repoIds = eligibleRepos.map(repo => repo.id as string);
+    
+    setLoadingRepoIds(prev => {
+      const newSet = new Set(prev);
+      repoIds.forEach(id => newSet.add(id));
+      return newSet;
+    });
+
+    try {
+      const response = await apiRequest<SyncRepoResponse>("/job/sync-repo", {
+        method: "POST",
+        data: { userId: user?.id, repositoryIds: repoIds }
+      });
+
+      if (response.success) {
+        toast.success(`Syncing started for ${repoIds.length} repositories`);
+        setRepositories(prevRepos =>
+          prevRepos.map(repo => {
+            const updated = response.repositories.find(r => r.id === repo.id);
+            return updated ? updated : repo;
+          })
+        );
+        setSelectedRepoIds(new Set());
+      } else {
+        showErrorToast(response.error || "Error starting sync jobs", toast);
+      }
+    } catch (error) {
+      showErrorToast(error, toast);
+    } finally {
+      setLoadingRepoIds(new Set());
+    }
+  };
+
+  const handleBulkRetry = async () => {
+    if (selectedRepoIds.size === 0) return;
+    
+    const selectedRepos = repositories.filter(repo => repo.id && selectedRepoIds.has(repo.id));
+    const eligibleRepos = selectedRepos.filter(repo => repo.status === "failed");
+
+    if (eligibleRepos.length === 0) {
+      toast.info("No failed repositories in selection to retry");
+      return;
+    }
+
+    const repoIds = eligibleRepos.map(repo => repo.id as string);
+    
+    setLoadingRepoIds(prev => {
+      const newSet = new Set(prev);
+      repoIds.forEach(id => newSet.add(id));
+      return newSet;
+    });
+
+    try {
+      const response = await apiRequest<RetryRepoResponse>("/job/retry-repo", {
+        method: "POST",
+        data: { userId: user?.id, repositoryIds: repoIds }
+      });
+
+      if (response.success) {
+        toast.success(`Retrying ${repoIds.length} repositories`);
+        setRepositories(prevRepos =>
+          prevRepos.map(repo => {
+            const updated = response.repositories.find(r => r.id === repo.id);
+            return updated ? updated : repo;
+          })
+        );
+        setSelectedRepoIds(new Set());
+      } else {
+        showErrorToast(response.error || "Error retrying jobs", toast);
+      }
+    } catch (error) {
+      showErrorToast(error, toast);
+    } finally {
+      setLoadingRepoIds(new Set());
+    }
+  };
+
   const handleSyncRepo = async ({ repoId }: { repoId: string }) => {
     try {
       if (!user || !user.id) {
@@ -392,6 +530,35 @@ export default function Repository() {
     )
   ).sort();
 
+  // Determine what actions are available for selected repositories
+  const getAvailableActions = () => {
+    if (selectedRepoIds.size === 0) return [];
+    
+    const selectedRepos = repositories.filter(repo => repo.id && selectedRepoIds.has(repo.id));
+    const statuses = new Set(selectedRepos.map(repo => repo.status));
+    
+    const actions = [];
+    
+    // Check if any selected repos can be mirrored
+    if (selectedRepos.some(repo => repo.status === "imported" || repo.status === "failed")) {
+      actions.push('mirror');
+    }
+    
+    // Check if any selected repos can be synced
+    if (selectedRepos.some(repo => repo.status === "mirrored" || repo.status === "synced")) {
+      actions.push('sync');
+    }
+    
+    // Check if any selected repos are failed
+    if (selectedRepos.some(repo => repo.status === "failed")) {
+      actions.push('retry');
+    }
+    
+    return actions;
+  };
+  
+  const availableActions = getAvailableActions();
+
   return (
     <div className="flex flex-col gap-y-8">
       {/* Combine search and actions into a single flex row */}
@@ -459,14 +626,69 @@ export default function Repository() {
           <RefreshCw className="h-4 w-4" />
         </Button>
 
-        <Button
-          variant="default"
-          onClick={handleMirrorAllRepos}
-          disabled={isInitialLoading || loadingRepoIds.size > 0}
-        >
-          <FlipHorizontal className="h-4 w-4 mr-2" />
-          Mirror All
-        </Button>
+        {/* Context-aware action buttons */}
+        {selectedRepoIds.size === 0 ? (
+          <Button
+            variant="default"
+            onClick={handleMirrorAllRepos}
+            disabled={isInitialLoading || loadingRepoIds.size > 0}
+          >
+            <FlipHorizontal className="h-4 w-4 mr-2" />
+            Mirror All
+          </Button>
+        ) : (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 px-3 py-1 bg-muted/50 rounded-md">
+              <span className="text-sm font-medium">
+                {selectedRepoIds.size} selected
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => setSelectedRepoIds(new Set())}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            {availableActions.includes('mirror') && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleBulkMirror}
+                disabled={loadingRepoIds.size > 0}
+              >
+                <FlipHorizontal className="h-4 w-4 mr-2" />
+                Mirror ({selectedRepoIds.size})
+              </Button>
+            )}
+            
+            {availableActions.includes('sync') && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBulkSync}
+                disabled={loadingRepoIds.size > 0}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Sync ({selectedRepoIds.size})
+              </Button>
+            )}
+            
+            {availableActions.includes('retry') && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleBulkRetry}
+                disabled={loadingRepoIds.size > 0}
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Retry
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       {!isGitHubConfigured ? (
@@ -497,6 +719,8 @@ export default function Repository() {
           onSync={handleSyncRepo}
           onRetry={handleRetryRepoAction}
           loadingRepoIds={loadingRepoIds}
+          selectedRepoIds={selectedRepoIds}
+          onSelectionChange={setSelectedRepoIds}
         />
       )}
 
