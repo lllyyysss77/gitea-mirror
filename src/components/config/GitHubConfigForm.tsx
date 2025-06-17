@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -12,7 +11,6 @@ import type { GitHubConfig, MirrorOptions, AdvancedOptions } from "@/types/confi
 import { Input } from "../ui/input";
 import { toast } from "sonner";
 import { Info } from "lucide-react";
-import { Alert, AlertDescription } from "../ui/alert";
 import { GitHubMirrorSettings } from "./GitHubMirrorSettings";
 import { Separator } from "../ui/separator";
 import {
