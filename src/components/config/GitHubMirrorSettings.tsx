@@ -107,12 +107,12 @@ export function GitHubMirrorSettings({
                 Include private repositories
               </Label>
               <p className="text-xs text-muted-foreground">
-                Mirror your private repositories (requires appropriate token permissions)
+                Mirror your private repositories
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="flex items-start space-x-3">
               <Checkbox
                 id="starred-repos"
@@ -135,8 +135,10 @@ export function GitHubMirrorSettings({
 
             {/* Lightweight starred repos option - inline to prevent layout shift */}
             <div className={cn(
-              "flex items-start space-x-3 transition-opacity duration-200",
-              githubConfig.mirrorStarred ? "opacity-100" : "opacity-0 pointer-events-none"
+              "flex items-start space-x-3 transition-all duration-200",
+              githubConfig.mirrorStarred 
+                ? "opacity-100 lg:pl-6 lg:border-l lg:border-border" 
+                : "opacity-0 pointer-events-none"
             )}>
               <Checkbox
                 id="skip-starred-metadata"
