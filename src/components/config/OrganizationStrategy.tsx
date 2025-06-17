@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Info, GitBranch, FolderTree, Package, Star, Building2, User, ChevronDown, ChevronUp, Globe, Lock, Shield } from "lucide-react";
+import { Info, GitBranch, FolderTree, Star, Building2, User, Globe, Lock, Shield } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
@@ -17,11 +17,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import type { GiteaOrgVisibility } from "@/types/config";
 
 export type MirrorStrategy = "preserve" | "single-org" | "flat-user";
@@ -47,11 +42,10 @@ const strategyConfig = {
     color: "text-blue-600 dark:text-blue-400",
     bgColor: "bg-blue-50 dark:bg-blue-950/20",
     borderColor: "border-blue-200 dark:border-blue-900",
-    details: [
-      "Personal repos → Your Gitea username",
-      "Org repos → Same org name in Gitea",
-      "Team structure preserved"
-    ]
+    repoColors: {
+      bg: "bg-blue-50 dark:bg-blue-950/30",
+      icon: "text-blue-600 dark:text-blue-400"
+    }
   },
   "single-org": {
     title: "Consolidate to One Org",
@@ -60,11 +54,10 @@ const strategyConfig = {
     color: "text-purple-600 dark:text-purple-400",
     bgColor: "bg-purple-50 dark:bg-purple-950/20",
     borderColor: "border-purple-200 dark:border-purple-900",
-    details: [
-      "All repos in one place",
-      "Simplified management",
-      "Custom organization name"
-    ]
+    repoColors: {
+      bg: "bg-purple-50 dark:bg-purple-950/30",
+      icon: "text-purple-600 dark:text-purple-400"
+    }
   },
   "flat-user": {
     title: "Flat User Structure",
@@ -73,186 +66,165 @@ const strategyConfig = {
     color: "text-green-600 dark:text-green-400",
     bgColor: "bg-green-50 dark:bg-green-950/20",
     borderColor: "border-green-200 dark:border-green-900",
-    details: [
-      "All repos under your username",
-      "No organizations needed",
-      "Simple and personal"
-    ]
+    repoColors: {
+      bg: "bg-green-50 dark:bg-green-950/30",
+      icon: "text-green-600 dark:text-green-400"
+    }
   }
 };
 
-const StrategyVisualizer: React.FC<{ 
-  strategy: MirrorStrategy; 
+const MappingPreview: React.FC<{ 
+  strategy: MirrorStrategy;
+  config: typeof strategyConfig.preserve;
   destinationOrg?: string;
   starredReposOrg?: string;
   githubUsername?: string;
   giteaUsername?: string;
-}> = ({ strategy, destinationOrg, starredReposOrg, githubUsername, giteaUsername }) => {
-  const [isOpen, setIsOpen] = useState(false);
+}> = ({ strategy, config, destinationOrg, starredReposOrg, githubUsername, giteaUsername }) => {
   const displayGithubUsername = githubUsername || "<username>";
   const displayGiteaUsername = giteaUsername || "<username>";
   const isGithubPlaceholder = !githubUsername;
   const isGiteaPlaceholder = !giteaUsername;
-  const renderPreserveStructure = () => (
-    <div className="flex items-center justify-between gap-8 p-6">
-      <div className="flex-1">
-        <div className="text-sm font-medium text-muted-foreground mb-3">GitHub</div>
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
-            <User className="h-4 w-4" />
-            <span className={cn("text-sm", isGithubPlaceholder && "text-muted-foreground italic")}>{displayGithubUsername}/my-repo</span>
-          </div>
-          <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
-            <Building2 className="h-4 w-4" />
-            <span className="text-sm">my-org/team-repo</span>
-          </div>
-          <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
-            <Star className="h-4 w-4" />
-            <span className="text-sm">awesome/starred-repo</span>
-          </div>
-        </div>
-      </div>
-      
-      <div className="flex items-center">
-        <GitBranch className="h-5 w-5 text-muted-foreground" />
-      </div>
-      
-      <div className="flex-1">
-        <div className="text-sm font-medium text-muted-foreground mb-3">Gitea</div>
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-950/30 rounded">
-            <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            <span className={cn("text-sm", isGiteaPlaceholder && "text-muted-foreground italic")}>{displayGiteaUsername}/my-repo</span>
-          </div>
-          <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-950/30 rounded">
-            <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            <span className="text-sm">my-org/team-repo</span>
-          </div>
-          <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-950/30 rounded">
-            <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            <span className="text-sm">{starredReposOrg || "starred"}/starred-repo</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderSingleOrg = () => (
-    <div className="flex items-center justify-between gap-8 p-6">
-      <div className="flex-1">
-        <div className="text-sm font-medium text-muted-foreground mb-3">GitHub</div>
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
-            <User className="h-4 w-4" />
-            <span className={cn("text-sm", isGithubPlaceholder && "text-muted-foreground italic")}>{displayGithubUsername}/my-repo</span>
-          </div>
-          <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
-            <Building2 className="h-4 w-4" />
-            <span className="text-sm">my-org/team-repo</span>
-          </div>
-          <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
-            <Star className="h-4 w-4" />
-            <span className="text-sm">awesome/starred-repo</span>
-          </div>
-        </div>
-      </div>
-      
-      <div className="flex items-center">
-        <GitBranch className="h-5 w-5 text-muted-foreground" />
-      </div>
-      
-      <div className="flex-1">
-        <div className="text-sm font-medium text-muted-foreground mb-3">Gitea</div>
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 p-2 bg-purple-50 dark:bg-purple-950/30 rounded">
-            <Building2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-            <span className="text-sm">{destinationOrg || "github-mirrors"}/my-repo</span>
-          </div>
-          <div className="flex items-center gap-2 p-2 bg-purple-50 dark:bg-purple-950/30 rounded">
-            <Building2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-            <span className="text-sm">{destinationOrg || "github-mirrors"}/team-repo</span>
-          </div>
-          <div className="flex items-center gap-2 p-2 bg-purple-50 dark:bg-purple-950/30 rounded">
-            <Building2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-            <span className="text-sm">{starredReposOrg || "starred"}/starred-repo</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderFlatUser = () => (
-    <div className="flex items-center justify-between gap-8 p-6">
-      <div className="flex-1">
-        <div className="text-sm font-medium text-muted-foreground mb-3">GitHub</div>
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
-            <User className="h-4 w-4" />
-            <span className={cn("text-sm", isGithubPlaceholder && "text-muted-foreground italic")}>{displayGithubUsername}/my-repo</span>
-          </div>
-          <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
-            <Building2 className="h-4 w-4" />
-            <span className="text-sm">my-org/team-repo</span>
-          </div>
-          <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded">
-            <Star className="h-4 w-4" />
-            <span className="text-sm">awesome/starred-repo</span>
-          </div>
-        </div>
-      </div>
-      
-      <div className="flex items-center">
-        <GitBranch className="h-5 w-5 text-muted-foreground" />
-      </div>
-      
-      <div className="flex-1">
-        <div className="text-sm font-medium text-muted-foreground mb-3">Gitea</div>
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950/30 rounded">
-            <User className="h-4 w-4 text-green-600 dark:text-green-400" />
-            <span className={cn("text-sm", isGiteaPlaceholder && "text-muted-foreground italic")}>{displayGiteaUsername}/my-repo</span>
-          </div>
-          <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950/30 rounded">
-            <User className="h-4 w-4 text-green-600 dark:text-green-400" />
-            <span className={cn("text-sm", isGiteaPlaceholder && "text-muted-foreground italic")}>{displayGiteaUsername}/team-repo</span>
-          </div>
-          <div className="flex items-center gap-2 p-2 bg-green-50 dark:bg-green-950/30 rounded">
-            <Building2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-            <span className="text-sm">{starredReposOrg || "starred"}/starred-repo</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="mt-3">
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <Card className="overflow-hidden">
-          <CollapsibleTrigger className="w-full">
-            <div className="bg-muted/50 p-3 border-b hover:bg-muted/70 transition-colors cursor-pointer">
-              <h4 className="text-sm font-medium flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <Package className="h-4 w-4" />
-                  Repository Mapping Preview
-                </span>
-                {isOpen ? (
-                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                )}
-              </h4>
+  
+  if (strategy === "preserve") {
+    return (
+      <div className="flex items-center justify-between gap-6">
+        <div className="flex-1">
+          <div className="text-xs font-medium text-muted-foreground mb-2">GitHub</div>
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 p-1.5 bg-gray-50 dark:bg-gray-800 rounded text-xs">
+              <User className="h-3 w-3" />
+              <span className={cn(isGithubPlaceholder && "text-muted-foreground italic")}>{displayGithubUsername}/my-repo</span>
             </div>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            {strategy === "preserve" && renderPreserveStructure()}
-            {strategy === "single-org" && renderSingleOrg()}
-            {strategy === "flat-user" && renderFlatUser()}
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
-    </div>
-  );
+            <div className="flex items-center gap-2 p-1.5 bg-gray-50 dark:bg-gray-800 rounded text-xs">
+              <Building2 className="h-3 w-3" />
+              <span>my-org/team-repo</span>
+            </div>
+            <div className="flex items-center gap-2 p-1.5 bg-gray-50 dark:bg-gray-800 rounded text-xs">
+              <Star className="h-3 w-3" />
+              <span>awesome/starred-repo</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex items-center">
+          <GitBranch className="h-4 w-4 text-muted-foreground" />
+        </div>
+        
+        <div className="flex-1">
+          <div className="text-xs font-medium text-muted-foreground mb-2">Gitea</div>
+          <div className="space-y-1.5">
+            <div className={cn("flex items-center gap-2 p-1.5 rounded text-xs", config.repoColors.bg)}>
+              <User className={cn("h-3 w-3", config.repoColors.icon)} />
+              <span className={cn(isGiteaPlaceholder && "text-muted-foreground italic")}>{displayGiteaUsername}/my-repo</span>
+            </div>
+            <div className={cn("flex items-center gap-2 p-1.5 rounded text-xs", config.repoColors.bg)}>
+              <Building2 className={cn("h-3 w-3", config.repoColors.icon)} />
+              <span>my-org/team-repo</span>
+            </div>
+            <div className={cn("flex items-center gap-2 p-1.5 rounded text-xs", config.repoColors.bg)}>
+              <Building2 className={cn("h-3 w-3", config.repoColors.icon)} />
+              <span>{starredReposOrg || "starred"}/starred-repo</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (strategy === "single-org") {
+    return (
+      <div className="flex items-center justify-between gap-6">
+        <div className="flex-1">
+          <div className="text-xs font-medium text-muted-foreground mb-2">GitHub</div>
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 p-1.5 bg-gray-50 dark:bg-gray-800 rounded text-xs">
+              <User className="h-3 w-3" />
+              <span className={cn(isGithubPlaceholder && "text-muted-foreground italic")}>{displayGithubUsername}/my-repo</span>
+            </div>
+            <div className="flex items-center gap-2 p-1.5 bg-gray-50 dark:bg-gray-800 rounded text-xs">
+              <Building2 className="h-3 w-3" />
+              <span>my-org/team-repo</span>
+            </div>
+            <div className="flex items-center gap-2 p-1.5 bg-gray-50 dark:bg-gray-800 rounded text-xs">
+              <Star className="h-3 w-3" />
+              <span>awesome/starred-repo</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex items-center">
+          <GitBranch className="h-4 w-4 text-muted-foreground" />
+        </div>
+        
+        <div className="flex-1">
+          <div className="text-xs font-medium text-muted-foreground mb-2">Gitea</div>
+          <div className="space-y-1.5">
+            <div className={cn("flex items-center gap-2 p-1.5 rounded text-xs", config.repoColors.bg)}>
+              <Building2 className={cn("h-3 w-3", config.repoColors.icon)} />
+              <span>{destinationOrg || "github-mirrors"}/my-repo</span>
+            </div>
+            <div className={cn("flex items-center gap-2 p-1.5 rounded text-xs", config.repoColors.bg)}>
+              <Building2 className={cn("h-3 w-3", config.repoColors.icon)} />
+              <span>{destinationOrg || "github-mirrors"}/team-repo</span>
+            </div>
+            <div className={cn("flex items-center gap-2 p-1.5 rounded text-xs", config.repoColors.bg)}>
+              <Building2 className={cn("h-3 w-3", config.repoColors.icon)} />
+              <span>{starredReposOrg || "starred"}/starred-repo</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (strategy === "flat-user") {
+    return (
+      <div className="flex items-center justify-between gap-6">
+        <div className="flex-1">
+          <div className="text-xs font-medium text-muted-foreground mb-2">GitHub</div>
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 p-1.5 bg-gray-50 dark:bg-gray-800 rounded text-xs">
+              <User className="h-3 w-3" />
+              <span className={cn(isGithubPlaceholder && "text-muted-foreground italic")}>{displayGithubUsername}/my-repo</span>
+            </div>
+            <div className="flex items-center gap-2 p-1.5 bg-gray-50 dark:bg-gray-800 rounded text-xs">
+              <Building2 className="h-3 w-3" />
+              <span>my-org/team-repo</span>
+            </div>
+            <div className="flex items-center gap-2 p-1.5 bg-gray-50 dark:bg-gray-800 rounded text-xs">
+              <Star className="h-3 w-3" />
+              <span>awesome/starred-repo</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex items-center">
+          <GitBranch className="h-4 w-4 text-muted-foreground" />
+        </div>
+        
+        <div className="flex-1">
+          <div className="text-xs font-medium text-muted-foreground mb-2">Gitea</div>
+          <div className="space-y-1.5">
+            <div className={cn("flex items-center gap-2 p-1.5 rounded text-xs", config.repoColors.bg)}>
+              <User className={cn("h-3 w-3", config.repoColors.icon)} />
+              <span className={cn(isGiteaPlaceholder && "text-muted-foreground italic")}>{displayGiteaUsername}/my-repo</span>
+            </div>
+            <div className={cn("flex items-center gap-2 p-1.5 rounded text-xs", config.repoColors.bg)}>
+              <User className={cn("h-3 w-3", config.repoColors.icon)} />
+              <span className={cn(isGiteaPlaceholder && "text-muted-foreground italic")}>{displayGiteaUsername}/team-repo</span>
+            </div>
+            <div className={cn("flex items-center gap-2 p-1.5 rounded text-xs", config.repoColors.bg)}>
+              <Building2 className={cn("h-3 w-3", config.repoColors.icon)} />
+              <span>{starredReposOrg || "starred"}/starred-repo</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  return null;
 };
 
 export const OrganizationStrategy: React.FC<OrganizationStrategyProps> = ({
@@ -334,17 +306,17 @@ export const OrganizationStrategy: React.FC<OrganizationStrategyProps> = ({
                               <Info className="h-4 w-4 text-muted-foreground" />
                             </button>
                           </PopoverTrigger>
-                          <PopoverContent side="left" align="center" className="w-64">
-                            <div className="space-y-2">
-                              {config.details.map((detail, idx) => (
-                                <div key={idx} className="flex items-start gap-2">
-                                  <div className={cn(
-                                    "h-1.5 w-1.5 rounded-full mt-1.5 flex-shrink-0",
-                                    "bg-muted-foreground"
-                                  )} />
-                                  <span className="text-xs text-muted-foreground">{detail}</span>
-                                </div>
-                              ))}
+                          <PopoverContent side="left" align="center" className="w-[500px]">
+                            <div className="space-y-3">
+                              <h4 className="font-medium text-sm">Repository Mapping Preview</h4>
+                              <MappingPreview 
+                                strategy={key}
+                                config={config}
+                                destinationOrg={destinationOrg}
+                                starredReposOrg={starredReposOrg}
+                                githubUsername={githubUsername}
+                                giteaUsername={giteaUsername}
+                              />
                             </div>
                           </PopoverContent>
                         </Popover>
@@ -541,16 +513,6 @@ export const OrganizationStrategy: React.FC<OrganizationStrategyProps> = ({
           </div>
         )}
       </div>
-
-      <Separator className="my-4" />
-
-      <StrategyVisualizer 
-        strategy={strategy}
-        destinationOrg={destinationOrg}
-        starredReposOrg={starredReposOrg}
-        githubUsername={githubUsername}
-        giteaUsername={giteaUsername}
-      />
     </div>
   );
 };

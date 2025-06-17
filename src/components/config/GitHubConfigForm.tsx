@@ -11,7 +11,7 @@ import { githubApi } from "@/lib/api";
 import type { GitHubConfig, MirrorOptions, AdvancedOptions } from "@/types/config";
 import { Input } from "../ui/input";
 import { toast } from "sonner";
-import { AlertTriangle, Info } from "lucide-react";
+import { Info } from "lucide-react";
 import { Alert, AlertDescription } from "../ui/alert";
 import { GitHubMirrorSettings } from "./GitHubMirrorSettings";
 import { Separator } from "../ui/separator";
