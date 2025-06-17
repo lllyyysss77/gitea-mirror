@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.14.0] - 2025-06-17
+
+### Added
+- Enhanced UI components with @radix-ui/react-accordion dependency for improved configuration interface
+
 ### Fixed
 - Mirror strategies now properly route repositories based on selected strategy
 - Starred repositories now correctly go to the designated starred repos organization
@@ -16,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation now explains all three mirror strategies (preserve, single-org, flat-user)
 - Added detailed mirror strategy configuration guide
 - Updated CLAUDE.md with mirror strategy architecture information
+- Enhanced Docker Compose development configuration
 
 ## [2.13.2] - 2025-06-15
 
