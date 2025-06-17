@@ -11,6 +11,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import {
   Collapsible,
@@ -283,12 +288,11 @@ export const OrganizationStrategy: React.FC<OrganizationStrategyProps> = ({
                       !isSelected && "border-muted"
                     )}
                   >
-                    <div className="p-4">
-                      <div className="flex items-start gap-4">
+                    <div className="p-3">
+                      <div className="flex items-center gap-3">
                         <RadioGroupItem 
                           value={key} 
                           id={key} 
-                          className="mt-1"
                         />
                         
                         <div className={cn(
@@ -296,36 +300,50 @@ export const OrganizationStrategy: React.FC<OrganizationStrategyProps> = ({
                           isSelected ? config.bgColor : "bg-muted dark:bg-muted/50"
                         )}>
                           <Icon className={cn(
-                            "h-5 w-5",
+                            "h-4 w-4",
                             isSelected ? config.color : "text-muted-foreground dark:text-muted-foreground/70"
                           )} />
                         </div>
                         
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-medium">{config.title}</h4>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-medium text-sm">{config.title}</h4>
                             {isSelected && (
                               <Badge variant="secondary" className="text-xs">
                                 Selected
                               </Badge>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground mb-3">
+                          <p className="text-xs text-muted-foreground mt-0.5">
                             {config.description}
                           </p>
-                          
-                          <div className="space-y-1">
-                            {config.details.map((detail, idx) => (
-                              <div key={idx} className="flex items-center gap-2">
-                                <div className={cn(
-                                  "h-1.5 w-1.5 rounded-full",
-                                  isSelected ? config.bgColor : "bg-muted dark:bg-muted/50"
-                                )} />
-                                <span className="text-xs text-muted-foreground">{detail}</span>
-                              </div>
-                            ))}
-                          </div>
                         </div>
+                        
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button 
+                              type="button"
+                              className="p-1.5 hover:bg-muted rounded-md transition-colors"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Info className="h-4 w-4 text-muted-foreground" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent side="left" align="center" className="w-64">
+                            <div className="space-y-2">
+                              <h5 className="font-medium text-sm mb-2">Details</h5>
+                              {config.details.map((detail, idx) => (
+                                <div key={idx} className="flex items-start gap-2">
+                                  <div className={cn(
+                                    "h-1.5 w-1.5 rounded-full mt-1.5 flex-shrink-0",
+                                    config.bgColor
+                                  )} />
+                                  <span className="text-xs text-muted-foreground">{detail}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </div>
                   </Card>
