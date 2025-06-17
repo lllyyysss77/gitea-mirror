@@ -105,8 +105,17 @@ export const POST: APIRoute = async ({ request }) => {
 
           console.log(`Repository ${repo.name} will be mirrored to owner: ${owner}`);
 
-          // Check if owner is different from the user (means it's going to an org)
-          if (owner !== config.giteaConfig?.username) {
+          // For single-org and starred repos strategies, or when mirroring to an org,
+          // always use the org mirroring function to ensure proper organization handling
+          const mirrorStrategy = config.giteaConfig?.mirrorStrategy || 
+            (config.githubConfig?.preserveOrgStructure ? "preserve" : "flat-user");
+          
+          const shouldUseOrgMirror = 
+            owner !== config.giteaConfig?.username || // Different owner means org
+            mirrorStrategy === "single-org" || // Single-org strategy always uses org
+            repoData.isStarred; // Starred repos always go to org
+
+          if (shouldUseOrgMirror) {
             await mirrorGitHubOrgRepoToGiteaOrg({
               config,
               octokit,
