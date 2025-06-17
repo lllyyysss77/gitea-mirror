@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.16.2] - 2025-06-17
+
+### Added
+- Bulk actions for repository management with selection support
+
+### Improved
+- Enhanced organization card display with status badges and improved layout
+
 ## [2.16.1] - 2025-06-17
 
 ### Improved
