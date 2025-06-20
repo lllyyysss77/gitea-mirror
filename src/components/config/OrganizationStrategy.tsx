@@ -3,10 +3,10 @@ import { Card } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Info, GitBranch, FolderTree, Star, Building2, User, Building } from "lucide-react";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
 
 export type MirrorStrategy = "preserve" | "single-org" | "flat-user";
@@ -275,17 +275,17 @@ export const OrganizationStrategy: React.FC<OrganizationStrategyProps> = ({
                           </p>
                         </div>
                         
-                        <Popover>
-                          <PopoverTrigger asChild>
+                        <HoverCard>
+                          <HoverCardTrigger asChild>
                             <button 
                               type="button"
-                              className="p-1.5 hover:bg-muted rounded-md transition-colors"
+                              className="p-1.5 hover:bg-muted rounded-md transition-colors cursor-help"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <Info className="h-4 w-4 text-muted-foreground" />
                             </button>
-                          </PopoverTrigger>
-                          <PopoverContent side="left" align="center" className="w-[500px]">
+                          </HoverCardTrigger>
+                          <HoverCardContent side="left" align="center" className="w-[500px]">
                             <div className="space-y-3">
                               <h4 className="font-medium text-sm">Repository Mapping Preview</h4>
                               <MappingPreview 
@@ -297,8 +297,8 @@ export const OrganizationStrategy: React.FC<OrganizationStrategyProps> = ({
                                 giteaUsername={giteaUsername}
                               />
                             </div>
-                          </PopoverContent>
-                        </Popover>
+                          </HoverCardContent>
+                        </HoverCard>
                       </div>
                     </div>
                   </Card>

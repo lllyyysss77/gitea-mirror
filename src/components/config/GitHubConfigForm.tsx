@@ -14,10 +14,10 @@ import { Info } from "lucide-react";
 import { GitHubMirrorSettings } from "./GitHubMirrorSettings";
 import { Separator } from "../ui/separator";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 
 interface GitHubConfigFormProps {
   config: GitHubConfig;
@@ -130,16 +130,16 @@ export function GitHubConfigForm({
             >
               GitHub Token
             </label>
-            <Popover>
-              <PopoverTrigger asChild>
+            <HoverCard>
+              <HoverCardTrigger asChild>
                 <button
                   type="button"
-                  className="p-0.5 hover:bg-muted rounded-sm transition-colors"
+                  className="p-0.5 hover:bg-muted rounded-sm transition-colors cursor-help"
                 >
                   <Info className="h-3.5 w-3.5 text-muted-foreground" />
                 </button>
-              </PopoverTrigger>
-              <PopoverContent side="right" align="start" className="w-80">
+              </HoverCardTrigger>
+              <HoverCardContent side="right" align="start" className="w-80">
                 <div className="space-y-2">
                   <h4 className="font-medium text-sm">GitHub Token Requirements</h4>
                   <div className="text-sm space-y-2">
@@ -166,8 +166,8 @@ export function GitHubConfigForm({
                     </p>
                   </div>
                 </div>
-              </PopoverContent>
-            </Popover>
+              </HoverCardContent>
+            </HoverCard>
           </div>
           <Input
             id="github-token"
