@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.16.3] - 2025-06-20
+
+### Added
+- Custom 404 error page with helpful navigation links
+- HoverCard components for better UX in configuration forms
+
+### Improved
+- Replaced popover components with hover cards for information tooltips
+- Enhanced user experience with responsive hover interactions
+
 ## [2.16.2] - 2025-06-17
 
 ### Added
