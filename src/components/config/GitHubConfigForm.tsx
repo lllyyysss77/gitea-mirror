@@ -130,14 +130,11 @@ export function GitHubConfigForm({
             >
               GitHub Token
             </label>
-            <HoverCard>
+            <HoverCard openDelay={200}>
               <HoverCardTrigger asChild>
-                <button
-                  type="button"
-                  className="p-0.5 hover:bg-muted rounded-sm transition-colors cursor-help"
-                >
+                <span className="inline-flex p-0.5 hover:bg-muted rounded-sm transition-colors cursor-help">
                   <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                </button>
+                </span>
               </HoverCardTrigger>
               <HoverCardContent side="right" align="start" className="w-80">
                 <div className="space-y-2">

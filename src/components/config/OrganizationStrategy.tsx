@@ -275,15 +275,14 @@ export const OrganizationStrategy: React.FC<OrganizationStrategyProps> = ({
                           </p>
                         </div>
                         
-                        <HoverCard>
+                        <HoverCard openDelay={200}>
                           <HoverCardTrigger asChild>
-                            <button 
-                              type="button"
-                              className="p-1.5 hover:bg-muted rounded-md transition-colors cursor-help"
+                            <span 
+                              className="inline-flex p-1.5 hover:bg-muted rounded-md transition-colors cursor-help"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <Info className="h-4 w-4 text-muted-foreground" />
-                            </button>
+                            </span>
                           </HoverCardTrigger>
                           <HoverCardContent side="left" align="center" className="w-[500px]">
                             <div className="space-y-3">
