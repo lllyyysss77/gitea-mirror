@@ -35,7 +35,7 @@ interface DbGiteaConfig {
   visibility: "public" | "private" | "limited";
   starredReposOrg: string;
   preserveOrgStructure: boolean;
-  mirrorStrategy?: "preserve" | "single-org" | "flat-user";
+  mirrorStrategy?: "preserve" | "single-org" | "flat-user" | "mixed";
   personalReposOrg?: string;
 }
 

@@ -136,6 +136,19 @@ export const getGiteaRepoOwner = ({
       // All non-starred repos go under the user account
       return config.giteaConfig.username;
 
+    case "mixed":
+      // Mixed mode: personal repos to single org, organization repos preserve structure
+      if (repository.organization) {
+        // Organization repos preserve their structure
+        return repository.organization;
+      }
+      // Personal repos go to configured organization (same as single-org)
+      if (config.giteaConfig.organization) {
+        return config.giteaConfig.organization;
+      }
+      // Fallback to username if no organization specified
+      return config.giteaConfig.username;
+
     default:
       // Default fallback
       return config.giteaConfig.username;

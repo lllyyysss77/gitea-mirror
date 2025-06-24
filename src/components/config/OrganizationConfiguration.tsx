@@ -79,18 +79,23 @@ export const OrganizationConfiguration: React.FC<OrganizationConfigurationProps>
           </p>
         </div>
 
-        {/* Right column - shows destination org for single-org, personal repos org for preserve, empty div for others */}
-        {strategy === "single-org" ? (
+        {/* Right column - shows destination org for single-org/mixed, personal repos org for preserve, empty div for others */}
+        {strategy === "single-org" || strategy === "mixed" ? (
           <div className="space-y-1">
             <Label htmlFor="destinationOrg" className="text-sm font-normal flex items-center gap-2">
-              Destination Organization
+              {strategy === "mixed" ? "Personal Repos Organization" : "Destination Organization"}
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger>
                     <Info className="h-3.5 w-3.5 text-muted-foreground" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>All repositories will be mirrored to this organization</p>
+                    <p>
+                      {strategy === "mixed"
+                        ? "Personal repositories will be mirrored to this organization, while organization repos preserve their structure"
+                        : "All repositories will be mirrored to this organization"
+                      }
+                    </p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -103,7 +108,10 @@ export const OrganizationConfiguration: React.FC<OrganizationConfigurationProps>
               className=""
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Organization for consolidated repositories
+              {strategy === "mixed"
+                ? "All personal repos will go to this organization"
+                : "Organization for consolidated repositories"
+              }
             </p>
           </div>
         ) : strategy === "preserve" ? (

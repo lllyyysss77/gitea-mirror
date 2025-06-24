@@ -1,7 +1,7 @@
 import { type Config as ConfigType } from "@/lib/db/schema";
 
 export type GiteaOrgVisibility = "public" | "private" | "limited";
-export type MirrorStrategy = "preserve" | "single-org" | "flat-user";
+export type MirrorStrategy = "preserve" | "single-org" | "flat-user" | "mixed";
 
 export interface GiteaConfig {
   url: string;

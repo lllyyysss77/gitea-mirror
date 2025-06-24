@@ -44,7 +44,7 @@ export const configSchema = z.object({
     visibility: z.enum(["public", "private", "limited"]).default("public"),
     starredReposOrg: z.string().default("github"),
     preserveOrgStructure: z.boolean().default(false),
-    mirrorStrategy: z.enum(["preserve", "single-org", "flat-user"]).optional(),
+    mirrorStrategy: z.enum(["preserve", "single-org", "flat-user", "mixed"]).optional(),
     personalReposOrg: z.string().optional(), // Override destination for personal repos
   }),
   include: z.array(z.string()).default(["*"]),

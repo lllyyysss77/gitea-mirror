@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
 
-export type MirrorStrategy = "preserve" | "single-org" | "flat-user";
+export type MirrorStrategy = "preserve" | "single-org" | "flat-user" | "mixed";
 
 interface OrganizationStrategyProps {
   strategy: MirrorStrategy;
@@ -55,6 +55,18 @@ const strategyConfig = {
     repoColors: {
       bg: "bg-green-50 dark:bg-green-950/30",
       icon: "text-green-600 dark:text-green-400"
+    }
+  },
+  "mixed": {
+    title: "Mixed Mode",
+    icon: GitBranch,
+    description: "user repos in single org, org repos preserve structure",
+    color: "text-orange-600 dark:text-orange-400",
+    bgColor: "bg-orange-50 dark:bg-orange-950/20",
+    borderColor: "border-orange-200 dark:border-orange-900",
+    repoColors: {
+      bg: "bg-orange-50 dark:bg-orange-950/30",
+      icon: "text-orange-600 dark:text-orange-400"
     }
   }
 };
@@ -199,6 +211,52 @@ const MappingPreview: React.FC<{
             <div className={cn("flex items-center gap-2 p-1.5 rounded text-xs", config.repoColors.bg)}>
               <User className={cn("h-3 w-3", config.repoColors.icon)} />
               <span className={cn(isGiteaPlaceholder && "text-muted-foreground italic")}>{displayGiteaUsername}/team-repo</span>
+            </div>
+            <div className={cn("flex items-center gap-2 p-1.5 rounded text-xs", config.repoColors.bg)}>
+              <Building2 className={cn("h-3 w-3", config.repoColors.icon)} />
+              <span>{starredReposOrg || "starred"}/starred-repo</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (strategy === "mixed") {
+    return (
+      <div className="flex items-center justify-between gap-6">
+        <div className="flex-1">
+          <div className="text-xs font-medium text-muted-foreground mb-2">GitHub</div>
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 p-1.5 bg-gray-50 dark:bg-gray-800 rounded text-xs">
+              <User className="h-3 w-3" />
+              <span className={cn(isGithubPlaceholder && "text-muted-foreground italic")}>{displayGithubUsername}/my-repo</span>
+            </div>
+            <div className="flex items-center gap-2 p-1.5 bg-gray-50 dark:bg-gray-800 rounded text-xs">
+              <Building2 className="h-3 w-3" />
+              <span>my-org/team-repo</span>
+            </div>
+            <div className="flex items-center gap-2 p-1.5 bg-gray-50 dark:bg-gray-800 rounded text-xs">
+              <Star className="h-3 w-3" />
+              <span>awesome/starred-repo</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex items-center">
+          <GitBranch className="h-4 w-4 text-muted-foreground" />
+        </div>
+        
+        <div className="flex-1">
+          <div className="text-xs font-medium text-muted-foreground mb-2">Gitea</div>
+          <div className="space-y-1.5">
+            <div className={cn("flex items-center gap-2 p-1.5 rounded text-xs", config.repoColors.bg)}>
+              <Building2 className={cn("h-3 w-3", config.repoColors.icon)} />
+              <span>{destinationOrg || "github-mirrors"}/my-repo</span>
+            </div>
+            <div className={cn("flex items-center gap-2 p-1.5 rounded text-xs", config.repoColors.bg)}>
+              <Building2 className={cn("h-3 w-3", config.repoColors.icon)} />
+              <span>my-org/team-repo</span>
             </div>
             <div className={cn("flex items-center gap-2 p-1.5 rounded text-xs", config.repoColors.bg)}>
               <Building2 className={cn("h-3 w-3", config.repoColors.icon)} />

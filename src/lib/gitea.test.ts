@@ -378,4 +378,47 @@ describe("getGiteaRepoOwner - Organization Override Tests", () => {
     const result = getGiteaRepoOwner({ config: baseConfig, repository: repo });
     expect(result).toBe("myorg");
   });
+
+  test("mixed strategy: personal repos go to organization", () => {
+    const configWithMixed = {
+      ...baseConfig,
+      giteaConfig: {
+        ...baseConfig.giteaConfig!,
+        mirrorStrategy: "mixed" as const,
+        organization: "github-mirrors"
+      }
+    };
+    const repo = { ...baseRepo, organization: undefined };
+    const result = getGiteaRepoOwner({ config: configWithMixed, repository: repo });
+    expect(result).toBe("github-mirrors");
+  });
+
+  test("mixed strategy: org repos preserve their structure", () => {
+    const configWithMixed = {
+      ...baseConfig,
+      giteaConfig: {
+        ...baseConfig.giteaConfig!,
+        mirrorStrategy: "mixed" as const,
+        organization: "github-mirrors"
+      }
+    };
+    const repo = { ...baseRepo, organization: "myorg" };
+    const result = getGiteaRepoOwner({ config: configWithMixed, repository: repo });
+    expect(result).toBe("myorg");
+  });
+
+  test("mixed strategy: fallback to username if no org configs", () => {
+    const configWithMixed = {
+      ...baseConfig,
+      giteaConfig: {
+        ...baseConfig.giteaConfig!,
+        mirrorStrategy: "mixed" as const,
+        organization: undefined,
+        personalReposOrg: undefined
+      }
+    };
+    const repo = { ...baseRepo, organization: undefined };
+    const result = getGiteaRepoOwner({ config: configWithMixed, repository: repo });
+    expect(result).toBe("giteauser");
+  });
 });
