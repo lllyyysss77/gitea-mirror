@@ -97,6 +97,11 @@ export function ConfigTabs() {
     return isGitHubValid && isGiteaValid;
   };
 
+  const isGitHubConfigValid = (): boolean => {
+    const { githubConfig } = config;
+    return !!(githubConfig.username.trim() && githubConfig.token.trim());
+  };
+
   // Removed the problematic useEffect that was causing circular dependencies
   // The lastRun and nextRun should be managed by the backend and fetched via API
 
@@ -571,10 +576,10 @@ export function ConfigTabs() {
         <div className="flex gap-x-4">
           <Button
             onClick={handleImportGitHubData}
-            disabled={isSyncing || !isConfigFormValid()}
+            disabled={isSyncing || !isGitHubConfigValid()}
             title={
-              !isConfigFormValid()
-                ? 'Please fill all required GitHub and Gitea fields'
+              !isGitHubConfigValid()
+                ? 'Please fill GitHub username and token fields'
                 : isSyncing
                 ? 'Import in progress'
                 : 'Import GitHub Data'
