@@ -721,6 +721,7 @@ export default function Repository() {
           loadingRepoIds={loadingRepoIds}
           selectedRepoIds={selectedRepoIds}
           onSelectionChange={setSelectedRepoIds}
+          onRefresh={() => fetchRepositories(false)}
         />
       )}
 

@@ -50,6 +50,16 @@ function runMigrations(db: Database) {
       db.exec("ALTER TABLE organizations ADD COLUMN destination_org TEXT");
       console.log("✅ Migration completed: destination_org column added");
     }
+
+    // Migration 2: Add destination_org column to repositories table
+    const repoTableInfo = db.query("PRAGMA table_info(repositories)").all() as Array<{name: string}>;
+    const hasRepoDestinationOrg = repoTableInfo.some(col => col.name === 'destination_org');
+
+    if (!hasRepoDestinationOrg) {
+      console.log("🔄 Running migration: Adding destination_org column to repositories table");
+      db.exec("ALTER TABLE repositories ADD COLUMN destination_org TEXT");
+      console.log("✅ Migration completed: destination_org column added to repositories");
+    }
   } catch (error) {
     console.error("❌ Error running migrations:", error);
     // Don't throw - migrations should be non-breaking

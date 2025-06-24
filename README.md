@@ -37,6 +37,7 @@ See the [LXC Container Deployment Guide](scripts/README-lxc.md).
 
 - 🔁 Sync public, private, or starred GitHub repos to Gitea
 - 🏢 Mirror entire organizations with flexible organization strategies
+- 🎯 Custom destination control for both organizations and individual repositories
 - 🐞 Optional mirroring of issues and labels
 - 🌟 Mirror your starred repositories to a dedicated organization
 - 🕹️ Modern user interface with toast notifications and smooth experience
@@ -317,18 +318,14 @@ Key configuration options include:
 > [!IMPORTANT]
 > **SQLite is the only database required for Gitea Mirror**, handling both data storage and real-time event notifications.
 
-### Mirror Strategies
+### Mirror Strategies & Destination Customization
 
-Gitea Mirror offers three flexible strategies for organizing your repositories in Gitea:
+Gitea Mirror offers three flexible strategies for organizing your repositories in Gitea, with fine-grained control over destinations:
 
 #### 1. **Preserve GitHub Structure** (Default)
 - Personal repositories → Your Gitea username (or custom organization)
 - Organization repositories → Same organization name in Gitea (with individual overrides)
 - Maintains the exact structure from GitHub with optional customization
-
-**New Override Options:**
-- **Personal Repos Override**: Redirect your personal repositories to a custom organization instead of your username
-- **Organization Overrides**: Set custom destinations for specific GitHub organizations on their individual cards
 
 #### 2. **Single Organization**
 - All repositories → One designated organization
@@ -340,12 +337,34 @@ Gitea Mirror offers three flexible strategies for organizing your repositories i
 - No organizations needed
 - Simplest approach for personal use
 
+#### Destination Customization
+
+**Organization-Level Overrides:**
+- Click the edit button on any organization card to set a custom destination
+- All repositories from that GitHub organization will be mirrored to your specified Gitea organization
+- Visual indicators show when custom destinations are active
+
+**Repository-Level Overrides:**
+- Fine-tune individual repository destinations in the repository table
+- Click the edit button in the "Destination" column to customize where a specific repo is mirrored
+- Overrides organization-level settings for maximum flexibility
+- Starred repositories display a ⭐ icon and always go to the configured starred repos organization
+
+**Priority Hierarchy:**
+1. Starred repositories → Always go to `starredReposOrg` (not editable)
+2. Repository-level custom destination (highest priority for non-starred)
+3. Organization-level custom destination
+4. Personal repos override (for non-organization repos)
+5. Default strategy rules (lowest priority)
+
 > [!NOTE]
-> **Starred Repositories**: Regardless of the chosen strategy, starred repositories are always mirrored to a separate organization (default: "starred") to keep them organized separately from your own repositories.
+> **Starred Repositories**: Repositories you've starred on GitHub are automatically organized into a separate organization (default: "starred") and cannot have custom destinations. They're marked with a ⭐ icon for easy identification.
 
 > [!TIP]
-> **Example Use Case**: With the "Preserve" strategy and overrides, you can:
-> - Mirror personal repos to `username-mirror` organization
+> **Example Use Cases**: 
+> - Mirror personal repos to `personal-archive` organization
+> - Redirect `work-org` repos to `company-mirror` in Gitea
+> - Override a single important repo to go to a special organization
 > - Keep `company-org` repos in their own `company-org` organization
 > - Override `community-scripts` to go to `community-mirrors` organization
 > - This gives you complete control while maintaining GitHub's structure as the default

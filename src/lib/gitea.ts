@@ -62,6 +62,12 @@ export const getGiteaRepoOwnerAsync = async ({
     return config.giteaConfig.starredReposOrg;
   }
 
+  // Check for repository-specific override (second highest priority)
+  if (repository.destinationOrg) {
+    console.log(`Using repository override: ${repository.fullName} -> ${repository.destinationOrg}`);
+    return repository.destinationOrg;
+  }
+
   // Check for organization-specific override
   if (repository.organization) {
     const orgConfig = await getOrganizationConfig({

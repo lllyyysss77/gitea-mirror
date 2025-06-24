@@ -1,7 +1,7 @@
 import { useMemo, useRef } from "react";
 import Fuse from "fuse.js";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { FlipHorizontal, GitFork, RefreshCw, RotateCcw } from "lucide-react";
+import { FlipHorizontal, GitFork, RefreshCw, RotateCcw, Star } from "lucide-react";
 import { SiGithub, SiGitea } from "react-icons/si";
 import type { Repository } from "@/lib/db/schema";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { InlineDestinationEditor } from "./InlineDestinationEditor";
 
 interface RepositoryTableProps {
   repositories: Repository[];
@@ -29,6 +30,7 @@ interface RepositoryTableProps {
   loadingRepoIds: Set<string>;
   selectedRepoIds: Set<string>;
   onSelectionChange: (selectedIds: Set<string>) => void;
+  onRefresh?: () => Promise<void>;
 }
 
 export default function RepositoryTable({
@@ -43,9 +45,33 @@ export default function RepositoryTable({
   loadingRepoIds,
   selectedRepoIds,
   onSelectionChange,
+  onRefresh,
 }: RepositoryTableProps) {
   const tableParentRef = useRef<HTMLDivElement>(null);
   const { giteaConfig } = useGiteaConfig();
+
+  const handleUpdateDestination = async (repoId: string, newDestination: string | null) => {
+    // Call API to update repository destination
+    const response = await fetch(`/api/repositories/${repoId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        destinationOrg: newDestination,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to update repository");
+    }
+
+    // Refresh repositories data
+    if (onRefresh) {
+      await onRefresh();
+    }
+  };
 
   // Helper function to construct Gitea repository URL
   const getGiteaRepoUrl = (repository: Repository): string | null => {
@@ -296,8 +322,13 @@ export default function RepositoryTable({
                 {/* Repository  */}
                 <div className="h-full p-3 flex items-center gap-2 flex-[2.5]">
                   <GitFork className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <div className="font-medium">{repo.name}</div>
+                  <div className="flex-1">
+                    <div className="font-medium flex items-center gap-1">
+                      {repo.name}
+                      {repo.isStarred && (
+                        <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                      )}
+                    </div>
                     <div className="text-xs text-muted-foreground">
                       {repo.fullName}
                     </div>
@@ -321,7 +352,12 @@ export default function RepositoryTable({
 
                 {/* Organization  */}
                 <div className="h-full p-3 flex items-center flex-[1]">
-                  <p className="text-sm"> {repo.organization || "-"}</p>
+                  <InlineDestinationEditor
+                    repository={repo}
+                    giteaConfig={giteaConfig}
+                    onUpdate={handleUpdateDestination}
+                    isUpdating={loadingRepoIds.has(repo.id ?? "")}
+                  />
                 </div>
 
                 {/* Last Mirrored  */}
