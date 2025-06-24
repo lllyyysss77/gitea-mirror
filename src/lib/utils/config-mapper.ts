@@ -36,6 +36,7 @@ interface DbGiteaConfig {
   starredReposOrg: string;
   preserveOrgStructure: boolean;
   mirrorStrategy?: "preserve" | "single-org" | "flat-user";
+  personalReposOrg?: string;
 }
 
 /**
@@ -106,6 +107,7 @@ export function mapDbToUiConfig(dbConfig: any): {
     starredReposOrg: dbConfig.giteaConfig?.starredReposOrg || "github",
     preserveOrgStructure: dbConfig.giteaConfig?.preserveOrgStructure || false,
     mirrorStrategy: dbConfig.giteaConfig?.mirrorStrategy,
+    personalReposOrg: dbConfig.giteaConfig?.personalReposOrg,
   };
 
   const mirrorOptions: MirrorOptions = {

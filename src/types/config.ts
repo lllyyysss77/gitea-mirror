@@ -12,6 +12,7 @@ export interface GiteaConfig {
   starredReposOrg: string;
   preserveOrgStructure: boolean;
   mirrorStrategy?: MirrorStrategy; // New field for the strategy
+  personalReposOrg?: string; // Override destination for personal repos
 }
 
 export interface ScheduleConfig {

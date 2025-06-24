@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, RefreshCw, Building2, Check, AlertCircle, Clock } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, RefreshCw, Building2, Check, AlertCircle, Clock, Settings, ArrowRight } from "lucide-react";
 import { SiGithub } from "react-icons/si";
 import type { Organization } from "@/lib/db/schema";
 import type { FilterParams } from "@/types/filter";
@@ -140,6 +141,13 @@ export function OrganizationList({
                     {org.membershipRole}
                   </span>
                 </div>
+                {/* Show destination override if configured */}
+                {org.destinationOrg && (
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                    <ArrowRight className="h-3 w-3" />
+                    <span>Mirrors to: <span className="font-medium">{org.destinationOrg}</span></span>
+                  </div>
+                )}
               </div>
               <Badge variant={statusBadge.variant} className="ml-2">
                 {StatusIcon && <StatusIcon className={cn(

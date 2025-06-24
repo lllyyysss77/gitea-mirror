@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { db, configs, repositories } from "@/lib/db";
 import { eq, inArray } from "drizzle-orm";
-import { getGiteaRepoOwner, isRepoPresentInGitea } from "@/lib/gitea";
+import { getGiteaRepoOwnerAsync, isRepoPresentInGitea } from "@/lib/gitea";
 import {
   mirrorGithubRepoToGitea,
   mirrorGitHubOrgRepoToGiteaOrg,
@@ -109,8 +109,8 @@ export const POST: APIRoute = async ({ request }) => {
             status: "imported",
           });
 
-          // Determine if the repository exists in Gitea
-          let owner = getGiteaRepoOwner({
+          // Determine if the repository exists in Gitea (with organization overrides)
+          let owner = await getGiteaRepoOwnerAsync({
             config,
             repository: repoData,
           });

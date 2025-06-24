@@ -1,7 +1,8 @@
 import { describe, test, expect, mock, beforeEach, afterEach } from "bun:test";
 import { Octokit } from "@octokit/rest";
 import { repoStatusEnum } from "@/types/Repository";
-import { getOrCreateGiteaOrg } from "./gitea";
+import { getOrCreateGiteaOrg, getGiteaRepoOwner, getGiteaRepoOwnerAsync } from "./gitea";
+import type { Config, Repository, Organization } from "./db/schema";
 
 // Mock the isRepoPresentInGitea function
 const mockIsRepoPresentInGitea = mock(() => Promise.resolve(false));
@@ -289,5 +290,92 @@ describe("Gitea Repository Mirroring", () => {
 
     // Verify that getOrCreateGiteaOrg was called
     expect(mockGetOrCreateGiteaOrg).toHaveBeenCalled();
+  });
+});
+
+describe("getGiteaRepoOwner - Organization Override Tests", () => {
+  const baseConfig: Partial<Config> = {
+    githubConfig: {
+      username: "testuser",
+      token: "token",
+      preserveOrgStructure: false,
+      skipForks: false,
+      privateRepositories: false,
+      mirrorIssues: false,
+      mirrorWiki: false,
+      mirrorStarred: false,
+      useSpecificUser: false,
+      includeOrgs: [],
+      excludeOrgs: [],
+      mirrorPublicOrgs: false,
+      publicOrgs: [],
+      skipStarredIssues: false
+    },
+    giteaConfig: {
+      username: "giteauser",
+      url: "https://gitea.example.com",
+      token: "gitea-token",
+      organization: "github-mirrors",
+      visibility: "public",
+      starredReposOrg: "starred",
+      preserveOrgStructure: false,
+      mirrorStrategy: "preserve"
+    }
+  };
+
+  const baseRepo: Repository = {
+    id: "repo-id",
+    userId: "user-id",
+    configId: "config-id",
+    name: "test-repo",
+    fullName: "testuser/test-repo",
+    url: "https://github.com/testuser/test-repo",
+    cloneUrl: "https://github.com/testuser/test-repo.git",
+    owner: "testuser",
+    isPrivate: false,
+    isForked: false,
+    hasIssues: true,
+    isStarred: false,
+    isArchived: false,
+    size: 1000,
+    hasLFS: false,
+    hasSubmodules: false,
+    defaultBranch: "main",
+    visibility: "public",
+    status: "imported",
+    mirroredLocation: "",
+    createdAt: new Date(),
+    updatedAt: new Date()
+  };
+
+  test("starred repos go to starredReposOrg", () => {
+    const repo = { ...baseRepo, isStarred: true };
+    const result = getGiteaRepoOwner({ config: baseConfig, repository: repo });
+    expect(result).toBe("starred");
+  });
+
+  test("preserve strategy: personal repos use personalReposOrg override", () => {
+    const configWithOverride = {
+      ...baseConfig,
+      giteaConfig: {
+        ...baseConfig.giteaConfig!,
+        personalReposOrg: "my-personal-mirrors"
+      }
+    };
+    const repo = { ...baseRepo, organization: undefined };
+    const result = getGiteaRepoOwner({ config: configWithOverride, repository: repo });
+    expect(result).toBe("my-personal-mirrors");
+  });
+
+  test("preserve strategy: personal repos fallback to username when no override", () => {
+    const repo = { ...baseRepo, organization: undefined };
+    const result = getGiteaRepoOwner({ config: baseConfig, repository: repo });
+    expect(result).toBe("giteauser");
+  });
+
+  test("preserve strategy: org repos go to same org name", () => {
+    const repo = { ...baseRepo, organization: "myorg" };
+    const result = getGiteaRepoOwner({ config: baseConfig, repository: repo });
+    expect(result).toBe("myorg");
   });
 });

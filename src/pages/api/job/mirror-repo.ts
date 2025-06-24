@@ -6,7 +6,7 @@ import { repositoryVisibilityEnum, repoStatusEnum } from "@/types/Repository";
 import {
   mirrorGithubRepoToGitea,
   mirrorGitHubOrgRepoToGiteaOrg,
-  getGiteaRepoOwner,
+  getGiteaRepoOwnerAsync,
 } from "@/lib/gitea";
 import { createGitHubClient } from "@/lib/github";
 import { processWithResilience } from "@/lib/utils/concurrency";
@@ -97,8 +97,8 @@ export const POST: APIRoute = async ({ request }) => {
           // Log the start of mirroring
           console.log(`Starting mirror for repository: ${repo.name}`);
 
-          // Determine where the repository should be mirrored
-          const owner = getGiteaRepoOwner({
+          // Determine where the repository should be mirrored (with organization overrides)
+          const owner = await getGiteaRepoOwnerAsync({
             config,
             repository: repoData,
           });

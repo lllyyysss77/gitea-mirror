@@ -15,9 +15,11 @@ interface OrganizationConfigurationProps {
   strategy: MirrorStrategy;
   destinationOrg?: string;
   starredReposOrg?: string;
+  personalReposOrg?: string;
   visibility: GiteaOrgVisibility;
   onDestinationOrgChange: (org: string) => void;
   onStarredReposOrgChange: (org: string) => void;
+  onPersonalReposOrgChange: (org: string) => void;
   onVisibilityChange: (visibility: GiteaOrgVisibility) => void;
 }
 
@@ -31,9 +33,11 @@ export const OrganizationConfiguration: React.FC<OrganizationConfigurationProps>
   strategy,
   destinationOrg,
   starredReposOrg,
+  personalReposOrg,
   visibility,
   onDestinationOrgChange,
   onStarredReposOrgChange,
+  onPersonalReposOrgChange,
   onVisibilityChange,
 }) => {
   return (
@@ -75,7 +79,7 @@ export const OrganizationConfiguration: React.FC<OrganizationConfigurationProps>
           </p>
         </div>
 
-        {/* Right column - shows destination org for single-org, empty div for others */}
+        {/* Right column - shows destination org for single-org, personal repos org for preserve, empty div for others */}
         {strategy === "single-org" ? (
           <div className="space-y-1">
             <Label htmlFor="destinationOrg" className="text-sm font-normal flex items-center gap-2">
@@ -102,8 +106,34 @@ export const OrganizationConfiguration: React.FC<OrganizationConfigurationProps>
               Organization for consolidated repositories
             </p>
           </div>
+        ) : strategy === "preserve" ? (
+          <div className="space-y-1">
+            <Label htmlFor="personalReposOrg" className="text-sm font-normal flex items-center gap-2">
+              Personal Repos Organization
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Override where your personal repositories are mirrored (leave empty to use your username)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </Label>
+            <Input
+              id="personalReposOrg"
+              value={personalReposOrg || ""}
+              onChange={(e) => onPersonalReposOrgChange(e.target.value)}
+              placeholder="my-personal-mirrors"
+              className=""
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Override destination for your personal repos
+            </p>
+          </div>
         ) : (
-          <div className="hidden md:block" /> 
+          <div className="hidden md:block" />
         )}
       </div>
 

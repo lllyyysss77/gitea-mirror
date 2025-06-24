@@ -322,9 +322,13 @@ Key configuration options include:
 Gitea Mirror offers three flexible strategies for organizing your repositories in Gitea:
 
 #### 1. **Preserve GitHub Structure** (Default)
-- Personal repositories → Your Gitea username
-- Organization repositories → Same organization name in Gitea
-- Maintains the exact structure from GitHub
+- Personal repositories → Your Gitea username (or custom organization)
+- Organization repositories → Same organization name in Gitea (with individual overrides)
+- Maintains the exact structure from GitHub with optional customization
+
+**New Override Options:**
+- **Personal Repos Override**: Redirect your personal repositories to a custom organization instead of your username
+- **Organization Overrides**: Set custom destinations for specific GitHub organizations on their individual cards
 
 #### 2. **Single Organization**
 - All repositories → One designated organization
@@ -338,6 +342,13 @@ Gitea Mirror offers three flexible strategies for organizing your repositories i
 
 > [!NOTE]
 > **Starred Repositories**: Regardless of the chosen strategy, starred repositories are always mirrored to a separate organization (default: "starred") to keep them organized separately from your own repositories.
+
+> [!TIP]
+> **Example Use Case**: With the "Preserve" strategy and overrides, you can:
+> - Mirror personal repos to `username-mirror` organization
+> - Keep `company-org` repos in their own `company-org` organization
+> - Override `community-scripts` to go to `community-mirrors` organization
+> - This gives you complete control while maintaining GitHub's structure as the default
 
 ## 🚀 Development
 

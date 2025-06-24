@@ -45,6 +45,7 @@ export const configSchema = z.object({
     starredReposOrg: z.string().default("github"),
     preserveOrgStructure: z.boolean().default(false),
     mirrorStrategy: z.enum(["preserve", "single-org", "flat-user"]).optional(),
+    personalReposOrg: z.string().optional(), // Override destination for personal repos
   }),
   include: z.array(z.string()).default(["*"]),
   exclude: z.array(z.string()).default([]),
@@ -157,6 +158,9 @@ export const organizationSchema = z.object({
   publicRepositoryCount: z.number().optional(),
   privateRepositoryCount: z.number().optional(),
   forkRepositoryCount: z.number().optional(),
+
+  // Override destination organization for this GitHub org's repos
+  destinationOrg: z.string().optional(),
 
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date().default(() => new Date()),

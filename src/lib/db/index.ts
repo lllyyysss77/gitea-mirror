@@ -28,9 +28,32 @@ try {
 
   // Ensure all required tables exist
   ensureTablesExist(sqlite);
+
+  // Run migrations
+  runMigrations(sqlite);
 } catch (error) {
   console.error("Error opening database:", error);
   throw error;
+}
+
+/**
+ * Run database migrations
+ */
+function runMigrations(db: Database) {
+  try {
+    // Migration 1: Add destination_org column to organizations table
+    const orgTableInfo = db.query("PRAGMA table_info(organizations)").all() as Array<{name: string}>;
+    const hasDestinationOrg = orgTableInfo.some(col => col.name === 'destination_org');
+
+    if (!hasDestinationOrg) {
+      console.log("🔄 Running migration: Adding destination_org column to organizations table");
+      db.exec("ALTER TABLE organizations ADD COLUMN destination_org TEXT");
+      console.log("✅ Migration completed: destination_org column added");
+    }
+  } catch (error) {
+    console.error("❌ Error running migrations:", error);
+    // Don't throw - migrations should be non-breaking
+  }
 }
 
 /**
@@ -159,6 +182,7 @@ function createTable(db: Database, tableName: string) {
           last_mirrored INTEGER,
           error_message TEXT,
           repository_count INTEGER NOT NULL DEFAULT 0,
+          destination_org TEXT,
           created_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
           updated_at INTEGER NOT NULL DEFAULT (strftime('%s','now')),
           FOREIGN KEY (user_id) REFERENCES users(id),
@@ -436,6 +460,9 @@ export const organizations = sqliteTable("organizations", {
   isIncluded: integer("is_included", { mode: "boolean" })
     .notNull()
     .default(true),
+
+  // Override destination organization for this GitHub org's repos
+  destinationOrg: text("destination_org"),
 
   status: text("status").notNull().default("imported"),
   lastMirrored: integer("last_mirrored", { mode: "timestamp" }),

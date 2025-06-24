@@ -217,6 +217,7 @@ export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving, g
           strategy={mirrorStrategy}
           destinationOrg={config.organization}
           starredReposOrg={config.starredReposOrg}
+          personalReposOrg={config.personalReposOrg}
           visibility={config.visibility}
           onDestinationOrgChange={(org) => {
             const newConfig = { ...config, organization: org };
@@ -225,6 +226,11 @@ export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving, g
           }}
           onStarredReposOrgChange={(org) => {
             const newConfig = { ...config, starredReposOrg: org };
+            setConfig(newConfig);
+            if (onAutoSave) onAutoSave(newConfig);
+          }}
+          onPersonalReposOrgChange={(org) => {
+            const newConfig = { ...config, personalReposOrg: org };
             setConfig(newConfig);
             if (onAutoSave) onAutoSave(newConfig);
           }}

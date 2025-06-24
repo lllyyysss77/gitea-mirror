@@ -9,7 +9,81 @@ import type { Organization, Repository } from "./db/schema";
 import { httpPost, httpGet } from "./http-client";
 import { createMirrorJob } from "./helpers";
 import { db, organizations, repositories } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
+
+/**
+ * Helper function to get organization configuration including destination override
+ */
+export const getOrganizationConfig = async ({
+  orgName,
+  userId,
+}: {
+  orgName: string;
+  userId: string;
+}): Promise<Organization | null> => {
+  try {
+    const [orgConfig] = await db
+      .select()
+      .from(organizations)
+      .where(and(eq(organizations.name, orgName), eq(organizations.userId, userId)))
+      .limit(1);
+
+    return orgConfig || null;
+  } catch (error) {
+    console.error(`Error fetching organization config for ${orgName}:`, error);
+    return null;
+  }
+};
+
+/**
+ * Enhanced async version of getGiteaRepoOwner that supports organization overrides
+ */
+export const getGiteaRepoOwnerAsync = async ({
+  config,
+  repository,
+}: {
+  config: Partial<Config>;
+  repository: Repository;
+}): Promise<string> => {
+  if (!config.githubConfig || !config.giteaConfig) {
+    throw new Error("GitHub or Gitea config is required.");
+  }
+
+  if (!config.giteaConfig.username) {
+    throw new Error("Gitea username is required.");
+  }
+
+  if (!config.userId) {
+    throw new Error("User ID is required for organization overrides.");
+  }
+
+  // Check if repository is starred - starred repos always go to starredReposOrg (highest priority)
+  if (repository.isStarred && config.giteaConfig.starredReposOrg) {
+    return config.giteaConfig.starredReposOrg;
+  }
+
+  // Check for organization-specific override
+  if (repository.organization) {
+    const orgConfig = await getOrganizationConfig({
+      orgName: repository.organization,
+      userId: config.userId,
+    });
+
+    if (orgConfig?.destinationOrg) {
+      console.log(`Using organization override: ${repository.organization} -> ${orgConfig.destinationOrg}`);
+      return orgConfig.destinationOrg;
+    }
+  }
+
+  // Check for personal repos override (when it's user's repo, not an organization)
+  if (!repository.organization && config.giteaConfig.personalReposOrg) {
+    console.log(`Using personal repos override: ${config.giteaConfig.personalReposOrg}`);
+    return config.giteaConfig.personalReposOrg;
+  }
+
+  // Fall back to existing strategy logic
+  return getGiteaRepoOwner({ config, repository });
+};
 
 export const getGiteaRepoOwner = ({
   config,
@@ -37,11 +111,12 @@ export const getGiteaRepoOwner = ({
 
   switch (mirrorStrategy) {
     case "preserve":
-      // Keep GitHub structure - org repos go to same org, personal repos to user
+      // Keep GitHub structure - org repos go to same org, personal repos to user (or override)
       if (repository.organization) {
         return repository.organization;
       }
-      return config.giteaConfig.username;
+      // Use personal repos override if configured, otherwise use username
+      return config.giteaConfig.personalReposOrg || config.giteaConfig.username;
 
     case "single-org":
       // All non-starred repos go to the destination organization
@@ -160,8 +235,8 @@ export const mirrorGithubRepoToGitea = async ({
       throw new Error("Gitea username is required.");
     }
 
-    // Get the correct owner based on the strategy
-    const repoOwner = getGiteaRepoOwner({ config, repository });
+    // Get the correct owner based on the strategy (with organization overrides)
+    const repoOwner = await getGiteaRepoOwnerAsync({ config, repository });
 
     const isExisting = await isRepoPresentInGitea({
       config,
@@ -987,8 +1062,8 @@ export const syncGiteaRepo = async ({
       status: repoStatusEnum.parse("syncing"),
     });
 
-    // Get the expected owner based on current config
-    const repoOwner = getGiteaRepoOwner({ config, repository });
+    // Get the expected owner based on current config (with organization overrides)
+    const repoOwner = await getGiteaRepoOwnerAsync({ config, repository });
 
     // Check if repo exists at the expected location or alternate location
     const { present, actualOwner } = await checkRepoLocation({
@@ -1289,7 +1364,7 @@ export async function mirrorGitHubReleasesToGitea({
     throw new Error("Gitea config is incomplete for mirroring releases.");
   }
 
-  const repoOwner = getGiteaRepoOwner({
+  const repoOwner = await getGiteaRepoOwnerAsync({
     config,
     repository,
   });
