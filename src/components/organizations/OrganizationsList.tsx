@@ -3,13 +3,14 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, RefreshCw, Building2, Check, AlertCircle, Clock } from "lucide-react";
-import { SiGithub } from "react-icons/si";
+import { SiGithub, SiGitea } from "react-icons/si";
 import type { Organization } from "@/lib/db/schema";
 import type { FilterParams } from "@/types/filter";
 import Fuse from "fuse.js";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { MirrorDestinationEditor } from "./MirrorDestinationEditor";
+import { useGiteaConfig } from "@/hooks/useGiteaConfig";
 
 interface OrganizationListProps {
   organizations: Organization[];
@@ -48,6 +49,34 @@ export function OrganizationList({
   onAddOrganization,
   onRefresh,
 }: OrganizationListProps) {
+  const { giteaConfig } = useGiteaConfig();
+
+  // Helper function to construct Gitea organization URL
+  const getGiteaOrgUrl = (organization: Organization): string | null => {
+    if (!giteaConfig?.url) {
+      return null;
+    }
+
+    // Only provide Gitea links for organizations that have been mirrored
+    const validStatuses = ['mirroring', 'mirrored'];
+    if (!validStatuses.includes(organization.status || '')) {
+      return null;
+    }
+
+    // Use destinationOrg if available, otherwise use the organization name
+    const orgName = organization.destinationOrg || organization.name;
+    if (!orgName) {
+      return null;
+    }
+
+    // Ensure the base URL doesn't have a trailing slash
+    const baseUrl = giteaConfig.url.endsWith('/')
+      ? giteaConfig.url.slice(0, -1)
+      : giteaConfig.url;
+
+    return `${baseUrl}/${orgName}`;
+  };
+
   const handleUpdateDestination = async (orgId: string, newDestination: string | null) => {
     // Call API to update organization destination
     const response = await fetch(`/api/organizations/${orgId}`, {
@@ -287,16 +316,54 @@ export function OrganizationList({
                 )}
               </div>
 
-              <Button variant="ghost" size="icon" asChild>
-                <a
-                  href={`https://github.com/${org.name}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="View on GitHub"
-                >
-                   <SiGithub className="h-4 w-4" />
-                </a>
-              </Button>
+              <div className="flex items-center gap-1">
+                {(() => {
+                  const giteaUrl = getGiteaOrgUrl(org);
+
+                  // Determine tooltip based on status and configuration
+                  let tooltip: string;
+                  if (!giteaConfig?.url) {
+                    tooltip = "Gitea not configured";
+                  } else if (org.status === 'imported') {
+                    tooltip = "Organization not yet mirrored to Gitea";
+                  } else if (org.status === 'failed') {
+                    tooltip = "Organization mirroring failed";
+                  } else if (org.status === 'mirroring') {
+                    tooltip = "Organization is being mirrored to Gitea";
+                  } else if (giteaUrl) {
+                    tooltip = "View on Gitea";
+                  } else {
+                    tooltip = "Gitea organization not available";
+                  }
+
+                  return giteaUrl ? (
+                    <Button variant="ghost" size="icon" asChild>
+                      <a
+                        href={giteaUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={tooltip}
+                      >
+                        <SiGitea className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  ) : (
+                    <Button variant="ghost" size="icon" disabled title={tooltip}>
+                      <SiGitea className="h-4 w-4" />
+                    </Button>
+                  );
+                })()}
+                <Button variant="ghost" size="icon" asChild>
+                  <a
+                    href={`https://github.com/${org.name}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="View on GitHub"
+                  >
+                     <SiGithub className="h-4 w-4" />
+                  </a>
+                </Button>
+              </div>
             </div>
           </Card>
         );
