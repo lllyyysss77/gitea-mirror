@@ -281,14 +281,78 @@ export const OrganizationStrategy: React.FC<OrganizationStrategyProps> = ({
 }) => {
   return (
     <div className="space-y-4">
-      <div>
-        <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1">
+          <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
             <Building className="h-4 w-4" />
             Organization Strategy
           </h4>
-        <p className="text-xs text-muted-foreground mb-4">
-          Choose how your repositories will be organized in Gitea
-        </p>
+          <p className="text-xs text-muted-foreground">
+            Choose how your repositories will be organized in Gitea
+          </p>
+        </div>
+        
+        <div className="flex-shrink-0">
+          <HoverCard openDelay={200}>
+            <HoverCardTrigger asChild>
+              <button 
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+                type="button"
+              >
+                <Info className="h-3.5 w-3.5" />
+                <span>Override Options</span>
+              </button>
+            </HoverCardTrigger>
+            <HoverCardContent side="left" align="start" className="w-[380px]">
+              <div className="space-y-3">
+                <div>
+                  <h4 className="font-medium text-sm mb-1.5">Fine-tune Your Mirror Destinations</h4>
+                  <p className="text-xs text-muted-foreground">
+                    After selecting a strategy, you can customize destinations for specific organizations and repositories.
+                  </p>
+                </div>
+                
+                <div className="space-y-2.5 pt-2 border-t">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-3.5 w-3.5 text-primary" />
+                      <span className="text-xs font-medium">Organization Overrides</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground pl-5">
+                      Click the edit button on any organization card to redirect all its repositories to a different Gitea organization.
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <GitBranch className="h-3.5 w-3.5 text-primary" />
+                      <span className="text-xs font-medium">Repository Overrides</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground pl-5">
+                      Use the inline editor in the repository table's "Destination" column to set custom destinations for individual repositories.
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Star className="h-3.5 w-3.5 text-yellow-500" />
+                      <span className="text-xs font-medium">Starred Repositories</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground pl-5">
+                      Always go to the configured starred repos organization and cannot be overridden.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="pt-2 border-t">
+                  <p className="text-xs text-muted-foreground">
+                    <span className="font-medium">Priority:</span> Repository override → Organization override → Strategy default
+                  </p>
+                </div>
+              </div>
+            </HoverCardContent>
+          </HoverCard>
+        </div>
       </div>
 
       <RadioGroup value={strategy} onValueChange={onStrategyChange}>
