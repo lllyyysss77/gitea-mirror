@@ -1,17 +1,15 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Plus, RefreshCw, Building2, Check, AlertCircle, Clock, Settings, ArrowRight, Edit3, X, Save } from "lucide-react";
-import { toast } from "sonner";
+import { Plus, RefreshCw, Building2, Check, AlertCircle, Clock } from "lucide-react";
 import { SiGithub } from "react-icons/si";
 import type { Organization } from "@/lib/db/schema";
 import type { FilterParams } from "@/types/filter";
 import Fuse from "fuse.js";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { MirrorDestinationEditor } from "./MirrorDestinationEditor";
 
 interface OrganizationListProps {
   organizations: Organization[];
@@ -50,60 +48,29 @@ export function OrganizationList({
   onAddOrganization,
   onRefresh,
 }: OrganizationListProps) {
-  const [editingOrg, setEditingOrg] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState<string>("");
-  const [isUpdating, setIsUpdating] = useState<string | null>(null);
+  const handleUpdateDestination = async (orgId: string, newDestination: string | null) => {
+    // Call API to update organization destination
+    const response = await fetch(`/api/organizations/${orgId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        destinationOrg: newDestination,
+      }),
+    });
 
-  const handleEditStart = (orgId: string, currentDestination?: string) => {
-    setEditingOrg(orgId);
-    setEditValue(currentDestination || "");
-  };
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to update organization");
+    }
 
-  const handleEditCancel = () => {
-    setEditingOrg(null);
-    setEditValue("");
-  };
-
-  const handleEditSave = async (orgId: string) => {
-    setIsUpdating(orgId);
-    try {
-      // Call API to update organization destination
-      const response = await fetch(`/api/organizations/${orgId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          destinationOrg: editValue.trim() || null,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update organization");
-      }
-
-      const result = await response.json();
-
-      // Close edit mode
-      setEditingOrg(null);
-      setEditValue("");
-
-      // Show success message
-      const destination = result.destinationOrg || "default";
-      toast.success(`Organization destination updated to: ${destination}`);
-
-      // Refresh organizations data
-      if (onRefresh) {
-        await onRefresh();
-      }
-    } catch (error) {
-      console.error("Error updating organization:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to update organization");
-    } finally {
-      setIsUpdating(null);
+    // Refresh organizations data
+    if (onRefresh) {
+      await onRefresh();
     }
   };
+
   const hasAnyFilter = Object.values(filter).some(
     (val) => val?.toString().trim() !== ""
   );
@@ -202,64 +169,13 @@ export function OrganizationList({
 
                 {/* Destination override section */}
                 <div className="mt-2">
-                  {editingOrg === org.id ? (
-                    <div className="space-y-2">
-                      <Label htmlFor={`dest-${org.id}`} className="text-xs text-muted-foreground">
-                        Mirror destination (leave empty for default: {org.name})
-                      </Label>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          id={`dest-${org.id}`}
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          placeholder={org.name}
-                          className="h-7 text-xs"
-                          disabled={isUpdating === org.id}
-                        />
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleEditSave(org.id!)}
-                          disabled={isUpdating === org.id}
-                          className="h-7 w-7 p-0"
-                        >
-                          <Save className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={handleEditCancel}
-                          disabled={isUpdating === org.id}
-                          className="h-7 w-7 p-0"
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <ArrowRight className="h-3 w-3" />
-                        <span>
-                          Mirrors to: <span className="font-medium">
-                            {org.destinationOrg || org.name}
-                          </span>
-                          {org.destinationOrg && (
-                            <span className="text-orange-600 ml-1">(override)</span>
-                          )}
-                        </span>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleEditStart(org.id!, org.destinationOrg)}
-                        className="h-6 w-6 p-0 opacity-60 hover:opacity-100"
-                        title="Edit destination"
-                      >
-                        <Edit3 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  )}
+                  <MirrorDestinationEditor
+                    organizationId={org.id!}
+                    organizationName={org.name!}
+                    currentDestination={org.destinationOrg}
+                    onUpdate={(newDestination) => handleUpdateDestination(org.id!, newDestination)}
+                    isUpdating={isLoading}
+                  />
                 </div>
               </div>
               <Badge variant={statusBadge.variant} className="ml-2">
