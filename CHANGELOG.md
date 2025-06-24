@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.18.0] - 2025-06-24
+
+### Added
+- Fourth organization strategy "Mixed Mode" that combines aspects of existing strategies
+  - Personal repositories go to a single configurable organization
+  - Organization repositories preserve their GitHub organization structure
+- "Override Options" info button in Organization Strategy component explaining customization features
+  - Organization overrides via edit buttons on organization cards
+  - Repository overrides via inline destination editor
+  - Starred repositories behavior and priority hierarchy
+
+### Improved
+- Simplified mixed strategy implementation to reuse existing database fields
+- Enhanced organization strategy UI with comprehensive override documentation
+- Better visual indicators for the new mixed strategy with orange color theme
+
 ## [2.17.0] - 2025-06-24
 
 ### Added
