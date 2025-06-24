@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.17.0] - 2025-06-24
+
+### Added
+- Custom destination control for individual repositories with inline editing
+- Organization-level destination overrides with visual destination editor
+- Personal repositories organization override configuration option
+- Visual indicators for starred repositories (⭐ icon) in repository list
+- Repository-level destination override API endpoint
+- Destination customization priority hierarchy system
+- "View on Gitea" buttons for organizations with smart tooltip states
+
+### Changed
+- Enhanced repository table with destination column showing both GitHub org and Gitea destination
+- Updated organization cards to display custom destinations with visual indicators
+- Improved getGiteaRepoOwnerAsync to support repository-level destination overrides
+
+### Improved
+- Better visual feedback for custom destinations with badges and inline editing
+- Enhanced user experience with hover-based edit buttons
+- Comprehensive destination customization documentation in README
+
 ## [2.16.3] - 2025-06-20
 
 ### Added
