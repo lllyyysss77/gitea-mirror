@@ -98,7 +98,7 @@ export async function POST({ request }: APIContext) {
 - Uses Bun's native test runner (`bun:test`)
 - Test files use `.test.ts` or `.test.tsx` extension
 - Setup file at `/src/tests/setup.bun.ts`
-- Mock utilities available for API testing
+- Mock utilities available for API testing.
 
 ### Development Tips
 - Environment variables in `.env` (copy from `.env.example`)
