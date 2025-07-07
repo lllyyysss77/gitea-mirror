@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, Edit3, RotateCcw, CheckCircle2, XCircle, Building2 } from "lucide-react";
+import { ArrowRight, Edit3, RotateCcw, CheckCircle2, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
