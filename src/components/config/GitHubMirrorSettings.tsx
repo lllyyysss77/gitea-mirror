@@ -124,7 +124,7 @@ export function GitHubMirrorSettings({
             </div>
           </div>
 
-          <div className="flex items-start justify-between gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-start space-x-3">
               <Checkbox
                 id="starred-repos"
@@ -145,10 +145,10 @@ export function GitHubMirrorSettings({
               </div>
             </div>
 
-            {/* Starred repos content selection - inline to prevent layout shift */}
+            {/* Starred repos content selection - responsive layout */}
             <div className={cn(
-              "flex items-center justify-end transition-opacity duration-200",
-              githubConfig.mirrorStarred ? "opacity-100" : "opacity-0 pointer-events-none"
+              "flex items-center justify-end transition-opacity duration-200 mt-3 md:mt-0",
+              githubConfig.mirrorStarred ? "opacity-100" : "opacity-0 hidden pointer-events-none"
             )}>
               <Popover>
                 <PopoverTrigger asChild>
@@ -156,7 +156,7 @@ export function GitHubMirrorSettings({
                     variant="outline"
                     size="sm"
                     disabled={!githubConfig.mirrorStarred}
-                    className="h-8 text-xs font-normal min-w-[140px] justify-between"
+                    className="h-8 text-xs font-normal min-w-[140px] md:min-w-[140px] justify-between"
                   >
                     <span>
                       {advancedOptions.skipStarredIssues ? (
@@ -325,7 +325,7 @@ export function GitHubMirrorSettings({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex items-start space-x-3">
               <Checkbox
                 id="mirror-metadata"
@@ -346,10 +346,10 @@ export function GitHubMirrorSettings({
               </div>
             </div>
 
-            {/* Metadata multi-select - inline to prevent layout shift */}
+            {/* Metadata multi-select - responsive layout */}
             <div className={cn(
-              "flex items-center justify-end transition-opacity duration-200",
-              mirrorOptions.mirrorMetadata ? "opacity-100" : "opacity-0 pointer-events-none"
+              "flex items-center justify-end transition-opacity duration-200 mt-3 md:mt-0",
+              mirrorOptions.mirrorMetadata ? "opacity-100" : "opacity-0 hidden pointer-events-none"
             )}>
               <Popover>
                 <PopoverTrigger asChild>
@@ -357,7 +357,7 @@ export function GitHubMirrorSettings({
                     variant="outline"
                     size="sm"
                     disabled={!mirrorOptions.mirrorMetadata}
-                    className="h-8 text-xs font-normal min-w-[140px] justify-between"
+                    className="h-8 text-xs font-normal min-w-[140px] md:min-w-[140px] justify-between"
                   >
                     <span>
                       {(() => {

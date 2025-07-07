@@ -64,7 +64,7 @@ export function Sidebar({ className, onNavigate, isOpen, onClose }: SidebarProps
       {/* Mobile Backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 backdrop-blur-sm z-40 lg:hidden"
           onClick={onClose}
         />
       )}
@@ -72,13 +72,13 @@ export function Sidebar({ className, onNavigate, isOpen, onClose }: SidebarProps
       {/* Sidebar */}
       <aside 
         className={cn(
-          "fixed lg:static inset-y-0 left-0 z-50 w-64 bg-background border-r flex flex-col h-full transition-transform duration-200 ease-in-out lg:translate-x-0",
+          "fixed lg:static inset-y-0 left-0 z-50 w-64 bg-background border-r flex flex-col h-full lg:h-[calc(100vh-4.5rem)] transition-transform duration-200 ease-in-out lg:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full",
           className
         )}
       >
-        <div className="flex flex-col h-full pt-4">
-          <nav className="flex flex-col gap-y-1 lg:gap-y-1 pl-2 pr-3">
+        <div className="flex flex-col h-full">
+          <nav className="flex flex-col gap-y-1 lg:gap-y-1 pl-2 pr-3 pt-4 flex-shrink-0">
             {links.map((link, index) => {
               const isActive = currentPath === link.href;
               const Icon = link.icon;
@@ -101,7 +101,9 @@ export function Sidebar({ className, onNavigate, isOpen, onClose }: SidebarProps
             })}
           </nav>
 
-          <div className="mt-auto px-4 py-4">
+          <div className="flex-1 min-h-0" />
+
+          <div className="px-4 py-4 flex-shrink-0">
             <div className="rounded-md bg-muted p-3 lg:p-3">
               <h4 className="text-sm font-medium mb-2">Need Help?</h4>
               <p className="text-xs text-muted-foreground mb-3 lg:mb-2">

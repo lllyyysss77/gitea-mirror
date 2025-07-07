@@ -563,7 +563,7 @@ export function ConfigTabs() {
   ) : (
     <div className="space-y-6">
       {/* Header section */}
-      <div className="flex flex-row justify-between items-start">
+      <div className="flex flex-col md:flex-row justify-between gap-y-4 items-start">
         <div className="flex flex-col gap-y-1.5">
           <h1 className="text-2xl font-semibold leading-none tracking-tight">
             Configuration Settings
