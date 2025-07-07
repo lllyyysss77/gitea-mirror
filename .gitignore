@@ -25,3 +25,9 @@ data/gitea-mirror.db
 
 # jetbrains setting folder
 .idea/
+
+# Custom CA certificates (exclude actual certs but keep README)
+certs/*.crt
+certs/*.pem
+certs/*.cer
+!certs/README.md
