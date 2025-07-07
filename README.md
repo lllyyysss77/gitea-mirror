@@ -21,9 +21,10 @@ docker compose -f docker-compose.alt.yml up -d
 
 First user signup becomes admin. Configure GitHub and Gitea through the web interface!
 
-<p align="center">
-  <img src=".github/assets/dashboard.png" alt="Dashboard" width="full"/>
-</p>
+<div align="center">
+  <img src=".github/assets/dashboard.png" alt="Dashboard" width="79%" style="display: inline-block; vertical-align: top;"/>
+  <img src=".github/assets/dashboard_mobile.png" alt="Dashboard Mobile" width="20%" style="display: inline-block; vertical-align: middle; padding-top: 10px;"/>
+</div>
 
 ## ✨ Features
 
@@ -37,10 +38,15 @@ First user signup becomes admin. Configure GitHub and Gitea through the web inte
 
 ## 📸 Screenshots
 
-<p align="center">
-  <img src=".github/assets/repositories.png" width="49%"/>
-  <img src=".github/assets/organisations.png" width="49%"/>
-</p>
+<div align="center">
+  <img src=".github/assets/repositories.png" alt="Repositories" width="79%" style="display: inline-block; vertical-align: top;"/>
+  <img src=".github/assets/repositories_mobile.png" alt="Rrepositories Mobile" width="20%" style="display: inline-block; vertical-align: middle; padding-top: 10px;"/>
+</div>
+
+<div align="center">
+  <img src=".github/assets/organisations.png" alt="Organisations" width="79%" style="display: inline-block; vertical-align: top;"/>
+  <img src=".github/assets/organisation_mobile.png" alt="Organisations Mobile" width="20%" style="display: inline-block; vertical-align: middle; padding-top: 10px;"/>
+</div>
 
 ## Installation
 
