@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.22.0] - 2025-07-07
+
+### Added
+- Comprehensive mobile and responsive design support across the entire application
+- New drawer UI component for enhanced mobile navigation
+- Mobile-specific layouts for major components (ActivityLog, Header, Organization, Repository)
+- Mobile screenshots in documentation showcasing responsive design
+
+### Improved
+- Enhanced mobile user experience with optimized layouts for smaller screens
+- Updated organization list cards with better mobile responsiveness
+- Better touch interaction support throughout the application
+
+### Fixed
+- Type definition issues resolved
+- Removed unnecessary console.log statements
+
+### Documentation
+- Updated README with mobile usage instructions and screenshots
+- Added mobile-specific documentation sections
+
 ## [2.20.1] - 2025-07-07
 
 ### Fixed
