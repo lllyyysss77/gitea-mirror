@@ -179,16 +179,16 @@ export function Dashboard() {
 
   return isLoading || !connected ? (
     <div className="flex flex-col gap-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
         <StatusCardSkeleton />
         <StatusCardSkeleton />
         <StatusCardSkeleton />
         <StatusCardSkeleton />
       </div>
 
-      <div className="flex gap-x-6 items-start">
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
         {/* Repository List Skeleton */}
-        <div className="w-1/2 border rounded-lg p-4">
+        <div className="w-full lg:w-1/2 border rounded-lg p-4">
           <div className="flex justify-between items-center mb-4">
             <Skeleton className="h-6 w-32" />
             <Skeleton className="h-9 w-24" />
@@ -201,7 +201,7 @@ export function Dashboard() {
         </div>
 
         {/* Recent Activity Skeleton */}
-        <div className="w-1/2 border rounded-lg p-4">
+        <div className="w-full lg:w-1/2 border rounded-lg p-4">
           <div className="flex justify-between items-center mb-4">
             <Skeleton className="h-6 w-32" />
             <Skeleton className="h-9 w-24" />
@@ -217,24 +217,24 @@ export function Dashboard() {
   ) : (
     <div className="flex flex-col gap-y-6">
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
         <StatusCard
-          title="Total Repositories"
+          title="Repositories"
           value={repoCount}
           icon={<GitFork className="h-4 w-4" />}
-          description="Repositories being mirrored"
+          description="Total in mirror queue"
         />
         <StatusCard
           title="Mirrored"
           value={mirroredCount}
           icon={<FlipHorizontal className="h-4 w-4" />}
-          description="Successfully mirrored"
+          description="Synced to Gitea"
         />
         <StatusCard
           title="Organizations"
           value={orgCount}
           icon={<Building2 className="h-4 w-4" />}
-          description="GitHub organizations"
+          description="From GitHub"
         />
         <StatusCard
           title="Last Sync"
@@ -254,11 +254,15 @@ export function Dashboard() {
         />
       </div>
 
-      <div className="flex gap-x-6 items-start">
-        <RepositoryList repositories={repositories} />
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        <div className="w-full lg:w-1/2">
+          <RepositoryList repositories={repositories} />
+        </div>
 
-        {/* the api already sends 10 activities only but slicing in case of realtime updates */}
-        <RecentActivity activities={activities.slice(0, 10)} />
+        <div className="w-full lg:w-1/2">
+          {/* the api already sends 10 activities only but slicing in case of realtime updates */}
+          <RecentActivity activities={activities.slice(0, 10)} />
+        </div>
       </div>
     </div>
   );

@@ -16,7 +16,7 @@ export function RecentActivity({ activities }: RecentActivityProps) {
           <a href="/activity">View All</a>
         </Button>
       </CardHeader>
-      <CardContent className="max-h-[calc(100dvh-22.5rem)] overflow-y-auto">
+      <CardContent className="max-h-[300px] sm:max-h-[400px] lg:max-h-[calc(100dvh-22.5rem)] overflow-y-auto">
         <div className="flex flex-col divide-y divide-border">
           {activities.length === 0 ? (
             <p className="text-sm text-muted-foreground">No recent activity</p>
@@ -31,7 +31,7 @@ export function RecentActivity({ activities }: RecentActivityProps) {
                   />
                 </div>
                 <div className="flex-1 space-y-1">
-                  <p className="text-sm font-medium leading-none">
+                  <p className="text-sm font-medium leading-none break-words">
                     {activity.message}
                   </p>
                   <p className="text-xs text-muted-foreground">

@@ -560,10 +560,10 @@ export default function Repository() {
   const availableActions = getAvailableActions();
 
   return (
-    <div className="flex flex-col gap-y-8">
-      {/* Combine search and actions into a single flex row */}
-      <div className="flex flex-row items-center gap-4 w-full flex-wrap">
-        <div className="relative flex-grow min-w-[180px]">
+    <div className="flex flex-col gap-y-4 sm:gap-y-8">
+      {/* Search and filters */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full">
+        <div className="relative w-full sm:flex-grow sm:min-w-[180px]">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
@@ -594,50 +594,57 @@ export default function Repository() {
           }
         />
 
-        <Select
-          value={filter.status || "all"}
-          onValueChange={(value) =>
-            setFilter((prev) => ({
-              ...prev,
-              status: value === "all" ? "" : (value as RepoStatus),
-            }))
-          }
-        >
-          <SelectTrigger className="w-[140px] h-9 max-h-9">
-            <SelectValue placeholder="All Status" />
-          </SelectTrigger>
-          <SelectContent>
-            {["all", ...repoStatusEnum.options].map((status) => (
-              <SelectItem key={status} value={status}>
-                {status === "all"
-                  ? "All Status"
-                  : status.charAt(0).toUpperCase() + status.slice(1)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Filter controls in a responsive row */}
+        <div className="flex flex-row items-center gap-2 w-full sm:w-auto">
+          <Select
+            value={filter.status || "all"}
+            onValueChange={(value) =>
+              setFilter((prev) => ({
+                ...prev,
+                status: value === "all" ? "" : (value as RepoStatus),
+              }))
+            }
+          >
+            <SelectTrigger className="w-full sm:w-[140px] h-9 max-h-9">
+              <SelectValue placeholder="All Status" />
+            </SelectTrigger>
+            <SelectContent>
+              {["all", ...repoStatusEnum.options].map((status) => (
+                <SelectItem key={status} value={status}>
+                  {status === "all"
+                    ? "All Status"
+                    : status.charAt(0).toUpperCase() + status.slice(1)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleRefresh}
-          title="Refresh repositories"
-        >
-          <RefreshCw className="h-4 w-4" />
-        </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleRefresh}
+            title="Refresh repositories"
+            className="shrink-0"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
 
-        {/* Context-aware action buttons */}
+      {/* Action buttons - separate row on mobile */}
+      <div className="flex items-center gap-2 flex-wrap">
         {selectedRepoIds.size === 0 ? (
           <Button
             variant="default"
             onClick={handleMirrorAllRepos}
             disabled={isInitialLoading || loadingRepoIds.size > 0}
+            className="w-full sm:w-auto"
           >
             <FlipHorizontal className="h-4 w-4 mr-2" />
             Mirror All
           </Button>
         ) : (
-          <div className="flex items-center gap-2">
+          <>
             <div className="flex items-center gap-2 px-3 py-1 bg-muted/50 rounded-md">
               <span className="text-sm font-medium">
                 {selectedRepoIds.size} selected
@@ -652,42 +659,44 @@ export default function Repository() {
               </Button>
             </div>
             
-            {availableActions.includes('mirror') && (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={handleBulkMirror}
-                disabled={loadingRepoIds.size > 0}
-              >
-                <FlipHorizontal className="h-4 w-4 mr-2" />
-                Mirror ({selectedRepoIds.size})
-              </Button>
-            )}
-            
-            {availableActions.includes('sync') && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleBulkSync}
-                disabled={loadingRepoIds.size > 0}
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Sync ({selectedRepoIds.size})
-              </Button>
-            )}
-            
-            {availableActions.includes('retry') && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleBulkRetry}
-                disabled={loadingRepoIds.size > 0}
-              >
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Retry
-              </Button>
-            )}
-          </div>
+            <div className="flex gap-2 flex-wrap">
+              {availableActions.includes('mirror') && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleBulkMirror}
+                  disabled={loadingRepoIds.size > 0}
+                >
+                  <FlipHorizontal className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Mirror </span>({selectedRepoIds.size})
+                </Button>
+              )}
+              
+              {availableActions.includes('sync') && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBulkSync}
+                  disabled={loadingRepoIds.size > 0}
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Sync </span>({selectedRepoIds.size})
+                </Button>
+              )}
+              
+              {availableActions.includes('retry') && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBulkRetry}
+                  disabled={loadingRepoIds.size > 0}
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Retry
+                </Button>
+              )}
+            </div>
+          </>
         )}
       </div>
 

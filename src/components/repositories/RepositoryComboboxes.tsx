@@ -33,13 +33,13 @@ export function OwnerCombobox({ options, value, onChange, placeholder = "Owner" 
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-[160px] justify-between"
+          className="w-full sm:w-[160px] justify-between"
         >
           {value ? value : placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[160px] p-0">
+      <PopoverContent className="w-[200px] sm:w-[160px] p-0">
         <Command>
           <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
           <CommandList>
@@ -86,13 +86,13 @@ export function OrganizationCombobox({ options, value, onChange, placeholder = "
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-[160px] justify-between"
+          className="w-full sm:w-[160px] justify-between"
         >
           {value ? value : placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[160px] p-0">
+      <PopoverContent className="w-[200px] sm:w-[160px] p-0">
         <Command>
           <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
           <CommandList>
