@@ -98,6 +98,25 @@ export function AutomationSettings({
         <CardTitle className="text-lg font-semibold flex items-center gap-2">
           <Zap className="h-5 w-5" />
           Automation & Maintenance
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button className="ml-1 inline-flex items-center justify-center rounded-full w-4 h-4 bg-muted hover:bg-muted/80 transition-colors">
+                  <Info className="h-3 w-3" />
+                  <span className="sr-only">Background operations info</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="max-w-xs">
+                <div className="space-y-2">
+                  <p className="font-medium">Background Operations</p>
+                  <p className="text-xs">
+                    These automated tasks run in the background to keep your mirrors up-to-date and maintain optimal database performance. 
+                    Choose intervals that match your workflow and repository update frequency.
+                  </p>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </CardTitle>
       </CardHeader>
       
@@ -308,21 +327,6 @@ export function AutomationSettings({
                   </div>
                 )}
               </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-6 p-4 bg-blue-50/50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900">
-          <div className="flex gap-3">
-            <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                Background Operations
-              </p>
-              <p className="text-xs text-blue-800 dark:text-blue-200/80">
-                These automated tasks run in the background to keep your mirrors up-to-date and maintain optimal database performance. 
-                Choose intervals that match your workflow and repository update frequency.
-              </p>
             </div>
           </div>
         </div>

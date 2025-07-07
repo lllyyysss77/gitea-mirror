@@ -125,42 +125,24 @@ export function Header({ currentPage, onNavigate, onMenuClick }: HeaderProps) {
           {isLoading ? (
             <AuthButtonsSkeleton />
           ) : user ? (
-            <>
-              {/* Desktop: Show avatar and logout button */}
-              <div className="hidden sm:flex sm:items-center sm:gap-4">
-                <Avatar>
-                  <AvatarImage src="" alt="@shadcn" />
-                  <AvatarFallback>
-                    {user.username.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <Button variant="outline" size="sm" onClick={handleLogout}>
-                  Logout
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="lg" className="relative h-10 w-10 rounded-full p-0">
+                  <Avatar className="h-full w-full">
+                    <AvatarImage src="" alt="@shadcn" />
+                    <AvatarFallback>
+                      {user.username.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
                 </Button>
-              </div>
-              
-              {/* Mobile: Avatar with dropdown */}
-              <div className="sm:hidden">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="lg" className="relative h-10 w-10 rounded-full p-0">
-                      <Avatar className="h-full w-full">
-                        <AvatarImage src="" alt="@shadcn" />
-                        <AvatarFallback>
-                          {user.username.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Logout
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <Button variant="outline" size="sm" asChild>
               <a href="/login">Login</a>

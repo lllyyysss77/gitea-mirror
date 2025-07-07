@@ -303,7 +303,7 @@ export const OrganizationStrategy: React.FC<OrganizationStrategyProps> = ({
                 <span>Override Options</span>
               </button>
             </HoverCardTrigger>
-            <HoverCardContent side="left" align="start" className="w-[380px]">
+            <HoverCardContent side="bottom" align="start" className="w-[380px]">
               <div className="space-y-3">
                 <div>
                   <h4 className="font-medium text-sm mb-1.5">Fine-tune Your Mirror Destinations</h4>

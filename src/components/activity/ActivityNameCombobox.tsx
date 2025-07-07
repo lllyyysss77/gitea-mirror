@@ -41,9 +41,14 @@ export function ActivityNameCombobox({ activities, value, onChange }: ActivityNa
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-[180px] justify-between"
+          className="w-full sm:w-[180px] justify-between h-10"
         >
-          {value ? value : "All Names"}
+          <span className={cn(
+            "truncate",
+            !value && "text-muted-foreground"
+          )}>
+            {value || "All names"}
+          </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -62,7 +67,7 @@ export function ActivityNameCombobox({ activities, value, onChange }: ActivityNa
                 }}
               >
                 <Check className={cn("mr-2 h-4 w-4", value === "" ? "opacity-100" : "opacity-0")} />
-                All Names
+                All names
               </CommandItem>
               {names.map((name) => (
                 <CommandItem

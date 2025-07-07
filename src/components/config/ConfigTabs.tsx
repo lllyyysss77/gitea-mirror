@@ -566,14 +566,14 @@ export function ConfigTabs() {
       <div className="flex flex-col md:flex-row justify-between gap-y-4 items-start">
         <div className="flex flex-col gap-y-1.5">
           <h1 className="text-2xl font-semibold leading-none tracking-tight">
-            Configuration Settings
+            Configuration
           </h1>
           <p className="text-sm text-muted-foreground">
             Configure your GitHub and Gitea connections, and set up automatic
             mirroring.
           </p>
         </div>
-        <div className="flex gap-x-4">
+        <div className="flex gap-x-4 w-full md:w-auto">
           <Button
             onClick={handleImportGitHubData}
             disabled={isSyncing || !isGitHubConfigValid()}
@@ -584,6 +584,7 @@ export function ConfigTabs() {
                 ? 'Import in progress'
                 : 'Import GitHub Data'
             }
+            className="w-full md:w-auto"
           >
             {isSyncing ? (
               <>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Search, RefreshCw, FlipHorizontal } from "lucide-react";
+import { Search, RefreshCw, FlipHorizontal, Filter } from "lucide-react";
 import type { MirrorJob, Organization } from "@/lib/db/schema";
 import { OrganizationList } from "./OrganizationsList";
 import AddOrganizationDialog from "./AddOrganizationDialog";
@@ -27,6 +27,16 @@ import { toast } from "sonner";
 import { useConfigStatus } from "@/hooks/useConfigStatus";
 import { useNavigation } from "@/components/layout/MainLayout";
 import { useLiveRefresh } from "@/hooks/useLiveRefresh";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 
 export function Organization() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -290,119 +300,350 @@ export function Organization() {
     }
   };
 
+  // Check if any filters are active
+  const hasActiveFilters = !!(filter.membershipRole || filter.status);
+  const activeFilterCount = [filter.membershipRole, filter.status].filter(Boolean).length;
 
+  // Clear all filters
+  const clearFilters = () => {
+    setFilter({
+      searchTerm: filter.searchTerm,
+      membershipRole: "",
+      status: "",
+    });
+  };
 
   return (
     <div className="flex flex-col gap-y-4 sm:gap-y-8">
       {/* Search and filters */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full">
-        <div className="relative w-full sm:flex-grow">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search Organizations..."
-            className="pl-8 h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            value={filter.searchTerm}
-            onChange={(e) =>
-              setFilter((prev) => ({ ...prev, searchTerm: e.target.value }))
-            }
-          />
-        </div>
+        {/* Mobile: Search bar with filter button */}
+        <div className="flex items-center gap-2 w-full sm:hidden">
+          <div className="relative flex-grow">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search organizations..."
+              className="pl-10 pr-3 h-10 w-full rounded-md border border-input bg-background text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              value={filter.searchTerm}
+              onChange={(e) =>
+                setFilter((prev) => ({ ...prev, searchTerm: e.target.value }))
+              }
+            />
+          </div>
+          
+          {/* Mobile Filter Drawer */}
+          <Drawer>
+            <DrawerTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="relative h-10 w-10 shrink-0"
+              >
+                <Filter className="h-4 w-4" />
+                {activeFilterCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </Button>
+            </DrawerTrigger>
+            <DrawerContent className="max-h-[85vh]">
+              <DrawerHeader className="text-left">
+                <DrawerTitle className="text-lg font-semibold">Filter Organizations</DrawerTitle>
+                <DrawerDescription className="text-sm text-muted-foreground">
+                  Narrow down your organization list
+                </DrawerDescription>
+              </DrawerHeader>
+              
+              <div className="px-4 py-6 space-y-6 overflow-y-auto">
+                {/* Active filters summary */}
+                {hasActiveFilters && (
+                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <span className="text-sm font-medium">
+                      {activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''} active
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearFilters}
+                      className="h-7 px-2 text-xs"
+                    >
+                      Clear all
+                    </Button>
+                  </div>
+                )}
 
-        {/* Filter controls */}
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          {/* Membership Role Filter */}
-          <Select
-            value={filter.membershipRole || "all"}
-            onValueChange={(value) =>
-              setFilter((prev) => ({
-                ...prev,
-                membershipRole: value === "all" ? "" : (value as MembershipRole),
-              }))
-            }
-          >
-            <SelectTrigger className="w-full sm:w-[140px] h-9 max-h-9">
-              <SelectValue placeholder="All Roles" />
-            </SelectTrigger>
-            <SelectContent>
-              {["all", ...membershipRoleEnum.options].map((role) => (
-                <SelectItem key={role} value={role}>
-                  {role === "all"
-                    ? "All Roles"
-                    : role
-                        .replace(/_/g, " ")
-                        .replace(/\b\w/g, (c) => c.toUpperCase())}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                {/* Role Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <span className="text-muted-foreground">By</span> Role
+                    {filter.membershipRole && (
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        {filter.membershipRole
+                          .replace(/_/g, " ")
+                          .replace(/\b\w/g, (c) => c.toUpperCase())}
+                      </span>
+                    )}
+                  </label>
+                  <Select
+                    value={filter.membershipRole || "all"}
+                    onValueChange={(value) =>
+                      setFilter((prev) => ({
+                        ...prev,
+                        membershipRole: value === "all" ? "" : (value as MembershipRole),
+                      }))
+                    }
+                  >
+                    <SelectTrigger className="w-full h-10">
+                      <SelectValue placeholder="All roles" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {["all", ...membershipRoleEnum.options].map((role) => (
+                        <SelectItem key={role} value={role}>
+                          <span className="flex items-center gap-2">
+                            {role !== "all" && (
+                              <span className={`h-2 w-2 rounded-full ${
+                                role === "admin" ? "bg-purple-500" : "bg-blue-500"
+                              }`} />
+                            )}
+                            {role === "all"
+                              ? "All roles"
+                              : role
+                                  .replace(/_/g, " ")
+                                  .replace(/\b\w/g, (c) => c.toUpperCase())}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-          {/* Status Filter */}
-          <Select
-            value={filter.status || "all"}
-            onValueChange={(value) =>
-              setFilter((prev) => ({
-                ...prev,
-                status:
-                  value === "all"
-                    ? ""
-                    : (value as
-                        | ""
-                        | "imported"
-                        | "mirroring"
-                        | "mirrored"
-                        | "failed"
-                        | "syncing"
-                        | "synced"),
-              }))
-            }
-          >
-            <SelectTrigger className="w-full sm:w-[140px] h-9 max-h-9">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              {[
-                "all",
-                "imported",
-                "mirroring",
-                "mirrored",
-                "failed",
-                "syncing",
-                "synced",
-              ].map((status) => (
-                <SelectItem key={status} value={status}>
-                  {status === "all"
-                    ? "All Statuses"
-                    : status.charAt(0).toUpperCase() + status.slice(1)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Action buttons */}
-        <div className="flex items-center gap-2 ml-auto">
+                {/* Status Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <span className="text-muted-foreground">By</span> Status
+                    {filter.status && (
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        {filter.status.charAt(0).toUpperCase() + filter.status.slice(1)}
+                      </span>
+                    )}
+                  </label>
+                  <Select
+                    value={filter.status || "all"}
+                    onValueChange={(value) =>
+                      setFilter((prev) => ({
+                        ...prev,
+                        status:
+                          value === "all"
+                            ? ""
+                            : (value as
+                                | ""
+                                | "imported"
+                                | "mirroring"
+                                | "mirrored"
+                                | "failed"
+                                | "syncing"
+                                | "synced"),
+                      }))
+                    }
+                  >
+                    <SelectTrigger className="w-full h-10">
+                      <SelectValue placeholder="All statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[
+                        "all",
+                        "imported",
+                        "mirroring",
+                        "mirrored",
+                        "failed",
+                        "syncing",
+                        "synced",
+                      ].map((status) => (
+                        <SelectItem key={status} value={status}>
+                          <span className="flex items-center gap-2">
+                            {status !== "all" && (
+                              <span className={`h-2 w-2 rounded-full ${
+                                status === "synced" || status === "mirrored" ? "bg-green-500" :
+                                status === "failed" ? "bg-red-500" :
+                                status === "syncing" || status === "mirroring" ? "bg-blue-500" :
+                                "bg-yellow-500"
+                              }`} />
+                            )}
+                            {status === "all"
+                              ? "All statuses"
+                              : status.charAt(0).toUpperCase() + status.slice(1)}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <DrawerFooter className="gap-2 px-4 pt-2 pb-4 border-t">
+                <DrawerClose asChild>
+                  <Button className="w-full" size="sm">
+                    Apply Filters
+                  </Button>
+                </DrawerClose>
+                <DrawerClose asChild>
+                  <Button variant="outline" className="w-full" size="sm">
+                    Cancel
+                  </Button>
+                </DrawerClose>
+              </DrawerFooter>
+            </DrawerContent>
+          </Drawer>
+          
           <Button
             variant="outline"
             size="icon"
             onClick={handleRefresh}
             title="Refresh organizations"
-            className="h-8 w-8 sm:h-9 sm:w-9"
+            className="h-10 w-10 shrink-0"
           >
             <RefreshCw className="h-4 w-4" />
           </Button>
-
+          
           <Button
             variant="default"
-            size="sm"
+            size="icon"
             onClick={handleMirrorAllOrgs}
             disabled={isLoading || loadingOrgIds.size > 0}
-            className="sm:size-default"
+            title="Mirror all organizations"
+            className="h-10 w-10 shrink-0"
           >
-            <FlipHorizontal className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Mirror All</span>
-            <span className="sm:hidden">Mirror</span>
+            <FlipHorizontal className="h-4 w-4" />
           </Button>
+        </div>
+
+        {/* Desktop: Original layout */}
+        <div className="hidden sm:flex sm:flex-row sm:items-center sm:gap-4 sm:w-full">
+          <div className="relative flex-grow">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search organizations..."
+              className="pl-10 pr-3 h-10 w-full rounded-md border border-input bg-background text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              value={filter.searchTerm}
+              onChange={(e) =>
+                setFilter((prev) => ({ ...prev, searchTerm: e.target.value }))
+              }
+            />
+          </div>
+
+          {/* Filter controls */}
+          <div className="flex items-center gap-2">
+            {/* Membership Role Filter */}
+            <Select
+              value={filter.membershipRole || "all"}
+              onValueChange={(value) =>
+                setFilter((prev) => ({
+                  ...prev,
+                  membershipRole: value === "all" ? "" : (value as MembershipRole),
+                }))
+              }
+            >
+              <SelectTrigger className="w-[140px] h-10">
+                <SelectValue placeholder="All roles" />
+              </SelectTrigger>
+              <SelectContent>
+                {["all", ...membershipRoleEnum.options].map((role) => (
+                  <SelectItem key={role} value={role}>
+                    <span className="flex items-center gap-2">
+                      {role !== "all" && (
+                        <span className={`h-2 w-2 rounded-full ${
+                          role === "admin" ? "bg-purple-500" : "bg-blue-500"
+                        }`} />
+                      )}
+                      {role === "all"
+                        ? "All roles"
+                        : role
+                            .replace(/_/g, " ")
+                            .replace(/\b\w/g, (c) => c.toUpperCase())}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Status Filter */}
+            <Select
+              value={filter.status || "all"}
+              onValueChange={(value) =>
+                setFilter((prev) => ({
+                  ...prev,
+                  status:
+                    value === "all"
+                      ? ""
+                      : (value as
+                          | ""
+                          | "imported"
+                          | "mirroring"
+                          | "mirrored"
+                          | "failed"
+                          | "syncing"
+                          | "synced"),
+                }))
+              }
+            >
+              <SelectTrigger className="w-[140px] h-10">
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                {[
+                  "all",
+                  "imported",
+                  "mirroring",
+                  "mirrored",
+                  "failed",
+                  "syncing",
+                  "synced",
+                ].map((status) => (
+                  <SelectItem key={status} value={status}>
+                    <span className="flex items-center gap-2">
+                      {status !== "all" && (
+                        <span className={`h-2 w-2 rounded-full ${
+                          status === "synced" || status === "mirrored" ? "bg-green-500" :
+                          status === "failed" ? "bg-red-500" :
+                          status === "syncing" || status === "mirroring" ? "bg-blue-500" :
+                          "bg-yellow-500"
+                        }`} />
+                      )}
+                      {status === "all"
+                        ? "All statuses"
+                        : status.charAt(0).toUpperCase() + status.slice(1)}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-2 ml-auto">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleRefresh}
+              title="Refresh organizations"
+              className="h-10 w-10"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+
+            <Button
+              variant="default"
+              onClick={handleMirrorAllOrgs}
+              disabled={isLoading || loadingOrgIds.size > 0}
+              className="h-10 px-4"
+            >
+              <FlipHorizontal className="h-4 w-4 mr-2" />
+              Mirror All
+            </Button>
+          </div>
         </div>
       </div>
 
