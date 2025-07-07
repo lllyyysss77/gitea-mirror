@@ -51,7 +51,6 @@ export function useRepoSync({
 
     const sync = async () => {
       try {
-        console.log("Attempting to sync...");
         const response = await fetch("/api/job/schedule-sync-repo", {
           method: "POST",
           headers: {
@@ -68,7 +67,6 @@ export function useRepoSync({
         await refreshUser(); // refresh user data to get latest sync times. this can be taken from the schedule-sync-repo response but might not be reliable in cases of errors
 
         const result = await response.json();
-        console.log("Sync successful:", result);
         return result;
       } catch (error) {
         console.error("Sync failed:", error);

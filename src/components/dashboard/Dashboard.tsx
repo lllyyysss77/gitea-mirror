@@ -57,8 +57,6 @@ export function Dashboard() {
     }
 
     setActivities((prevActivities) => [data, ...prevActivities]);
-
-    console.log("Received new log:", data);
   }, []);
 
   // Use the SSE hook

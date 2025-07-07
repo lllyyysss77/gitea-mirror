@@ -64,8 +64,6 @@ export function Organization() {
         )
       );
     }
-
-    console.log("Received new log:", data);
   }, []);
 
   // Use the SSE hook

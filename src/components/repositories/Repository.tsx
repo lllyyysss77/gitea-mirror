@@ -81,8 +81,6 @@ export default function Repository() {
         )
       );
     }
-
-    console.log("Received new log:", data);
   }, []);
 
   // Use the SSE hook

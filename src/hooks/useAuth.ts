@@ -38,9 +38,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // setIsLoading(true);
     try {
       const user = await authApi.getCurrentUser();
-
-      console.log("User data refreshed:", user);
-
       setUser(user);
     } catch (err: any) {
       setUser(null);

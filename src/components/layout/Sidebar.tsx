@@ -18,7 +18,6 @@ export function Sidebar({ className, onNavigate, isOpen, onClose }: SidebarProps
     // Hydration happens here
     const path = window.location.pathname;
     setCurrentPath(path);
-    console.log("Hydrated path:", path); // Should log now
   }, []);
 
   // Listen for URL changes (browser back/forward)

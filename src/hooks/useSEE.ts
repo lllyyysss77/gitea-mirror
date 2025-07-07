@@ -64,7 +64,6 @@ export const useSSE = ({
     eventSource.onopen = () => {
       setConnected(true);
       setReconnectCount(0); // Reset reconnect counter on successful connection
-      console.log(`Connected to SSE for user: ${userId}`);
     };
 
     eventSource.onerror = (error) => {
