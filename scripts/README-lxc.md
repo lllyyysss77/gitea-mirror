@@ -56,7 +56,7 @@ http://<container-ip>:4321
 ### Offline installer script
 
 ```bash
-git clone https://github.com/arunavo4/gitea-mirror.git   # if not already
+git clone https://github.com/RayLabsHQ/gitea-mirror.git   # if not already
 curl -fsSL https://raw.githubusercontent.com/arunavo4/gitea-mirror/main/scripts/gitea-mirror-lxc-local.sh -o gitea-mirror-lxc-local.sh
 chmod +x gitea-mirror-lxc-local.sh
 

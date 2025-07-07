@@ -3,7 +3,7 @@
 
 services:
   gitea-mirror:
-    image: ${DOCKER_REGISTRY:-ghcr.io}/${DOCKER_IMAGE:-arunavo4/gitea-mirror}:${DOCKER_TAG:-latest}
+    image: ${DOCKER_REGISTRY:-ghcr.io}/${DOCKER_IMAGE:-raylabshq/gitea-mirror}:${DOCKER_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
@@ -11,7 +11,7 @@ services:
         - linux/amd64
         - linux/arm64
       cache_from:
-        - ${DOCKER_REGISTRY:-ghcr.io}/${DOCKER_IMAGE:-arunavo4/gitea-mirror}:${DOCKER_TAG:-latest}
+        - ${DOCKER_REGISTRY:-ghcr.io}/${DOCKER_IMAGE:-raylabshq/gitea-mirror}:${DOCKER_TAG:-latest}
     container_name: gitea-mirror
     restart: unless-stopped
     ports:

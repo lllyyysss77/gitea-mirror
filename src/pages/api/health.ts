@@ -208,7 +208,7 @@ async function checkLatestVersion(): Promise<string> {
   try {
     // Fetch the latest release from GitHub
     const response = await httpGet(
-      'https://api.github.com/repos/arunavo4/gitea-mirror/releases/latest',
+      'https://api.github.com/repos/RayLabsHQ/gitea-mirror/releases/latest',
       { 'Accept': 'application/vnd.github.v3+json' }
     );
 
