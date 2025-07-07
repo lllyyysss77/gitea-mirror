@@ -18,8 +18,18 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Button } from "@/components/ui/button";
-import { Search, RefreshCw, FlipHorizontal, RotateCcw, X } from "lucide-react";
+import { Search, RefreshCw, FlipHorizontal, RotateCcw, X, Filter } from "lucide-react";
 import type { MirrorRepoRequest, MirrorRepoResponse } from "@/types/mirror";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import { useSSE } from "@/hooks/useSEE";
 import { useFilterParams } from "@/hooks/useFilterParams";
 import { toast } from "sonner";
@@ -559,86 +569,353 @@ export default function Repository() {
   
   const availableActions = getAvailableActions();
 
+  // Check if any filters are active
+  const hasActiveFilters = !!(filter.owner || filter.organization || filter.status);
+  const activeFilterCount = [filter.owner, filter.organization, filter.status].filter(Boolean).length;
+
+  // Clear all filters
+  const clearFilters = () => {
+    setFilter({
+      searchTerm: filter.searchTerm,
+      status: "",
+      organization: "",
+      owner: "",
+    });
+  };
+
   return (
-    <div className="flex flex-col gap-y-8">
-      {/* Combine search and actions into a single flex row */}
-      <div className="flex flex-row items-center gap-4 w-full flex-wrap">
-        <div className="relative flex-grow min-w-[180px]">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search repositories..."
-            className="pl-8 h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            value={filter.searchTerm}
-            onChange={(e) =>
-              setFilter((prev) => ({ ...prev, searchTerm: e.target.value }))
-            }
-          />
-        </div>
+    <div className="flex flex-col gap-y-4 sm:gap-y-8">
+      {/* Search and filters */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full">
+        {/* Mobile: Search bar with filter button */}
+        <div className="flex items-center gap-2 w-full sm:hidden">
+          <div className="relative flex-grow">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search repositories..."
+              className="pl-10 pr-3 h-10 w-full rounded-md border border-input bg-background text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              value={filter.searchTerm}
+              onChange={(e) =>
+                setFilter((prev) => ({ ...prev, searchTerm: e.target.value }))
+              }
+            />
+          </div>
+          
+          {/* Mobile Filter Drawer */}
+          <Drawer>
+            <DrawerTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                className="relative h-10 w-10 shrink-0"
+              >
+                <Filter className="h-4 w-4" />
+                {activeFilterCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </Button>
+            </DrawerTrigger>
+            <DrawerContent className="max-h-[85vh]">
+              <DrawerHeader className="text-left">
+                <DrawerTitle className="text-lg font-semibold">Filter Repositories</DrawerTitle>
+                <DrawerDescription className="text-sm text-muted-foreground">
+                  Narrow down your repository list
+                </DrawerDescription>
+              </DrawerHeader>
+              
+              <div className="px-4 py-6 space-y-6 overflow-y-auto">
+                {/* Active filters summary */}
+                {hasActiveFilters && (
+                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <span className="text-sm font-medium">
+                      {activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''} active
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearFilters}
+                      className="h-7 px-2 text-xs"
+                    >
+                      Clear all
+                    </Button>
+                  </div>
+                )}
 
-        {/* Owner Combobox */}
-        <OwnerCombobox
-          options={ownerOptions}
-          value={filter.owner || ""}
-          onChange={(owner: string) =>
-            setFilter((prev) => ({ ...prev, owner }))
-          }
-        />
+                {/* Owner Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <span className="text-muted-foreground">By</span> Owner
+                    {filter.owner && (
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        Selected
+                      </span>
+                    )}
+                  </label>
+                  <OwnerCombobox
+                    options={ownerOptions}
+                    value={filter.owner || ""}
+                    onChange={(owner: string) =>
+                      setFilter((prev) => ({ ...prev, owner }))
+                    }
+                  />
+                </div>
 
-        {/* Organization Combobox */}
-        <OrganizationCombobox
-          options={orgOptions}
-          value={filter.organization || ""}
-          onChange={(organization: string) =>
-            setFilter((prev) => ({ ...prev, organization }))
-          }
-        />
+                {/* Organization Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <span className="text-muted-foreground">By</span> Organization
+                    {filter.organization && (
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        Selected
+                      </span>
+                    )}
+                  </label>
+                  <OrganizationCombobox
+                    options={orgOptions}
+                    value={filter.organization || ""}
+                    onChange={(organization: string) =>
+                      setFilter((prev) => ({ ...prev, organization }))
+                    }
+                  />
+                </div>
 
-        <Select
-          value={filter.status || "all"}
-          onValueChange={(value) =>
-            setFilter((prev) => ({
-              ...prev,
-              status: value === "all" ? "" : (value as RepoStatus),
-            }))
-          }
-        >
-          <SelectTrigger className="w-[140px] h-9 max-h-9">
-            <SelectValue placeholder="All Status" />
-          </SelectTrigger>
-          <SelectContent>
-            {["all", ...repoStatusEnum.options].map((status) => (
-              <SelectItem key={status} value={status}>
-                {status === "all"
-                  ? "All Status"
-                  : status.charAt(0).toUpperCase() + status.slice(1)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleRefresh}
-          title="Refresh repositories"
-        >
-          <RefreshCw className="h-4 w-4" />
-        </Button>
-
-        {/* Context-aware action buttons */}
-        {selectedRepoIds.size === 0 ? (
+                {/* Status Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <span className="text-muted-foreground">By</span> Status
+                    {filter.status && (
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        {filter.status.charAt(0).toUpperCase() + filter.status.slice(1)}
+                      </span>
+                    )}
+                  </label>
+                  <Select
+                    value={filter.status || "all"}
+                    onValueChange={(value) =>
+                      setFilter((prev) => ({
+                        ...prev,
+                        status: value === "all" ? "" : (value as RepoStatus),
+                      }))
+                    }
+                  >
+                    <SelectTrigger className="w-full h-10">
+                      <SelectValue placeholder="All statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {["all", ...repoStatusEnum.options].map((status) => (
+                        <SelectItem key={status} value={status}>
+                          <span className="flex items-center gap-2">
+                            {status !== "all" && (
+                              <span className={`h-2 w-2 rounded-full ${
+                                status === "synced" ? "bg-green-500" :
+                                status === "failed" ? "bg-red-500" :
+                                status === "syncing" ? "bg-blue-500" :
+                                "bg-yellow-500"
+                              }`} />
+                            )}
+                            {status === "all"
+                              ? "All statuses"
+                              : status.charAt(0).toUpperCase() + status.slice(1)}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <DrawerFooter className="gap-2 px-4 pt-2 pb-4 border-t">
+                <DrawerClose asChild>
+                  <Button className="w-full" size="sm">
+                    Apply Filters
+                  </Button>
+                </DrawerClose>
+                <DrawerClose asChild>
+                  <Button variant="outline" className="w-full" size="sm">
+                    Cancel
+                  </Button>
+                </DrawerClose>
+              </DrawerFooter>
+            </DrawerContent>
+          </Drawer>
+          
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleRefresh}
+            title="Refresh repositories"
+            className="h-10 w-10 shrink-0"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+          
           <Button
             variant="default"
+            size="icon"
             onClick={handleMirrorAllRepos}
             disabled={isInitialLoading || loadingRepoIds.size > 0}
+            title="Mirror all repositories"
+            className="h-10 w-10 shrink-0"
           >
-            <FlipHorizontal className="h-4 w-4 mr-2" />
-            Mirror All
+            <FlipHorizontal className="h-4 w-4" />
           </Button>
-        ) : (
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 px-3 py-1 bg-muted/50 rounded-md">
+        </div>
+
+        {/* Desktop: Original layout */}
+        <div className="hidden sm:flex sm:flex-row sm:items-center sm:gap-4 sm:w-full">
+          <div className="relative flex-grow min-w-[180px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search repositories..."
+              className="pl-10 pr-3 h-10 w-full rounded-md border border-input bg-background text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              value={filter.searchTerm}
+              onChange={(e) =>
+                setFilter((prev) => ({ ...prev, searchTerm: e.target.value }))
+              }
+            />
+          </div>
+
+          {/* Owner Combobox */}
+          <OwnerCombobox
+            options={ownerOptions}
+            value={filter.owner || ""}
+            onChange={(owner: string) =>
+              setFilter((prev) => ({ ...prev, owner }))
+            }
+          />
+
+          {/* Organization Combobox */}
+          <OrganizationCombobox
+            options={orgOptions}
+            value={filter.organization || ""}
+            onChange={(organization: string) =>
+              setFilter((prev) => ({ ...prev, organization }))
+            }
+          />
+
+          {/* Filter controls in a responsive row */}
+          <div className="flex flex-row items-center gap-2">
+            <Select
+              value={filter.status || "all"}
+              onValueChange={(value) =>
+                setFilter((prev) => ({
+                  ...prev,
+                  status: value === "all" ? "" : (value as RepoStatus),
+                }))
+              }
+            >
+              <SelectTrigger className="w-[140px] h-10">
+                <SelectValue placeholder="All statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                {["all", ...repoStatusEnum.options].map((status) => (
+                  <SelectItem key={status} value={status}>
+                    <span className="flex items-center gap-2">
+                      {status !== "all" && (
+                        <span className={`h-2 w-2 rounded-full ${
+                          status === "synced" ? "bg-green-500" :
+                          status === "failed" ? "bg-red-500" :
+                          status === "syncing" ? "bg-blue-500" :
+                          "bg-yellow-500"
+                        }`} />
+                      )}
+                      {status === "all"
+                        ? "All statuses"
+                        : status.charAt(0).toUpperCase() + status.slice(1)}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleRefresh}
+              title="Refresh repositories"
+              className="h-10 w-10 shrink-0"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Bulk actions on desktop - integrated into the same line */}
+          <div className="flex items-center gap-2 border-l pl-4">
+            {selectedRepoIds.size === 0 ? (
+              <Button
+                variant="default"
+                onClick={handleMirrorAllRepos}
+                disabled={isInitialLoading || loadingRepoIds.size > 0}
+                className="whitespace-nowrap"
+              >
+                <FlipHorizontal className="h-4 w-4 mr-2" />
+                Mirror All
+              </Button>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 px-3 py-1 bg-muted/50 rounded-md">
+                  <span className="text-sm font-medium">
+                    {selectedRepoIds.size} selected
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5"
+                    onClick={() => setSelectedRepoIds(new Set())}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+                
+                {availableActions.includes('mirror') && (
+                  <Button
+                    variant="default"
+                    size="default"
+                    onClick={handleBulkMirror}
+                    disabled={loadingRepoIds.size > 0}
+                  >
+                    <FlipHorizontal className="h-4 w-4 mr-2" />
+                    Mirror ({selectedRepoIds.size})
+                  </Button>
+                )}
+                
+                {availableActions.includes('sync') && (
+                  <Button
+                    variant="outline"
+                    size="default"
+                    onClick={handleBulkSync}
+                    disabled={loadingRepoIds.size > 0}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Sync ({selectedRepoIds.size})
+                  </Button>
+                )}
+                
+                {availableActions.includes('retry') && (
+                  <Button
+                    variant="outline"
+                    size="default"
+                    onClick={handleBulkRetry}
+                    disabled={loadingRepoIds.size > 0}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Retry
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Action buttons for mobile - only show when items are selected */}
+      {selectedRepoIds.size > 0 && (
+        <div className="flex items-center gap-2 flex-wrap sm:hidden">
+          <div className="flex items-center gap-2 px-3 py-1 bg-muted/50 rounded-md">
               <span className="text-sm font-medium">
                 {selectedRepoIds.size} selected
               </span>
@@ -652,44 +929,45 @@ export default function Repository() {
               </Button>
             </div>
             
-            {availableActions.includes('mirror') && (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={handleBulkMirror}
-                disabled={loadingRepoIds.size > 0}
-              >
-                <FlipHorizontal className="h-4 w-4 mr-2" />
-                Mirror ({selectedRepoIds.size})
-              </Button>
-            )}
-            
-            {availableActions.includes('sync') && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleBulkSync}
-                disabled={loadingRepoIds.size > 0}
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Sync ({selectedRepoIds.size})
-              </Button>
-            )}
-            
-            {availableActions.includes('retry') && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleBulkRetry}
-                disabled={loadingRepoIds.size > 0}
-              >
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Retry
-              </Button>
-            )}
+            <div className="flex gap-2 flex-wrap">
+              {availableActions.includes('mirror') && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleBulkMirror}
+              disabled={loadingRepoIds.size > 0}
+            >
+              <FlipHorizontal className="h-4 w-4 mr-2" />
+              <span>Mirror </span>({selectedRepoIds.size})
+            </Button>
+          )}
+          
+          {availableActions.includes('sync') && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBulkSync}
+              disabled={loadingRepoIds.size > 0}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Sync </span>({selectedRepoIds.size})
+            </Button>
+          )}
+          
+          {availableActions.includes('retry') && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBulkRetry}
+              disabled={loadingRepoIds.size > 0}
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {!isGitHubConfigured ? (
         <div className="flex flex-col items-center justify-center p-8 border border-dashed rounded-md">
@@ -721,7 +999,9 @@ export default function Repository() {
           loadingRepoIds={loadingRepoIds}
           selectedRepoIds={selectedRepoIds}
           onSelectionChange={setSelectedRepoIds}
-          onRefresh={() => fetchRepositories(false)}
+          onRefresh={async () => {
+            await fetchRepositories(false);
+          }}
         />
       )}
 

@@ -63,12 +63,12 @@ export default function AddOrganizationDialog({
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogTrigger asChild>
-        <Button className="fixed bottom-6 right-6 rounded-full h-12 w-12 shadow-lg p-0">
+        <Button className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 rounded-full h-12 w-12 shadow-lg p-0 z-10">
           <Plus className="h-6 w-6" />
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[425px] gap-0 gap-y-6">
+      <DialogContent className="w-[calc(100%-2rem)] sm:max-w-[425px] gap-0 gap-y-6 mx-4 sm:mx-0">
         <DialogHeader>
           <DialogTitle>Add Organization</DialogTitle>
           <DialogDescription>

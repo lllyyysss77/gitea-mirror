@@ -7,13 +7,21 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { useConfigStatus } from "@/hooks/useConfigStatus";
+import { Menu, LogOut } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface HeaderProps {
   currentPage?: "dashboard" | "repositories" | "organizations" | "configuration" | "activity-log";
   onNavigate?: (page: string) => void;
+  onMenuClick: () => void;
 }
 
-export function Header({ currentPage, onNavigate }: HeaderProps) {
+export function Header({ currentPage, onNavigate, onMenuClick }: HeaderProps) {
   const { user, logout, isLoading } = useAuth();
   const { isLiveEnabled, toggleLive } = useLiveRefresh();
   const { isFullyConfigured, isLoading: configLoading } = useConfigStatus();
@@ -54,39 +62,52 @@ export function Header({ currentPage, onNavigate }: HeaderProps) {
 
   return (
     <header className="border-b bg-background">
-      <div className="flex h-[4.5rem] items-center justify-between px-6">
-        <button
-          onClick={() => {
-            if (currentPage !== 'dashboard') {
-              window.history.pushState({}, '', '/');
-              onNavigate?.('dashboard');
-            }
-          }}
-          className="flex items-center gap-2 py-1 hover:opacity-80 transition-opacity"
-        >
-          <img
-            src="/logo-light.svg"
-            alt="Gitea Mirror Logo"
-            className="h-6 w-6 dark:hidden"
-          />
-          <img
-            src="/logo-dark.svg"
-            alt="Gitea Mirror Logo"
-            className="h-6 w-6 hidden dark:block"
-          />
-          <span className="text-xl font-bold">Gitea Mirror</span>
-        </button>
+      <div className="flex h-[4.5rem] items-center justify-between px-4 sm:px-6">
+        <div className="flex items-center gap-2">
+          {/* Hamburger Menu Button - Mobile Only */}
+          <Button
+            variant="outline"
+            size="lg"
+            className="lg:hidden"
+            onClick={onMenuClick}
+          >
+            <Menu className="h-5 w-5" />
+            <span className="sr-only">Toggle menu</span>
+          </Button>
+          
+          <button
+            onClick={() => {
+              if (currentPage !== 'dashboard') {
+                window.history.pushState({}, '', '/');
+                onNavigate?.('dashboard');
+              }
+            }}
+            className="flex items-center gap-2 py-1 hover:opacity-80 transition-opacity"
+          >
+            <img
+              src="/logo-light.svg"
+              alt="Gitea Mirror Logo"
+              className="h-6 w-6 dark:hidden"
+            />
+            <img
+              src="/logo-dark.svg"
+              alt="Gitea Mirror Logo"
+              className="h-6 w-6 hidden dark:block"
+            />
+            <span className="text-xl font-bold hidden sm:inline">Gitea Mirror</span>
+          </button>
+        </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           {showLiveButton && (
             <Button
               variant="outline"
               size="lg"
-              className="flex items-center gap-2"
+              className="flex items-center gap-1.5 px-3 sm:px-4"
               onClick={toggleLive}
               title={getTooltip()}
             >
-              <div className={`w-3 h-3 rounded-full ${
+              <div className={`size-4 sm:size-3 rounded-full ${
                 configLoading
                   ? 'bg-yellow-400 animate-pulse'
                   : isLiveActive
@@ -95,7 +116,7 @@ export function Header({ currentPage, onNavigate }: HeaderProps) {
                       ? 'bg-orange-400'
                       : 'bg-gray-500'
               }`} />
-              <span>LIVE</span>
+              <span className="text-sm font-medium hidden sm:inline">LIVE</span>
             </Button>
           )}
 
@@ -104,19 +125,26 @@ export function Header({ currentPage, onNavigate }: HeaderProps) {
           {isLoading ? (
             <AuthButtonsSkeleton />
           ) : user ? (
-            <>
-              <Avatar>
-                <AvatarImage src="" alt="@shadcn" />
-                <AvatarFallback>
-                  {user.username.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <Button variant="outline" size="lg" onClick={handleLogout}>
-                Logout
-              </Button>
-            </>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="lg" className="relative h-10 w-10 rounded-full p-0">
+                  <Avatar className="h-full w-full">
+                    <AvatarImage src="" alt="@shadcn" />
+                    <AvatarFallback>
+                      {user.username.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
-            <Button variant="outline" size="lg" asChild>
+            <Button variant="outline" size="sm" asChild>
               <a href="/login">Login</a>
             </Button>
           )}

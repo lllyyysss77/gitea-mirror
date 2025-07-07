@@ -33,17 +33,22 @@ export function OwnerCombobox({ options, value, onChange, placeholder = "Owner" 
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-[160px] justify-between"
+          className="w-full sm:w-[160px] justify-between h-10"
         >
-          {value ? value : placeholder}
+          <span className={cn(
+            "truncate",
+            !value && "text-muted-foreground"
+          )}>
+            {value || "All owners"}
+          </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[160px] p-0">
+      <PopoverContent className="w-[200px] sm:w-[160px] p-0">
         <Command>
-          <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
+          <CommandInput placeholder="Search owners..." />
           <CommandList>
-            <CommandEmpty>No {placeholder.toLowerCase()} found.</CommandEmpty>
+            <CommandEmpty>No owners found.</CommandEmpty>
             <CommandGroup>
               <CommandItem
                 key="all"
@@ -54,7 +59,7 @@ export function OwnerCombobox({ options, value, onChange, placeholder = "Owner" 
                 }}
               >
                 <Check className={cn("mr-2 h-4 w-4", value === "" ? "opacity-100" : "opacity-0")} />
-                All
+                All owners
               </CommandItem>
               {options.map((option) => (
                 <CommandItem
@@ -86,17 +91,22 @@ export function OrganizationCombobox({ options, value, onChange, placeholder = "
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-[160px] justify-between"
+          className="w-full sm:w-[160px] justify-between h-10"
         >
-          {value ? value : placeholder}
+          <span className={cn(
+            "truncate",
+            !value && "text-muted-foreground"
+          )}>
+            {value || "All organizations"}
+          </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[160px] p-0">
+      <PopoverContent className="w-[200px] sm:w-[160px] p-0">
         <Command>
-          <CommandInput placeholder={`Search ${placeholder.toLowerCase()}...`} />
+          <CommandInput placeholder="Search organizations..." />
           <CommandList>
-            <CommandEmpty>No {placeholder.toLowerCase()} found.</CommandEmpty>
+            <CommandEmpty>No organizations found.</CommandEmpty>
             <CommandGroup>
               <CommandItem
                 key="all"
@@ -107,7 +117,7 @@ export function OrganizationCombobox({ options, value, onChange, placeholder = "
                 }}
               >
                 <Check className={cn("mr-2 h-4 w-4", value === "" ? "opacity-100" : "opacity-0")} />
-                All
+                All organizations
               </CommandItem>
               {options.map((option) => (
                 <CommandItem

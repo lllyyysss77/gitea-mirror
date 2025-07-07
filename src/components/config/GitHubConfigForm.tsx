@@ -88,15 +88,17 @@ export function GitHubConfigForm({
 
   return (
     <Card className="w-full h-full flex flex-col">
-      <CardHeader className="flex flex-row items-center justify-between gap-4">
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <CardTitle className="text-lg font-semibold">
           GitHub Configuration
         </CardTitle>
+        {/* Desktop: Show button in header */}
         <Button
           type="button"
-          variant="outline"
+          variant="default"
           onClick={testConnection}
           disabled={isLoading || !config.token}
+          className="hidden sm:inline-flex"
         >
           {isLoading ? "Testing..." : "Test Connection"}
         </Button>
@@ -200,6 +202,17 @@ export function GitHubConfigForm({
             if (onAdvancedOptionsAutoSave) onAdvancedOptionsAutoSave(newOptions);
           }}
         />
+        
+        {/* Mobile: Show button at bottom */}
+        <Button
+          type="button"
+          variant="default"
+          onClick={testConnection}
+          disabled={isLoading || !config.token}
+          className="sm:hidden w-full"
+        >
+          {isLoading ? "Testing..." : "Test Connection"}
+        </Button>
     </CardContent>
 
     </Card>

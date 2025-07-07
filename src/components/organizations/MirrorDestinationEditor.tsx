@@ -69,19 +69,19 @@ export function MirrorDestinationEditor({
   };
 
   return (
-    <div className={cn("flex items-center gap-2", className)}>
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Building2 className="h-3 w-3" />
-        <span className="font-medium">{organizationName}</span>
-        <ArrowRight className="h-3 w-3" />
+    <div className={cn("flex items-center gap-2 w-full", className)}>
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0 flex-1">
+        <Building2 className="h-3 w-3 flex-shrink-0" />
+        <span className="font-medium truncate">{organizationName}</span>
+        <ArrowRight className="h-3 w-3 flex-shrink-0" />
         <span className={cn(
-          "font-medium",
+          "font-medium truncate",
           hasOverride && "text-orange-600 dark:text-orange-400"
         )}>
           {effectiveDestination}
         </span>
         {hasOverride && (
-          <Badge variant="outline" className="h-4 px-1 text-[10px] border-orange-600 text-orange-600 dark:border-orange-400 dark:text-orange-400">
+          <Badge variant="outline" className="h-4 px-1 text-[10px] border-orange-600 text-orange-600 dark:border-orange-400 dark:text-orange-400 flex-shrink-0">
             custom
           </Badge>
         )}
@@ -92,11 +92,11 @@ export function MirrorDestinationEditor({
           <Button
             size="sm"
             variant="ghost"
-            className="h-6 w-6 p-0 opacity-60 hover:opacity-100"
+            className="h-10 w-10 sm:h-6 sm:w-6 p-0 opacity-60 hover:opacity-100"
             title="Edit mirror destination"
             disabled={isUpdating || isLoading}
           >
-            <Edit3 className="h-3 w-3" />
+            <Edit3 className="h-5 w-5 sm:h-3 sm:w-3" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-80" align="end">

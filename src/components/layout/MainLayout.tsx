@@ -44,6 +44,7 @@ function AppWithProviders({ page: initialPage }: AppProps) {
   const { isLoading: configLoading } = useConfigStatus();
   const [currentPage, setCurrentPage] = useState<AppProps['page']>(initialPage);
   const [navigationKey, setNavigationKey] = useState(0);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useRepoSync({
     userId: user?.id,
@@ -99,10 +100,18 @@ function AppWithProviders({ page: initialPage }: AppProps) {
   return (
     <NavigationContext.Provider value={{ navigationKey }}>
       <main className="flex min-h-screen flex-col">
-        <Header currentPage={currentPage} onNavigate={handleNavigation} />
-        <div className="flex flex-1">
-          <Sidebar onNavigate={handleNavigation} />
-          <section className="flex-1 p-6 overflow-y-auto h-[calc(100dvh-4.55rem)]">
+        <Header 
+          currentPage={currentPage} 
+          onNavigate={handleNavigation} 
+          onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+        />
+        <div className="flex flex-1 relative">
+          <Sidebar 
+            onNavigate={handleNavigation} 
+            isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+          />
+          <section className="flex-1 p-4 sm:p-6 overflow-y-auto h-[calc(100dvh-4.55rem)] w-full lg:w-[calc(100%-16rem)]">
             {currentPage === "dashboard" && <Dashboard />}
             {currentPage === "repositories" && <Repository />}
             {currentPage === "organizations" && <Organization />}

@@ -183,7 +183,7 @@ export const OrganizationConfiguration: React.FC<OrganizationConfigurationProps>
                         <Icon className="h-3.5 w-3.5" />
                         <span>{option.label}</span>
                       </div>
-                      <Info className="h-3 w-3 text-muted-foreground opacity-50 group-hover:opacity-100 transition-opacity" />
+                      <Info className="h-3 w-3 text-muted-foreground opacity-50 group-hover:opacity-100 transition-opacity hidden sm:inline-block" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent>

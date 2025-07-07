@@ -24,7 +24,7 @@ const strategyConfig = {
   preserve: {
     title: "Preserve Structure",
     icon: FolderTree,
-    description: "Keep the exact same organization structure as GitHub",
+    description: "Keep the exact same org structure as GitHub",
     color: "text-blue-600 dark:text-blue-400",
     bgColor: "bg-blue-50 dark:bg-blue-950/20",
     borderColor: "border-blue-200 dark:border-blue-900",
@@ -60,7 +60,7 @@ const strategyConfig = {
   "mixed": {
     title: "Mixed Mode",
     icon: GitBranch,
-    description: "user repos in single org, org repos preserve structure",
+    description: "Personal repos in single org, org repos preserve structure",
     color: "text-orange-600 dark:text-orange-400",
     bgColor: "bg-orange-50 dark:bg-orange-950/20",
     borderColor: "border-orange-200 dark:border-orange-900",
@@ -281,7 +281,7 @@ export const OrganizationStrategy: React.FC<OrganizationStrategyProps> = ({
 }) => {
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="flex-1">
           <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
             <Building className="h-4 w-4" />
@@ -303,7 +303,7 @@ export const OrganizationStrategy: React.FC<OrganizationStrategyProps> = ({
                 <span>Override Options</span>
               </button>
             </HoverCardTrigger>
-            <HoverCardContent side="left" align="start" className="w-[380px]">
+            <HoverCardContent side="bottom" align="start" className="w-[380px]">
               <div className="space-y-3">
                 <div>
                   <h4 className="font-medium text-sm mb-1.5">Fine-tune Your Mirror Destinations</h4>
@@ -371,15 +371,16 @@ export const OrganizationStrategy: React.FC<OrganizationStrategyProps> = ({
                       !isSelected && "border-muted"
                     )}
                   >
-                    <div className="p-3">
-                      <div className="flex items-center gap-3">
+                    <div className="p-3 sm:p-4">
+                      <div className="flex items-start gap-3">
                         <RadioGroupItem 
                           value={key} 
                           id={key} 
+                          className="mt-1"
                         />
                         
                         <div className={cn(
-                          "rounded-lg p-2",
+                          "rounded-lg p-2 flex-shrink-0",
                           isSelected ? config.bgColor : "bg-muted dark:bg-muted/50"
                         )}>
                           <Icon className={cn(
@@ -388,38 +389,40 @@ export const OrganizationStrategy: React.FC<OrganizationStrategyProps> = ({
                           )} />
                         </div>
                         
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-medium text-sm">{config.title}</h4>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {config.description}
-                          </p>
-                        </div>
-                        
-                        <HoverCard openDelay={200}>
-                          <HoverCardTrigger asChild>
-                            <span 
-                              className="inline-flex p-1.5 hover:bg-muted rounded-md transition-colors cursor-help"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <Info className="h-4 w-4 text-muted-foreground" />
-                            </span>
-                          </HoverCardTrigger>
-                          <HoverCardContent side="left" align="center" className="w-[500px]">
-                            <div className="space-y-3">
-                              <h4 className="font-medium text-sm">Repository Mapping Preview</h4>
-                              <MappingPreview 
-                                strategy={key}
-                                config={config}
-                                destinationOrg={destinationOrg}
-                                starredReposOrg={starredReposOrg}
-                                githubUsername={githubUsername}
-                                giteaUsername={giteaUsername}
-                              />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-sm">{config.title}</h4>
+                              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                                {config.description}
+                              </p>
                             </div>
-                          </HoverCardContent>
-                        </HoverCard>
+                            
+                            <HoverCard openDelay={200}>
+                              <HoverCardTrigger asChild>
+                                <span 
+                                  className="inline-flex p-1 sm:p-1.5 hover:bg-muted rounded-md transition-colors cursor-help flex-shrink-0 ml-2"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Info className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
+                                </span>
+                              </HoverCardTrigger>
+                              <HoverCardContent side="left" align="center" className="w-[500px]">
+                                <div className="space-y-3">
+                                  <h4 className="font-medium text-sm">Repository Mapping Preview</h4>
+                                  <MappingPreview 
+                                    strategy={key}
+                                    config={config}
+                                    destinationOrg={destinationOrg}
+                                    starredReposOrg={starredReposOrg}
+                                    githubUsername={githubUsername}
+                                    giteaUsername={giteaUsername}
+                                  />
+                                </div>
+                              </HoverCardContent>
+                            </HoverCard>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </Card>

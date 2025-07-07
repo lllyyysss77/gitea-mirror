@@ -54,7 +54,7 @@ export function RepositoryList({ repositories }: RepositoryListProps) {
           <a href="/repositories">View All</a>
         </Button>
       </CardHeader>
-      <CardContent className="max-h-[calc(100dvh-22.5rem)] overflow-y-auto">
+      <CardContent className="max-h-[300px] sm:max-h-[400px] lg:max-h-[calc(100dvh-22.5rem)] overflow-y-auto">
         {repositories.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-6 text-center">
             <GitFork className="h-10 w-10 text-muted-foreground mb-4" />
@@ -71,11 +71,11 @@ export function RepositoryList({ repositories }: RepositoryListProps) {
             {repositories.map((repo, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between gap-x-4 py-4"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-x-4 py-4"
               >
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-medium">{repo.name}</h4>
+                  <div className="flex items-center flex-wrap gap-2">
+                    <h4 className="text-sm font-medium break-all">{repo.name}</h4>
                     {repo.isPrivate && (
                       <span className="rounded-full bg-muted px-2 py-0.5 text-xs">
                         Private
@@ -99,13 +99,13 @@ export function RepositoryList({ repositories }: RepositoryListProps) {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 sm:ml-auto">
                   <div
                     className={`h-2 w-2 rounded-full ${getStatusColor(
                       repo.status
                     )}`}
                   />
-                  <span className="text-xs capitalize w-[3rem]">
+                  <span className="text-xs capitalize w-[3rem] sm:w-auto">
                     {/* setting the minimum width to 3rem corresponding to the largest status (mirrored) so that all are left alligned */}
                     {repo.status}
                   </span>

@@ -136,15 +136,17 @@ export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving, g
 
   return (
     <Card className="w-full h-full flex flex-col">
-      <CardHeader className="flex flex-row items-center justify-between gap-4">
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <CardTitle className="text-lg font-semibold">
           Gitea Configuration
         </CardTitle>
+        {/* Desktop: Show button in header */}
         <Button
           type="button"
-          variant="outline"
+          variant="default"
           onClick={testConnection}
           disabled={isLoading || !config.url || !config.token}
+          className="hidden sm:inline-flex"
         >
           {isLoading ? "Testing..." : "Test Connection"}
         </Button>
@@ -252,6 +254,17 @@ export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving, g
             if (onAutoSave) onAutoSave(newConfig);
           }}
         />
+        
+        {/* Mobile: Show button at bottom */}
+        <Button
+          type="button"
+          variant="default"
+          onClick={testConnection}
+          disabled={isLoading || !config.url || !config.token}
+          className="sm:hidden w-full"
+        >
+          {isLoading ? "Testing..." : "Test Connection"}
+        </Button>
       </CardContent>
     </Card>
   );
