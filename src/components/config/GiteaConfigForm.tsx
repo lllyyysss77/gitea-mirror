@@ -27,6 +27,8 @@ export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving, g
   // Derive the mirror strategy from existing config for backward compatibility
   const getMirrorStrategy = (): MirrorStrategy => {
     if (config.mirrorStrategy) return config.mirrorStrategy;
+    // Check for mixed mode: when we have both organization and personalReposOrg defined
+    if (config.organization && config.personalReposOrg && !config.preserveOrgStructure) return "mixed";
     if (config.preserveOrgStructure) return "preserve";
     if (config.organization && config.organization !== config.username) return "single-org";
     return "flat-user";
@@ -54,6 +56,16 @@ export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving, g
         newConfig.preserveOrgStructure = false;
         newConfig.mirrorStrategy = "flat-user";
         newConfig.organization = "";
+        break;
+      case "mixed":
+        newConfig.preserveOrgStructure = false;
+        newConfig.mirrorStrategy = "mixed";
+        if (!newConfig.organization) {
+          newConfig.organization = "github-mirrors";
+        }
+        if (!newConfig.personalReposOrg) {
+          newConfig.personalReposOrg = "github-personal";
+        }
         break;
     }
     
