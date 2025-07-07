@@ -44,7 +44,7 @@ First user signup becomes admin. Configure GitHub and Gitea through the web inte
 </div>
 
 <div align="center">
-  <img src=".github/assets/organisations.png" alt="Organisations" width="79%" style="display: inline-block; vertical-align: top;"/>
+  <img src=".github/assets/organisation.png" alt="Organisations" width="79%" style="display: inline-block; vertical-align: top;"/>
   <img src=".github/assets/organisation_mobile.png" alt="Organisations Mobile" width="20%" style="display: inline-block; vertical-align: middle; padding-top: 10px;"/>
 </div>
 
