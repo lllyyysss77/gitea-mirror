@@ -1,0 +1,24 @@
+# Gitea Mirror alternate deployment configuration
+# Standard deployment with host path and minimal environments
+services:
+  gitea-mirror:
+    image: ghcr.io/raylabshq/gitea-mirror:latest
+    container_name: gitea-mirror
+    restart: unless-stopped
+    ports:
+      - "${PORT:-4321}:4321"
+    user: ${PUID:-1000}:${PGID:-1000}
+    volumes:
+      - ./data:/app/data
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:data/gitea-mirror.db
+      - HOST=0.0.0.0
+      - PORT=4321
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-this-in-production}
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=3", "--spider", "http://localhost:4321/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
