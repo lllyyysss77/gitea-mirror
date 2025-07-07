@@ -3,10 +3,10 @@
   <h1>Gitea Mirror</h1>
   <p><i>A modern web app for automatically mirroring repositories from GitHub to your self-hosted Gitea.</i></p>
   <p align="center">
-    <a href="https://github.com/arunavo4/gitea-mirror/releases/latest"><img src="https://img.shields.io/github/v/tag/arunavo4/gitea-mirror?label=release" alt="release"/></a>
-    <a href="https://github.com/arunavo4/gitea-mirror/actions/workflows/astro-build-test.yml"><img src="https://img.shields.io/github/actions/workflow/status/arunavo4/gitea-mirror/astro-build-test.yml?branch=main" alt="build"/></a>
-    <a href="https://github.com/arunavo4/gitea-mirror/pkgs/container/gitea-mirror"><img src="https://img.shields.io/badge/ghcr.io-container-blue?logo=github" alt="container"/></a>
-    <a href="https://github.com/arunavo4/gitea-mirror/blob/main/LICENSE"><img src="https://img.shields.io/github/license/arunavo4/gitea-mirror" alt="license"/></a>
+    <a href="https://github.com/RayLabsHQ/gitea-mirror/releases/latest"><img src="https://img.shields.io/github/v/tag/RayLabsHQ/gitea-mirror?label=release" alt="release"/></a>
+    <a href="https://github.com/RayLabsHQ/gitea-mirror/actions/workflows/astro-build-test.yml"><img src="https://img.shields.io/github/actions/workflow/status/RayLabsHQ/gitea-mirror/astro-build-test.yml?branch=main" alt="build"/></a>
+    <a href="https://github.com/RayLabsHQ/gitea-mirror/pkgs/container/gitea-mirror"><img src="https://img.shields.io/badge/ghcr.io-container-blue?logo=github" alt="container"/></a>
+    <a href="https://github.com/RayLabsHQ/gitea-mirror/blob/main/LICENSE"><img src="https://img.shields.io/github/license/RayLabsHQ/gitea-mirror" alt="license"/></a>
   </p>
 </p>
 
@@ -137,12 +137,12 @@ If you want to run the container directly without Docker Compose:
 
 ```bash
 # Pull the latest multi-architecture image
-docker pull ghcr.io/arunavo4/gitea-mirror:latest
+docker pull ghcr.io/RayLabsHQ/gitea-mirror:latest
 
 # Run the application with a volume for persistent data
 docker run -d -p 4321:4321 \
   -v gitea-mirror-data:/app/data \
-  ghcr.io/arunavo4/gitea-mirror:latest
+  ghcr.io/RayLabsHQ/gitea-mirror:latest
 ```
 
 ##### Building Docker Images Manually
@@ -234,7 +234,7 @@ The Docker container can be configured with the following environment variables:
 
 ```bash
 # Clone the repository
-git clone https://github.com/arunavo4/gitea-mirror.git
+git clone https://github.com/RayLabsHQ/gitea-mirror.git
 cd gitea-mirror
 
 # Quick setup (installs dependencies and initializes the database)
@@ -439,7 +439,7 @@ docker run -d \
   -e GITEA_URL=http://gitea:3000 \
   -e GITEA_TOKEN=your-local-gitea-token \
   -e GITEA_USERNAME=your-local-gitea-username \
-  arunavo4/gitea-mirror:latest
+  RayLabsHQ/gitea-mirror:latest
 ```
 
 > [!NOTE]
@@ -540,14 +540,14 @@ Try the following steps:
 > # Run with a volume for persistent data storage
 > docker run -d -p 4321:4321 \
 >   -v gitea-mirror-data:/app/data \
->   ghcr.io/arunavo4/gitea-mirror:latest
+>   ghcr.io/RayLabsHQ/gitea-mirror:latest
 > ```
 >
 > For homelab/self-hosted setups, you can use the standard Docker Compose file which includes automatic database cleanup:
 >
 > ```bash
 > # Clone the repository
-> git clone https://github.com/arunavo4/gitea-mirror.git
+> git clone https://github.com/RayLabsHQ/gitea-mirror.git
 > cd gitea-mirror
 >
 > # Start the application with Docker Compose
