@@ -7,7 +7,13 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { useConfigStatus } from "@/hooks/useConfigStatus";
-import { Menu } from "lucide-react";
+import { Menu, LogOut } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface HeaderProps {
   currentPage?: "dashboard" | "repositories" | "organizations" | "configuration" | "activity-log";
@@ -60,9 +66,9 @@ export function Header({ currentPage, onNavigate, onMenuClick }: HeaderProps) {
         <div className="flex items-center gap-2">
           {/* Hamburger Menu Button - Mobile Only */}
           <Button
-            variant="ghost"
-            size="sm"
-            className="lg:hidden p-2"
+            variant="outline"
+            size="lg"
+            className="lg:hidden"
             onClick={onMenuClick}
           >
             <Menu className="h-5 w-5" />
@@ -96,12 +102,12 @@ export function Header({ currentPage, onNavigate, onMenuClick }: HeaderProps) {
           {showLiveButton && (
             <Button
               variant="outline"
-              size="sm"
-              className="flex items-center gap-2 sm:px-4"
+              size="lg"
+              className="flex items-center gap-1.5 px-3 sm:px-4"
               onClick={toggleLive}
               title={getTooltip()}
             >
-              <div className={`w-3 h-3 rounded-full ${
+              <div className={`size-4 sm:size-3 rounded-full ${
                 configLoading
                   ? 'bg-yellow-400 animate-pulse'
                   : isLiveActive
@@ -110,7 +116,7 @@ export function Header({ currentPage, onNavigate, onMenuClick }: HeaderProps) {
                       ? 'bg-orange-400'
                       : 'bg-gray-500'
               }`} />
-              <span className="hidden sm:inline">LIVE</span>
+              <span className="text-sm font-medium hidden sm:inline">LIVE</span>
             </Button>
           )}
 
@@ -120,15 +126,40 @@ export function Header({ currentPage, onNavigate, onMenuClick }: HeaderProps) {
             <AuthButtonsSkeleton />
           ) : user ? (
             <>
-              <Avatar>
-                <AvatarImage src="" alt="@shadcn" />
-                <AvatarFallback>
-                  {user.username.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <Button variant="outline" size="sm" onClick={handleLogout} className="hidden sm:inline-flex">
-                Logout
-              </Button>
+              {/* Desktop: Show avatar and logout button */}
+              <div className="hidden sm:flex sm:items-center sm:gap-4">
+                <Avatar>
+                  <AvatarImage src="" alt="@shadcn" />
+                  <AvatarFallback>
+                    {user.username.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <Button variant="outline" size="sm" onClick={handleLogout}>
+                  Logout
+                </Button>
+              </div>
+              
+              {/* Mobile: Avatar with dropdown */}
+              <div className="sm:hidden">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="lg" className="relative h-10 w-10 rounded-full p-0">
+                      <Avatar className="h-full w-full">
+                        <AvatarImage src="" alt="@shadcn" />
+                        <AvatarFallback>
+                          {user.username.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </>
           ) : (
             <Button variant="outline" size="sm" asChild>

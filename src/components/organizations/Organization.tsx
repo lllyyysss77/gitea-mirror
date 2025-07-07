@@ -293,10 +293,10 @@ export function Organization() {
 
 
   return (
-    <div className="flex flex-col gap-y-8">
-      {/* Combine search and actions into a single flex row */}
-      <div className="flex flex-row items-center gap-4 w-full flex-wrap">
-        <div className="relative flex-grow">
+    <div className="flex flex-col gap-y-4 sm:gap-y-8">
+      {/* Search and filters */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full">
+        <div className="relative w-full sm:flex-grow">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
@@ -309,91 +309,101 @@ export function Organization() {
           />
         </div>
 
-        {/* Membership Role Filter */}
-        <Select
-          value={filter.membershipRole || "all"}
-          onValueChange={(value) =>
-            setFilter((prev) => ({
-              ...prev,
-              membershipRole: value === "all" ? "" : (value as MembershipRole),
-            }))
-          }
-        >
-          <SelectTrigger className="w-[140px] h-9 max-h-9">
-            <SelectValue placeholder="All Roles" />
-          </SelectTrigger>
-          <SelectContent>
-            {["all", ...membershipRoleEnum.options].map((role) => (
-              <SelectItem key={role} value={role}>
-                {role === "all"
-                  ? "All Roles"
-                  : role
-                      .replace(/_/g, " ")
-                      .replace(/\b\w/g, (c) => c.toUpperCase())}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Filter controls */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {/* Membership Role Filter */}
+          <Select
+            value={filter.membershipRole || "all"}
+            onValueChange={(value) =>
+              setFilter((prev) => ({
+                ...prev,
+                membershipRole: value === "all" ? "" : (value as MembershipRole),
+              }))
+            }
+          >
+            <SelectTrigger className="w-full sm:w-[140px] h-9 max-h-9">
+              <SelectValue placeholder="All Roles" />
+            </SelectTrigger>
+            <SelectContent>
+              {["all", ...membershipRoleEnum.options].map((role) => (
+                <SelectItem key={role} value={role}>
+                  {role === "all"
+                    ? "All Roles"
+                    : role
+                        .replace(/_/g, " ")
+                        .replace(/\b\w/g, (c) => c.toUpperCase())}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        {/* Status Filter */}
-        <Select
-          value={filter.status || "all"}
-          onValueChange={(value) =>
-            setFilter((prev) => ({
-              ...prev,
-              status:
-                value === "all"
-                  ? ""
-                  : (value as
-                      | ""
-                      | "imported"
-                      | "mirroring"
-                      | "mirrored"
-                      | "failed"
-                      | "syncing"
-                      | "synced"),
-            }))
-          }
-        >
-          <SelectTrigger className="w-[140px] h-9 max-h-9">
-            <SelectValue placeholder="All Statuses" />
-          </SelectTrigger>
-          <SelectContent>
-            {[
-              "all",
-              "imported",
-              "mirroring",
-              "mirrored",
-              "failed",
-              "syncing",
-              "synced",
-            ].map((status) => (
-              <SelectItem key={status} value={status}>
-                {status === "all"
-                  ? "All Statuses"
-                  : status.charAt(0).toUpperCase() + status.slice(1)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          {/* Status Filter */}
+          <Select
+            value={filter.status || "all"}
+            onValueChange={(value) =>
+              setFilter((prev) => ({
+                ...prev,
+                status:
+                  value === "all"
+                    ? ""
+                    : (value as
+                        | ""
+                        | "imported"
+                        | "mirroring"
+                        | "mirrored"
+                        | "failed"
+                        | "syncing"
+                        | "synced"),
+              }))
+            }
+          >
+            <SelectTrigger className="w-full sm:w-[140px] h-9 max-h-9">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              {[
+                "all",
+                "imported",
+                "mirroring",
+                "mirrored",
+                "failed",
+                "syncing",
+                "synced",
+              ].map((status) => (
+                <SelectItem key={status} value={status}>
+                  {status === "all"
+                    ? "All Statuses"
+                    : status.charAt(0).toUpperCase() + status.slice(1)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleRefresh}
-          title="Refresh organizations"
-        >
-          <RefreshCw className="h-4 w-4" />
-        </Button>
+        {/* Action buttons */}
+        <div className="flex items-center gap-2 ml-auto">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleRefresh}
+            title="Refresh organizations"
+            className="h-8 w-8 sm:h-9 sm:w-9"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
 
-        <Button
-          variant="default"
-          onClick={handleMirrorAllOrgs}
-          disabled={isLoading || loadingOrgIds.size > 0}
-        >
-          <FlipHorizontal className="h-4 w-4 mr-2" />
-          Mirror All
-        </Button>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleMirrorAllOrgs}
+            disabled={isLoading || loadingOrgIds.size > 0}
+            className="sm:size-default"
+          >
+            <FlipHorizontal className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Mirror All</span>
+            <span className="sm:hidden">Mirror</span>
+          </Button>
+        </div>
       </div>
 
       <OrganizationList

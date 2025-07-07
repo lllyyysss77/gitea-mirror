@@ -346,10 +346,10 @@ export function ActivityLog() {
   /* ------------------------------ UI ------------------------------ */
 
   return (
-    <div className='flex flex-col gap-y-8'>
-      <div className='flex w-full flex-row items-center gap-4'>
+    <div className='flex flex-col gap-y-4 sm:gap-y-8'>
+      <div className='flex w-full flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4'>
         {/* search input */}
-        <div className='relative flex-1'>
+        <div className='relative w-full sm:flex-1'>
           <Search className='absolute left-2 top-2.5 h-4 w-4 text-muted-foreground' />
           <input
             type='text'
@@ -365,93 +365,102 @@ export function ActivityLog() {
           />
         </div>
 
-        {/* status select */}
-        <Select
-          value={filter.status || 'all'}
-          onValueChange={(v) =>
-            setFilter((p) => ({
-              ...p,
-              status: v === 'all' ? '' : (v as RepoStatus),
-            }))
-          }
-        >
-          <SelectTrigger className='h-9 w-[140px] max-h-9'>
-            <SelectValue placeholder='All Status' />
-          </SelectTrigger>
-          <SelectContent>
-            {['all', ...repoStatusEnum.options].map((s) => (
-              <SelectItem key={s} value={s}>
-                {s === 'all' ? 'All Status' : s[0].toUpperCase() + s.slice(1)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Filter controls row */}
+        <div className='flex flex-row items-center gap-2 w-full sm:w-auto'>
+          {/* status select */}
+          <Select
+            value={filter.status || 'all'}
+            onValueChange={(v) =>
+              setFilter((p) => ({
+                ...p,
+                status: v === 'all' ? '' : (v as RepoStatus),
+              }))
+            }
+          >
+            <SelectTrigger className='h-9 w-full sm:w-[140px] max-h-9'>
+              <SelectValue placeholder='All Status' />
+            </SelectTrigger>
+            <SelectContent>
+              {['all', ...repoStatusEnum.options].map((s) => (
+                <SelectItem key={s} value={s}>
+                  {s === 'all' ? 'All Status' : s[0].toUpperCase() + s.slice(1)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        {/* repo/org name combobox */}
-        <ActivityNameCombobox
-          activities={activities}
-          value={filter.name || ''}
-          onChange={(name) => setFilter((p) => ({ ...p, name }))}
-        />
+          {/* type select - hidden on mobile */}
+          <Select
+            value={filter.type || 'all'}
+            onValueChange={(v) =>
+              setFilter((p) => ({ ...p, type: v === 'all' ? '' : v }))
+            }
+          >
+            <SelectTrigger className='h-9 w-[140px] max-h-9 hidden sm:flex'>
+              <SelectValue placeholder='All Types' />
+            </SelectTrigger>
+            <SelectContent>
+              {['all', 'repository', 'organization'].map((t) => (
+                <SelectItem key={t} value={t}>
+                  {t === 'all' ? 'All Types' : t[0].toUpperCase() + t.slice(1)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        {/* type select */}
-        <Select
-          value={filter.type || 'all'}
-          onValueChange={(v) =>
-            setFilter((p) => ({ ...p, type: v === 'all' ? '' : v }))
-          }
-        >
-          <SelectTrigger className='h-9 w-[140px] max-h-9'>
-            <SelectValue placeholder='All Types' />
-          </SelectTrigger>
-          <SelectContent>
-            {['all', 'repository', 'organization'].map((t) => (
-              <SelectItem key={t} value={t}>
-                {t === 'all' ? 'All Types' : t[0].toUpperCase() + t.slice(1)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* repo/org name combobox - hidden on mobile */}
+        <div className='hidden sm:block'>
+          <ActivityNameCombobox
+            activities={activities}
+            value={filter.name || ''}
+            onChange={(name) => setFilter((p) => ({ ...p, name }))}
+          />
+        </div>
 
-        {/* export dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant='outline' className='flex items-center gap-1'>
-              <Download className='mr-1 h-4 w-4' />
-              Export
-              <ChevronDown className='ml-1 h-4 w-4' />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem onClick={exportAsCSV}>
-              Export as CSV
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={exportAsJSON}>
-              Export as JSON
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* Action buttons row */}
+        <div className='flex items-center gap-2 ml-auto'>
+          {/* export dropdown - text hidden on mobile */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant='outline' size='sm' className='flex items-center gap-1'>
+                <Download className='h-4 w-4' />
+                <span className='hidden sm:inline'>Export</span>
+                <ChevronDown className='h-4 w-4 hidden sm:inline' />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={exportAsCSV}>
+                Export as CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportAsJSON}>
+                Export as JSON
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-        {/* refresh */}
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => fetchActivities(false)} // Manual refresh, show loading skeleton
-          title="Refresh activity log"
-        >
-          <RefreshCw className='h-4 w-4' />
-        </Button>
+          {/* refresh */}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => fetchActivities(false)} // Manual refresh, show loading skeleton
+            title="Refresh activity log"
+            className='h-8 w-8 sm:h-9 sm:w-9'
+          >
+            <RefreshCw className='h-4 w-4' />
+          </Button>
 
-        {/* cleanup all activities */}
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleCleanupClick}
-          title="Delete all activities"
-          className="text-destructive hover:text-destructive"
-        >
-          <Trash2 className='h-4 w-4' />
-        </Button>
+          {/* cleanup all activities */}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleCleanupClick}
+            title="Delete all activities"
+            className="text-destructive hover:text-destructive h-8 w-8 sm:h-9 sm:w-9"
+          >
+            <Trash2 className='h-4 w-4' />
+          </Button>
+        </div>
       </div>
 
       {/* activity list */}
