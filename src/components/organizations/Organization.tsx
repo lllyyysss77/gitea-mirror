@@ -653,7 +653,9 @@ export function Organization() {
         loadingOrgIds={loadingOrgIds}
         onMirror={handleMirrorOrg}
         onAddOrganization={() => setIsDialogOpen(true)}
-        onRefresh={() => fetchOrganizations(false)}
+        onRefresh={async () => {
+          await fetchOrganizations(false);
+        }}
       />
 
       <AddOrganizationDialog

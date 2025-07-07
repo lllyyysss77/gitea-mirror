@@ -3,6 +3,7 @@ import {
   type RepositoryVisibility,
   type RepoStatus,
 } from "@/types/Repository";
+import { membershipRoleEnum } from "@/types/organizations";
 import { Octokit } from "@octokit/rest";
 import type { Config } from "@/types/config";
 import type { Organization, Repository } from "./db/schema";
@@ -22,13 +23,26 @@ export const getOrganizationConfig = async ({
   userId: string;
 }): Promise<Organization | null> => {
   try {
-    const [orgConfig] = await db
+    const result = await db
       .select()
       .from(organizations)
       .where(and(eq(organizations.name, orgName), eq(organizations.userId, userId)))
       .limit(1);
 
-    return orgConfig || null;
+    if (!result[0]) {
+      return null;
+    }
+
+    // Validate and cast the membershipRole to ensure type safety
+    const rawOrg = result[0];
+    const membershipRole = membershipRoleEnum.parse(rawOrg.membershipRole);
+    const status = repoStatusEnum.parse(rawOrg.status);
+
+    return {
+      ...rawOrg,
+      membershipRole,
+      status,
+    } as Organization;
   } catch (error) {
     console.error(`Error fetching organization config for ${orgName}:`, error);
     return null;
@@ -113,7 +127,7 @@ export const getGiteaRepoOwner = ({
 
   // Get the mirror strategy - use preserveOrgStructure for backward compatibility
   const mirrorStrategy = config.giteaConfig.mirrorStrategy || 
-    (config.githubConfig.preserveOrgStructure ? "preserve" : "flat-user");
+    (config.giteaConfig.preserveOrgStructure ? "preserve" : "flat-user");
 
   switch (mirrorStrategy) {
     case "preserve":
@@ -870,8 +884,8 @@ export async function mirrorGitHubOrgToGitea({
     });
 
     // Get the mirror strategy - use preserveOrgStructure for backward compatibility
-    const mirrorStrategy = config.giteaConfig?.mirrorStrategy || 
-      (config.githubConfig?.preserveOrgStructure ? "preserve" : "flat-user");
+    const mirrorStrategy = config.giteaConfig?.mirrorStrategy ||
+      (config.giteaConfig?.preserveOrgStructure ? "preserve" : "flat-user");
 
     let giteaOrgId: number;
     let targetOrgName: string;
