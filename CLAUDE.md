@@ -125,4 +125,7 @@ export async function POST({ request }: APIContext) {
 2. Run `bun run init-db` to recreate database
 3. Update related queries in `/src/lib/db/queries/`
 
+## Security Guidelines
 
+- **Confidentiality Guidelines**:
+  - Dont ever say Claude Code or generated with AI anyhwere.

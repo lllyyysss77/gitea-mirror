@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.20.1] - 2025-07-07
+
+### Fixed
+- Fixed mixed mode organization strategy not persisting after page refresh
+  - Added missing "mixed" case handler in GiteaConfigForm component
+  - Enhanced getMirrorStrategy function to properly detect mixed mode configuration
+- Updated dependencies to latest versions
+
 ## [2.20.0] - 2025-07-07
 
 ### Changed
