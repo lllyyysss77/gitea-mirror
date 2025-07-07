@@ -127,9 +127,9 @@ export function OrganizationList({
   }, [organizations, filter]);
 
   return isLoading ? (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(27rem,1fr))] gap-4">
       {Array.from({ length: 5 }).map((_, i) => (
-        <Skeleton key={i} className="h-[180px] w-full" />
+        <Skeleton key={i} className="h-[11.25rem] w-full" />
       ))}
     </div>
   ) : filteredOrganizations.length === 0 ? (
@@ -161,7 +161,7 @@ export function OrganizationList({
       )}
     </div>
   ) : (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 pb-20 sm:pb-0">
+    <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fit,minmax(27rem,1fr))] gap-4 pb-20 sm:pb-0">
       {filteredOrganizations.map((org, index) => {
         const isLoading = loadingOrgIds.has(org.id ?? "");
         const statusBadge = getStatusBadge(org.status);
@@ -171,7 +171,7 @@ export function OrganizationList({
           <Card 
             key={index} 
             className={cn(
-              "overflow-hidden p-4 sm:p-6 transition-all hover:shadow-lg hover:border-foreground/10",
+              "overflow-hidden p-4 sm:p-6 transition-all hover:shadow-lg hover:border-foreground/10 w-full",
               isLoading && "opacity-75"
             )}
           >
