@@ -2,7 +2,7 @@
 
 FROM oven/bun:1.2.18-alpine AS base
 WORKDIR /app
-RUN apk add --no-cache libc6-compat python3 make g++ gcc wget sqlite openssl
+RUN apk add --no-cache libc6-compat python3 make g++ gcc wget sqlite openssl ca-certificates
 
 # ----------------------------
 FROM base AS deps
@@ -37,11 +37,14 @@ ENV HOST=0.0.0.0
 ENV PORT=4321
 ENV DATABASE_URL=file:data/gitea-mirror.db
 
-RUN chmod +x ./docker-entrypoint.sh && \
+# Create directories and setup permissions
+RUN mkdir -p /app/certs && \
+    chmod +x ./docker-entrypoint.sh && \
     mkdir -p /app/data && \
     addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 gitea-mirror && \
-    chown -R gitea-mirror:nodejs /app/data
+    chown -R gitea-mirror:nodejs /app/data && \
+    chown -R gitea-mirror:nodejs /app/certs
 
 USER gitea-mirror
 

@@ -5,6 +5,53 @@ set -e
 # Ensure data directory exists
 mkdir -p /app/data
 
+# Handle custom CA certificates
+if [ -d "/app/certs" ] && [ "$(ls -A /app/certs/*.crt 2>/dev/null)" ]; then
+  echo "Custom CA certificates found, configuring Node.js to use them..."
+  
+  # Combine all CA certificates into a bundle for Node.js
+  CA_BUNDLE="/app/certs/ca-bundle.crt"
+  > "$CA_BUNDLE"
+  
+  for cert in /app/certs/*.crt; do
+    if [ -f "$cert" ]; then
+      echo "Adding certificate: $(basename "$cert")"
+      cat "$cert" >> "$CA_BUNDLE"
+      echo "" >> "$CA_BUNDLE"  # Add newline between certificates
+    fi
+  done
+  
+  # Set Node.js to use the custom CA bundle
+  export NODE_EXTRA_CA_CERTS="$CA_BUNDLE"
+  echo "NODE_EXTRA_CA_CERTS set to: $NODE_EXTRA_CA_CERTS"
+  
+  # For Bun compatibility, also set the CA bundle in system location if writable
+  if [ -f "/etc/ssl/certs/ca-certificates.crt" ] && [ -w "/etc/ssl/certs/" ]; then
+    echo "Appending custom certificates to system CA bundle..."
+    cat "$CA_BUNDLE" >> /etc/ssl/certs/ca-certificates.crt
+  fi
+  
+else
+  echo "No custom CA certificates found in /app/certs"
+fi
+
+# Check if system CA bundle is mounted and use it
+if [ -f "/etc/ssl/certs/ca-certificates.crt" ] && [ ! -L "/etc/ssl/certs/ca-certificates.crt" ]; then
+  # Check if it's a mounted file (not the default symlink)
+  if [ "$(stat -c '%d' /etc/ssl/certs/ca-certificates.crt 2>/dev/null)" != "$(stat -c '%d' / 2>/dev/null)" ] || \
+     [ "$(stat -f '%d' /etc/ssl/certs/ca-certificates.crt 2>/dev/null)" != "$(stat -f '%d' / 2>/dev/null)" ]; then
+    echo "System CA bundle mounted, configuring Node.js to use it..."
+    export NODE_EXTRA_CA_CERTS="/etc/ssl/certs/ca-certificates.crt"
+    echo "NODE_EXTRA_CA_CERTS set to: $NODE_EXTRA_CA_CERTS"
+  fi
+fi
+
+# Optional: If GITEA_SKIP_TLS_VERIFY is set, configure accordingly
+if [ "$GITEA_SKIP_TLS_VERIFY" = "true" ]; then
+  echo "Warning: GITEA_SKIP_TLS_VERIFY is set to true. This is insecure!"
+  export NODE_TLS_REJECT_UNAUTHORIZED=0
+fi
+
 # Generate a secure JWT secret if one isn't provided or is using the default value
 JWT_SECRET_FILE="/app/data/.jwt_secret"
 if [ "$JWT_SECRET" = "your-secret-key-change-this-in-production" ] || [ -z "$JWT_SECRET" ]; then
