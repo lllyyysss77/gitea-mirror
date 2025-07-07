@@ -752,18 +752,16 @@ export default function Repository() {
             <RefreshCw className="h-4 w-4" />
           </Button>
           
-          {selectedRepoIds.size === 0 && (
-            <Button
-              variant="default"
-              size="icon"
-              onClick={handleMirrorAllRepos}
-              disabled={isInitialLoading || loadingRepoIds.size > 0}
-              title="Mirror all repositories"
-              className="h-10 w-10 shrink-0"
-            >
-              <FlipHorizontal className="h-4 w-4" />
-            </Button>
-          )}
+          <Button
+            variant="default"
+            size="icon"
+            onClick={handleMirrorAllRepos}
+            disabled={isInitialLoading || loadingRepoIds.size > 0}
+            title="Mirror all repositories"
+            className="h-10 w-10 shrink-0"
+          >
+            <FlipHorizontal className="h-4 w-4" />
+          </Button>
         </div>
 
         {/* Desktop: Original layout */}
@@ -844,24 +842,80 @@ export default function Repository() {
               <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
+
+          {/* Bulk actions on desktop - integrated into the same line */}
+          <div className="flex items-center gap-2 border-l pl-4">
+            {selectedRepoIds.size === 0 ? (
+              <Button
+                variant="default"
+                onClick={handleMirrorAllRepos}
+                disabled={isInitialLoading || loadingRepoIds.size > 0}
+                className="whitespace-nowrap"
+              >
+                <FlipHorizontal className="h-4 w-4 mr-2" />
+                Mirror All
+              </Button>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 px-3 py-1 bg-muted/50 rounded-md">
+                  <span className="text-sm font-medium">
+                    {selectedRepoIds.size} selected
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5"
+                    onClick={() => setSelectedRepoIds(new Set())}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+                
+                {availableActions.includes('mirror') && (
+                  <Button
+                    variant="default"
+                    size="default"
+                    onClick={handleBulkMirror}
+                    disabled={loadingRepoIds.size > 0}
+                  >
+                    <FlipHorizontal className="h-4 w-4 mr-2" />
+                    Mirror ({selectedRepoIds.size})
+                  </Button>
+                )}
+                
+                {availableActions.includes('sync') && (
+                  <Button
+                    variant="outline"
+                    size="default"
+                    onClick={handleBulkSync}
+                    disabled={loadingRepoIds.size > 0}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Sync ({selectedRepoIds.size})
+                  </Button>
+                )}
+                
+                {availableActions.includes('retry') && (
+                  <Button
+                    variant="outline"
+                    size="default"
+                    onClick={handleBulkRetry}
+                    disabled={loadingRepoIds.size > 0}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Retry
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Action buttons - shows when items are selected or Mirror All on desktop */}
-      <div className={`flex items-center gap-2 flex-wrap ${selectedRepoIds.size === 0 ? 'hidden sm:flex' : ''}`}>
-        {selectedRepoIds.size === 0 ? (
-          <Button
-            variant="default"
-            onClick={handleMirrorAllRepos}
-            disabled={isInitialLoading || loadingRepoIds.size > 0}
-            className="w-auto"
-          >
-            <FlipHorizontal className="h-4 w-4 mr-2" />
-            Mirror All
-          </Button>
-        ) : (
-            <>
-            <div className="flex items-center gap-2 px-3 py-1 bg-muted/50 rounded-md">
+      {/* Action buttons for mobile - only show when items are selected */}
+      {selectedRepoIds.size > 0 && (
+        <div className="flex items-center gap-2 flex-wrap sm:hidden">
+          <div className="flex items-center gap-2 px-3 py-1 bg-muted/50 rounded-md">
               <span className="text-sm font-medium">
                 {selectedRepoIds.size} selected
               </span>
@@ -877,44 +931,43 @@ export default function Repository() {
             
             <div className="flex gap-2 flex-wrap">
               {availableActions.includes('mirror') && (
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={handleBulkMirror}
-                  disabled={loadingRepoIds.size > 0}
-                >
-                  <FlipHorizontal className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Mirror </span>({selectedRepoIds.size})
-                </Button>
-              )}
-              
-              {availableActions.includes('sync') && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleBulkSync}
-                  disabled={loadingRepoIds.size > 0}
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Sync </span>({selectedRepoIds.size})
-                </Button>
-              )}
-              
-              {availableActions.includes('retry') && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleBulkRetry}
-                  disabled={loadingRepoIds.size > 0}
-                >
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Retry
-                </Button>
-              )}
-            </div>
-          </>
-        )}
-      </div>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleBulkMirror}
+              disabled={loadingRepoIds.size > 0}
+            >
+              <FlipHorizontal className="h-4 w-4 mr-2" />
+              <span>Mirror </span>({selectedRepoIds.size})
+            </Button>
+          )}
+          
+          {availableActions.includes('sync') && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBulkSync}
+              disabled={loadingRepoIds.size > 0}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Sync </span>({selectedRepoIds.size})
+            </Button>
+          )}
+          
+          {availableActions.includes('retry') && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBulkRetry}
+              disabled={loadingRepoIds.size > 0}
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          )}
+          </div>
+        </div>
+      )}
 
       {!isGitHubConfigured ? (
         <div className="flex flex-col items-center justify-center p-8 border border-dashed rounded-md">
@@ -946,7 +999,9 @@ export default function Repository() {
           loadingRepoIds={loadingRepoIds}
           selectedRepoIds={selectedRepoIds}
           onSelectionChange={setSelectedRepoIds}
-          onRefresh={() => fetchRepositories(false)}
+          onRefresh={async () => {
+            await fetchRepositories(false);
+          }}
         />
       )}
 

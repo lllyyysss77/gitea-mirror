@@ -3,11 +3,17 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import type { MirrorJob } from '@/lib/db/schema';
 import Fuse from 'fuse.js';
 import { Button } from '../ui/button';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Check, X, Loader2, Import } from 'lucide-react';
 import { Card } from '../ui/card';
 import { formatDate, getStatusColor } from '@/lib/utils';
 import { Skeleton } from '../ui/skeleton';
 import type { FilterParams } from '@/types/filter';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '../ui/tooltip';
 
 type MirrorJobWithKey = MirrorJob & { _rowKey: string };
 
@@ -73,7 +79,7 @@ export default function ActivityList({
     count: filteredActivities.length,
     getScrollElement: () => parentRef.current,
     estimateSize: (idx) =>
-      expandedItems.has(filteredActivities[idx]._rowKey) ? 217 : 120,
+      expandedItems.has(filteredActivities[idx]._rowKey) ? 217 : 100,
     overscan: 5,
     measureElement: (el) => el.getBoundingClientRect().height + 8,
   });
@@ -155,8 +161,8 @@ export default function ActivityList({
               }}
               className='border-b px-4 pt-4'
             >
-              <div className='flex items-start gap-4'>
-                <div className='relative mt-2'>
+              <div className='flex items-start gap-3 sm:gap-4'>
+                <div className='relative mt-2 flex-shrink-0'>
                   <div
                     className={`h-2 w-2 rounded-full ${getStatusColor(
                       activity.status,
@@ -164,25 +170,112 @@ export default function ActivityList({
                   />
                 </div>
 
-                <div className='flex-1'>
-                  <div className='mb-1 flex flex-col sm:flex-row sm:items-center sm:justify-between'>
-                    <p className='font-medium'>{activity.message}</p>
-                    <p className='text-sm text-muted-foreground'>
+                <div className='flex-1 min-w-0'>
+                  <div className='mb-1 flex items-start justify-between gap-2'>
+                    <div className='flex-1 min-w-0'>
+                      {/* Mobile: Show simplified status-based message */}
+                      <div className='block sm:hidden'>
+                        <p className='font-medium flex items-center gap-1.5'>
+                          {activity.status === 'synced' ? (
+                            <>
+                              <Check className='h-4 w-4 text-teal-600 dark:text-teal-400' />
+                              <span className='text-teal-600 dark:text-teal-400'>Sync successful</span>
+                            </>
+                          ) : activity.status === 'mirrored' ? (
+                            <>
+                              <Check className='h-4 w-4 text-emerald-600 dark:text-emerald-400' />
+                              <span className='text-emerald-600 dark:text-emerald-400'>Mirror successful</span>
+                            </>
+                          ) : activity.status === 'failed' ? (
+                            <>
+                              <X className='h-4 w-4 text-rose-600 dark:text-rose-400' />
+                              <span className='text-rose-600 dark:text-rose-400'>Operation failed</span>
+                            </>
+                          ) : activity.status === 'syncing' ? (
+                            <>
+                              <Loader2 className='h-4 w-4 text-indigo-600 dark:text-indigo-400 animate-spin' />
+                              <span className='text-indigo-600 dark:text-indigo-400'>Syncing in progress</span>
+                            </>
+                          ) : activity.status === 'mirroring' ? (
+                            <>
+                              <Loader2 className='h-4 w-4 text-yellow-600 dark:text-yellow-400 animate-spin' />
+                              <span className='text-yellow-600 dark:text-yellow-400'>Mirroring in progress</span>
+                            </>
+                          ) : activity.status === 'imported' ? (
+                            <>
+                              <Import className='h-4 w-4 text-blue-600 dark:text-blue-400' />
+                              <span className='text-blue-600 dark:text-blue-400'>Imported</span>
+                            </>
+                          ) : (
+                            <span>{activity.message}</span>
+                          )}
+                        </p>
+                      </div>
+                      {/* Desktop: Show status with icon and full message in tooltip */}
+                      <div className='hidden sm:block'>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <p className='font-medium flex items-center gap-1.5 cursor-help'>
+                                {activity.status === 'synced' ? (
+                                  <>
+                                    <Check className='h-4 w-4 text-teal-600 dark:text-teal-400 flex-shrink-0' />
+                                    <span className='text-teal-600 dark:text-teal-400'>Sync successful</span>
+                                  </>
+                                ) : activity.status === 'mirrored' ? (
+                                  <>
+                                    <Check className='h-4 w-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0' />
+                                    <span className='text-emerald-600 dark:text-emerald-400'>Mirror successful</span>
+                                  </>
+                                ) : activity.status === 'failed' ? (
+                                  <>
+                                    <X className='h-4 w-4 text-rose-600 dark:text-rose-400 flex-shrink-0' />
+                                    <span className='text-rose-600 dark:text-rose-400'>Operation failed</span>
+                                  </>
+                                ) : activity.status === 'syncing' ? (
+                                  <>
+                                    <Loader2 className='h-4 w-4 text-indigo-600 dark:text-indigo-400 animate-spin flex-shrink-0' />
+                                    <span className='text-indigo-600 dark:text-indigo-400'>Syncing in progress</span>
+                                  </>
+                                ) : activity.status === 'mirroring' ? (
+                                  <>
+                                    <Loader2 className='h-4 w-4 text-yellow-600 dark:text-yellow-400 animate-spin flex-shrink-0' />
+                                    <span className='text-yellow-600 dark:text-yellow-400'>Mirroring in progress</span>
+                                  </>
+                                ) : activity.status === 'imported' ? (
+                                  <>
+                                    <Import className='h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0' />
+                                    <span className='text-blue-600 dark:text-blue-400'>Imported</span>
+                                  </>
+                                ) : (
+                                  <span className='truncate'>{activity.message}</span>
+                                )}
+                              </p>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" align="start" className="max-w-[400px]">
+                              <p className="whitespace-pre-wrap break-words">{activity.message}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </div>
+                    <p className='text-sm text-muted-foreground whitespace-nowrap flex-shrink-0 ml-2'>
                       {formatDate(activity.timestamp)}
                     </p>
                   </div>
 
-                  {activity.repositoryName && (
-                    <p className='mb-2 text-sm text-muted-foreground'>
-                      Repository: {activity.repositoryName}
-                    </p>
-                  )}
-
-                  {activity.organizationName && (
-                    <p className='mb-2 text-sm text-muted-foreground'>
-                      Organization: {activity.organizationName}
-                    </p>
-                  )}
+                  <div className='flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3'>
+                    {activity.repositoryName && (
+                      <p className='text-sm text-muted-foreground truncate'>
+                        <span className='font-medium'>Repo:</span> {activity.repositoryName}
+                      </p>
+                    )}
+                    {activity.organizationName && (
+                      <p className='text-sm text-muted-foreground truncate'>
+                        <span className='font-medium'>Org:</span> {activity.organizationName}
+                      </p>
+                    )}
+                  </div>
 
                   {activity.details && (
                     <div className='mt-2'>
@@ -199,7 +292,7 @@ export default function ActivityList({
                           })
                         }
                       >
-                        {isExpanded ? 'Hide Details' : 'Show Details'}
+                        {isExpanded ? 'Hide Details' : activity.status === 'failed' ? 'Show Error Details' : 'Show Details'}
                       </Button>
 
                       {isExpanded && (

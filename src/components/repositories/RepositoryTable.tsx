@@ -177,106 +177,159 @@ export default function RepositoryTable({
     return (
       <Card className="mb-3">
         <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <Checkbox
-              checked={isSelected}
-              onCheckedChange={(checked) => repo.id && handleSelectRepo(repo.id, checked as boolean)}
-              className="mt-1"
-            />
-            <div className="flex-1 space-y-3">
-              {/* Repository Info */}
-              <div>
-                <h3 className="font-medium text-sm break-all">{repo.name}</h3>
+          <div className="flex flex-col gap-3">
+            {/* Header with checkbox and repo name */}
+            <div className="flex items-start gap-3">
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={(checked) => repo.id && handleSelectRepo(repo.id, checked as boolean)}
+                className="mt-1 h-5 w-5"
+                aria-label={`Select ${repo.name}`}
+              />
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium text-base truncate">{repo.name}</h3>
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  {repo.isPrivate && <Badge variant="secondary" className="text-xs"><Lock className="h-3 w-3 mr-1" />Private</Badge>}
-                  {repo.isForked && <Badge variant="secondary" className="text-xs"><GitFork className="h-3 w-3 mr-1" />Fork</Badge>}
-                  {repo.isStarred && <Badge variant="secondary" className="text-xs"><Star className="h-3 w-3 mr-1" />Starred</Badge>}
+                  {repo.isPrivate && <Badge variant="secondary" className="text-xs h-5"><Lock className="h-3 w-3 mr-1" />Private</Badge>}
+                  {repo.isForked && <Badge variant="secondary" className="text-xs h-5"><GitFork className="h-3 w-3 mr-1" />Fork</Badge>}
+                  {repo.isStarred && <Badge variant="secondary" className="text-xs h-5"><Star className="h-3 w-3 mr-1" />Starred</Badge>}
                 </div>
               </div>
+            </div>
 
+            {/* Repository details */}
+            <div className="space-y-2">
               {/* Owner & Organization */}
-              <div className="text-xs text-muted-foreground">
-                <div>Owner: {repo.owner}</div>
-                {repo.organization && <div>Org: {repo.organization}</div>}
-                {repo.destinationOrg && <div>Destination: {repo.destinationOrg}</div>}
+              <div className="text-sm text-muted-foreground space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Owner:</span>
+                  <span className="truncate">{repo.owner}</span>
+                </div>
+                {repo.organization && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Org:</span>
+                    <span className="truncate">{repo.organization}</span>
+                  </div>
+                )}
+                {repo.destinationOrg && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Dest:</span>
+                    <span className="truncate">{repo.destinationOrg}</span>
+                  </div>
+                )}
               </div>
 
               {/* Status & Last Mirrored */}
-              <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className={`h-2 w-2 rounded-full ${getStatusColor(repo.status)}`} />
-                  <span className="capitalize">{repo.status}</span>
+                  <div className={`h-2.5 w-2.5 rounded-full ${getStatusColor(repo.status)}`} />
+                  <span className="text-sm font-medium capitalize">{repo.status}</span>
                 </div>
-                <span className="text-muted-foreground">
-                  {repo.lastMirrored ? formatDate(repo.lastMirrored) : "Never"}
+                <span className="text-xs text-muted-foreground">
+                  {repo.lastMirrored ? formatDate(repo.lastMirrored) : "Never mirrored"}
                 </span>
               </div>
+            </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-2 flex-wrap">
-                {(repo.status === "imported" || repo.status === "failed") && (
-                  <Button
-                    size="sm"
-                    variant="default"
-                    onClick={() => repo.id && onMirror({ repoId: repo.id })}
-                    disabled={isLoading}
+            {/* Actions */}
+            <div className="flex flex-col gap-2">
+              {/* Primary action button */}
+              {(repo.status === "imported" || repo.status === "failed") && (
+                <Button
+                  size="default"
+                  variant="default"
+                  onClick={() => repo.id && onMirror({ repoId: repo.id })}
+                  disabled={isLoading}
+                  className="w-full h-10"
+                >
+                  {isLoading ? (
+                    <>
+                      <FlipHorizontal className="h-4 w-4 mr-2 animate-spin" />
+                      Mirroring...
+                    </>
+                  ) : (
+                    <>
+                      <FlipHorizontal className="h-4 w-4 mr-2" />
+                      Mirror Repository
+                    </>
+                  )}
+                </Button>
+              )}
+              {(repo.status === "mirrored" || repo.status === "synced") && (
+                <Button
+                  size="default"
+                  variant="outline"
+                  onClick={() => repo.id && onSync({ repoId: repo.id })}
+                  disabled={isLoading}
+                  className="w-full h-10"
+                >
+                  {isLoading ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Sync Repository
+                    </>
+                  )}
+                </Button>
+              )}
+              {repo.status === "failed" && (
+                <Button
+                  size="default"
+                  variant="destructive"
+                  onClick={() => repo.id && onRetry({ repoId: repo.id })}
+                  disabled={isLoading}
+                  className="w-full h-10"
+                >
+                  {isLoading ? (
+                    <>
+                      <RotateCcw className="h-4 w-4 mr-2 animate-spin" />
+                      Retrying...
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw className="h-4 w-4 mr-2" />
+                      Retry Mirror
+                    </>
+                  )}
+                </Button>
+              )}
+              
+              {/* External links */}
+              <div className="flex gap-2">
+                <Button variant="outline" size="default" className="flex-1 h-10 min-w-0" asChild>
+                  <a
+                    href={repo.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="View on GitHub"
+                    className="flex items-center justify-center gap-2"
                   >
-                    <FlipHorizontal className="h-3 w-3 mr-1" />
-                    Mirror
-                  </Button>
-                )}
-                {(repo.status === "mirrored" || repo.status === "synced") && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => repo.id && onSync({ repoId: repo.id })}
-                    disabled={isLoading}
-                  >
-                    <RefreshCw className="h-3 w-3 mr-1" />
-                    Sync
-                  </Button>
-                )}
-                {repo.status === "failed" && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => repo.id && onRetry({ repoId: repo.id })}
-                    disabled={isLoading}
-                  >
-                    <RotateCcw className="h-3 w-3 mr-1" />
-                    Retry
-                  </Button>
-                )}
-                
-                {/* Links */}
-                <div className="flex gap-1 ml-auto">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                    <SiGithub className="h-4 w-4 flex-shrink-0" />
+                    <span className="text-xs">GitHub</span>
+                  </a>
+                </Button>
+                {giteaUrl ? (
+                  <Button variant="outline" size="default" className="flex-1 h-10 min-w-0" asChild>
                     <a
-                      href={repo.url}
+                      href={giteaUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      title="View on GitHub"
+                      title="View on Gitea"
+                      className="flex items-center justify-center gap-2"
                     >
-                      <SiGithub className="h-4 w-4" />
+                      <SiGitea className="h-4 w-4 flex-shrink-0" />
+                      <span className="text-xs">Gitea</span>
                     </a>
                   </Button>
-                  {giteaUrl ? (
-                    <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-                      <a
-                        href={giteaUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title="View on Gitea"
-                      >
-                        <SiGitea className="h-4 w-4" />
-                      </a>
-                    </Button>
-                  ) : (
-                    <Button variant="ghost" size="icon" className="h-8 w-8" disabled title="Not mirrored to Gitea">
-                      <SiGitea className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
+                ) : (
+                  <Button variant="outline" size="default" disabled className="flex-1 h-10 min-w-0">
+                    <SiGitea className="h-4 w-4" />
+                    <span className="text-xs ml-2">Gitea</span>
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -404,13 +457,14 @@ export default function RepositoryTable({
       ) : (
         <>
           {/* Mobile card view */}
-          <div className="lg:hidden">
+          <div className="lg:hidden pb-20">
             {/* Select all checkbox */}
-            <div className="flex items-center gap-2 mb-3 p-2 bg-muted/50 rounded-md">
+            <div className="flex items-center gap-3 mb-3 p-3 bg-muted/50 rounded-md">
               <Checkbox
                 checked={isAllSelected}
                 onCheckedChange={handleSelectAll}
                 aria-label="Select all repositories"
+                className="h-5 w-5"
               />
               <span className="text-sm font-medium">
                 Select All ({filteredRepositories.length})
@@ -424,7 +478,7 @@ export default function RepositoryTable({
           </div>
 
           {/* Desktop table view */}
-          <div className="hidden lg:block border rounded-md">
+          <div className="hidden lg:flex flex-col border rounded-md">
             {/* Table header */}
             <div className="h-[45px] flex items-center justify-between border-b bg-muted/50">
               <div className="h-full p-3 flex items-center justify-center flex-[0.3]">
@@ -453,215 +507,281 @@ export default function RepositoryTable({
               </div>
             </div>
 
-            {/* Table body with virtualization */}
+            {/* Table body wrapper (for a parent in virtualization) */}
             <div
               ref={tableParentRef}
-              className="overflow-auto max-h-[calc(100dvh-25rem)]"
-              style={{
-                contain: "strict",
-              }}
+              className="flex flex-col max-h-[calc(100dvh-276px)] overflow-y-auto"
             >
               <div
                 style={{
                   height: `${rowVirtualizer.getTotalSize()}px`,
-                  width: "100%",
                   position: "relative",
                 }}
               >
-                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                {rowVirtualizer.getVirtualItems().map((virtualRow, index) => {
                   const repo = filteredRepositories[virtualRow.index];
-                  const isLoading = repo.id ? loadingRepoIds.has(repo.id) : false;
-                  const isSelected = repo.id ? selectedRepoIds.has(repo.id) : false;
-                  const giteaUrl = getGiteaRepoUrl(repo);
+                  const isLoading = loadingRepoIds.has(repo.id ?? "");
 
                   return (
                     <div
-                      key={virtualRow.key}
+                      key={index}
+                      ref={rowVirtualizer.measureElement}
                       style={{
                         position: "absolute",
                         top: 0,
                         left: 0,
-                        width: "100%",
-                        height: `${virtualRow.size}px`,
                         transform: `translateY(${virtualRow.start}px)`,
+                        width: "100%",
                       }}
-                      className="flex items-center justify-between border-b bg-transparent hover:bg-muted/50 transition-colors"
+                      data-index={virtualRow.index}
+                      className="h-[65px] flex items-center justify-between bg-transparent border-b hover:bg-muted/50"
                     >
+                      {/* Checkbox */}
                       <div className="h-full p-3 flex items-center justify-center flex-[0.3]">
                         <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={(checked) => repo.id && handleSelectRepo(repo.id, checked as boolean)}
+                          checked={repo.id ? selectedRepoIds.has(repo.id) : false}
+                          onCheckedChange={(checked) => repo.id && handleSelectRepo(repo.id, !!checked)}
+                          aria-label={`Select ${repo.name}`}
                         />
                       </div>
-                      <div className="h-full p-3 flex-[2.5] pr-2">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm truncate">{repo.name}</span>
-                          {repo.isPrivate && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <Lock className="h-3 w-3 text-muted-foreground" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Private repository</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                          {repo.isForked && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <GitFork className="h-3 w-3 text-muted-foreground" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Forked repository</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                          {repo.isStarred && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <Star className="h-3 w-3 text-yellow-500" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Starred repository</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
+
+                      {/* Repository */}
+                      <div className="h-full p-3 flex items-center gap-2 flex-[2.5]">
+                        <GitFork className="h-4 w-4 text-muted-foreground" />
+                        <div className="flex-1">
+                          <div className="font-medium flex items-center gap-1">
+                            {repo.name}
+                            {repo.isStarred && (
+                              <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {repo.fullName}
+                          </div>
                         </div>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {repo.fullName}
+                        {repo.isPrivate && (
+                          <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs">
+                            Private
+                          </span>
+                        )}
+                        {repo.isForked && (
+                          <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs">
+                            Fork
+                          </span>
+                        )}
+                      </div>
+                      {/* Owner */}
+                      <div className="h-full p-3 flex items-center flex-[1]">
+                        <p className="text-sm">{repo.owner}</p>
+                      </div>
+
+                      {/* Organization */}
+                      <div className="h-full p-3 flex items-center flex-[1]">
+                        <InlineDestinationEditor
+                          repository={repo}
+                          giteaConfig={giteaConfig}
+                          onUpdate={handleUpdateDestination}
+                          isUpdating={loadingRepoIds.has(repo.id ?? "")}
+                        />
+                      </div>
+
+                      {/* Last Mirrored */}
+                      <div className="h-full p-3 flex items-center flex-[1]">
+                        <p className="text-sm">
+                          {repo.lastMirrored
+                            ? formatDate(new Date(repo.lastMirrored))
+                            : "Never"}
                         </p>
                       </div>
-                      <div className="h-full p-3 flex-[1] text-sm">
-                        {repo.owner}
-                      </div>
-                      <div className="h-full p-3 flex-[1] text-sm">
-                        <div className="flex flex-col">
-                          <span>{repo.organization || "-"}</span>
-                          {repo.destinationOrg && repo.id && (
-                            <InlineDestinationEditor
-                              repositoryId={repo.id}
-                              currentDestination={repo.destinationOrg}
-                              onUpdate={handleUpdateDestination}
-                            />
-                          )}
-                        </div>
-                      </div>
-                      <div className="h-full p-3 flex-[1] text-sm">
-                        {repo.lastMirrored ? formatDate(repo.lastMirrored) : "Never"}
-                      </div>
-                      <div className="h-full p-3 flex-[1] flex items-center">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`h-2 w-2 rounded-full ${getStatusColor(
-                              repo.status
-                            )}`}
-                          />
-                          <span className="text-sm capitalize">{repo.status}</span>
-                        </div>
-                      </div>
-                      <div className="h-full p-3 flex-[1] flex items-center gap-1">
-                        {(repo.status === "imported" || repo.status === "failed") && (
-                          <Button
-                            size="sm"
-                            variant="default"
-                            onClick={() => repo.id && onMirror({ repoId: repo.id })}
-                            disabled={isLoading}
-                          >
-                            <FlipHorizontal className="h-4 w-4 mr-2" />
-                            Mirror
-                          </Button>
-                        )}
-                        {(repo.status === "mirrored" || repo.status === "synced") && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => repo.id && onSync({ repoId: repo.id })}
-                            disabled={isLoading}
-                          >
-                            <RefreshCw className="h-4 w-4 mr-2" />
-                            Sync
-                          </Button>
-                        )}
-                        {repo.status === "failed" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => repo.id && onRetry({ repoId: repo.id })}
-                            disabled={isLoading}
-                          >
-                            <RotateCcw className="h-4 w-4 mr-2" />
-                            Retry
-                          </Button>
-                        )}
-                      </div>
-                      <div className="h-full p-3 flex-[0.8] flex items-center justify-center gap-1">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" asChild>
-                                <a
-                                  href={repo.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  <SiGithub className="h-4 w-4" />
-                                </a>
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>View on GitHub</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
 
-                        {giteaUrl ? (
+                      {/* Status */}
+                      <div className="h-full p-3 flex items-center gap-x-2 flex-[1]">
+                        {repo.status === "failed" && repo.errorMessage ? (
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" asChild>
-                                  <a
-                                    href={giteaUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                  >
-                                    <SiGitea className="h-4 w-4" />
-                                  </a>
-                                </Button>
+                                <div className="flex items-center gap-x-2 cursor-help">
+                                  <div className={`h-2 w-2 rounded-full ${getStatusColor(repo.status)}`} />
+                                  <span className="text-sm capitalize underline decoration-dotted">{repo.status}</span>
+                                </div>
                               </TooltipTrigger>
-                              <TooltipContent>
-                                <p>View on Gitea</p>
+                              <TooltipContent className="max-w-xs">
+                                <p className="text-sm">{repo.errorMessage}</p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
                         ) : (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" disabled>
-                                  <SiGitea className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Not mirrored to Gitea</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <>
+                            <div className={`h-2 w-2 rounded-full ${getStatusColor(repo.status)}`} />
+                            <span className="text-sm capitalize">{repo.status}</span>
+                          </>
                         )}
+                      </div>
+                      {/* Actions */}
+                      <div className="h-full p-3 flex items-center justify-start flex-[1]">
+                        <RepoActionButton
+                          repo={{ id: repo.id ?? "", status: repo.status }}
+                          isLoading={isLoading}
+                          onMirror={() => onMirror({ repoId: repo.id ?? "" })}
+                          onSync={() => onSync({ repoId: repo.id ?? "" })}
+                          onRetry={() => onRetry({ repoId: repo.id ?? "" })}
+                        />
+                      </div>
+                      {/* Links */}
+                      <div className="h-full p-3 flex items-center justify-center gap-x-2 flex-[0.8]">
+                        {(() => {
+                          const giteaUrl = getGiteaRepoUrl(repo);
+
+                          // Determine tooltip based on status and configuration
+                          let tooltip: string;
+                          if (!giteaConfig?.url) {
+                            tooltip = "Gitea not configured";
+                          } else if (repo.status === 'imported') {
+                            tooltip = "Repository not yet mirrored to Gitea";
+                          } else if (repo.status === 'failed') {
+                            tooltip = "Repository mirroring failed";
+                          } else if (repo.status === 'mirroring') {
+                            tooltip = "Repository is being mirrored to Gitea";
+                          } else if (giteaUrl) {
+                            tooltip = "View on Gitea";
+                          } else {
+                            tooltip = "Gitea repository not available";
+                          }
+
+                          return giteaUrl ? (
+                            <Button variant="ghost" size="icon" asChild>
+                              <a
+                                href={giteaUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title={tooltip}
+                              >
+                                <SiGitea className="h-4 w-4" />
+                              </a>
+                            </Button>
+                          ) : (
+                            <Button variant="ghost" size="icon" disabled title={tooltip}>
+                              <SiGitea className="h-4 w-4" />
+                            </Button>
+                          );
+                        })()}
+                        <Button variant="ghost" size="icon" asChild>
+                          <a
+                            href={repo.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="View on GitHub"
+                          >
+                            <SiGithub className="h-4 w-4" />
+                          </a>
+                        </Button>
                       </div>
                     </div>
                   );
                 })}
               </div>
             </div>
+
+            {/* Status Bar */}
+            <div className="h-[40px] flex items-center justify-between border-t bg-muted/30 px-3 relative">
+              <div className="flex items-center gap-2">
+                <div className={`h-1.5 w-1.5 rounded-full ${isLiveActive ? 'bg-emerald-500' : 'bg-primary'}`} />
+                <span className="text-sm font-medium text-foreground">
+                  {hasAnyFilter
+                    ? `Showing ${filteredRepositories.length} of ${repositories.length} repositories`
+                    : `${repositories.length} ${repositories.length === 1 ? 'repository' : 'repositories'} total`}
+                </span>
+              </div>
+
+              {/* Center - Live active indicator */}
+              {isLiveActive && (
+                <div className="flex items-center gap-1.5 absolute left-1/2 transform -translate-x-1/2">
+                  <div
+                    className="h-1 w-1 rounded-full bg-emerald-500"
+                    style={{
+                      animation: 'pulse 2s ease-in-out infinite'
+                    }}
+                  />
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                    Live active
+                  </span>
+                  <div
+                    className="h-1 w-1 rounded-full bg-emerald-500"
+                    style={{
+                      animation: 'pulse 2s ease-in-out infinite',
+                      animationDelay: '1s'
+                    }}
+                  />
+                </div>
+              )}
+
+              {hasAnyFilter && (
+                <span className="text-xs text-muted-foreground">
+                  Filters applied
+                </span>
+              )}
+            </div>
           </div>
         </>
       )}
     </div>
+  );
+}
+
+function RepoActionButton({
+  repo,
+  isLoading,
+  onMirror,
+  onSync,
+  onRetry,
+}: {
+  repo: { id: string; status: string };
+  isLoading: boolean;
+  onMirror: () => void;
+  onSync: () => void;
+  onRetry: () => void;
+}) {
+  let label = "";
+  let icon = <></>;
+  let onClick = () => {};
+  let disabled = isLoading;
+
+  if (repo.status === "failed") {
+    label = "Retry";
+    icon = <RotateCcw className="h-4 w-4 mr-1" />;
+    onClick = onRetry;
+  } else if (["mirrored", "synced", "syncing"].includes(repo.status)) {
+    label = "Sync";
+    icon = <RefreshCw className="h-4 w-4 mr-1" />;
+    onClick = onSync;
+    disabled ||= repo.status === "syncing";
+  } else if (["imported", "mirroring"].includes(repo.status)) {
+    label = "Mirror";
+    icon = <FlipHorizontal className="h-4 w-4 mr-1" />;
+    onClick = onMirror;
+    disabled ||= repo.status === "mirroring";
+  } else {
+    return null; // unsupported status
+  }
+
+  return (
+    <Button
+      variant="ghost"
+      disabled={disabled}
+      onClick={onClick}
+      className="min-w-[80px] justify-start"
+    >
+      {isLoading ? (
+        <>
+          <RefreshCw className="h-4 w-4 animate-spin mr-1" />
+          {label}
+        </>
+      ) : (
+        <>
+          {icon}
+          {label}
+        </>
+      )}
+    </Button>
   );
 }

@@ -127,9 +127,9 @@ export function OrganizationList({
   }, [organizations, filter]);
 
   return isLoading ? (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
       {Array.from({ length: 5 }).map((_, i) => (
-        <Skeleton key={i} className="h-[136px] w-full" />
+        <Skeleton key={i} className="h-[180px] w-full" />
       ))}
     </div>
   ) : filteredOrganizations.length === 0 ? (
@@ -161,7 +161,7 @@ export function OrganizationList({
       )}
     </div>
   ) : (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 pb-20 sm:pb-0">
       {filteredOrganizations.map((org, index) => {
         const isLoading = loadingOrgIds.has(org.id ?? "");
         const statusBadge = getStatusBadge(org.status);
@@ -171,20 +171,33 @@ export function OrganizationList({
           <Card 
             key={index} 
             className={cn(
-              "overflow-hidden p-4 transition-all hover:shadow-md min-h-[160px]",
+              "overflow-hidden p-4 sm:p-6 transition-all hover:shadow-lg hover:border-foreground/10",
               isLoading && "opacity-75"
             )}
           >
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <Building2 className="h-5 w-5 text-muted-foreground" />
-                  <a 
-                    href={`/repositories?organization=${encodeURIComponent(org.name || '')}`}
-                    className="font-medium hover:underline cursor-pointer"
-                  >
-                    {org.name}
-                  </a>
+            {/* Mobile Layout */}
+            <div className="flex flex-col gap-3 sm:hidden">
+              {/* Header with org name and badges */}
+              <div className="space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Building2 className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                    <a 
+                      href={`/repositories?organization=${encodeURIComponent(org.name || '')}`}
+                      className="font-medium hover:underline cursor-pointer truncate"
+                    >
+                      {org.name}
+                    </a>
+                  </div>
+                  <Badge variant={statusBadge.variant} className="flex-shrink-0">
+                    {StatusIcon && <StatusIcon className={cn(
+                      "h-3 w-3",
+                      org.status === "mirroring" && "animate-pulse"
+                    )} />}
+                    {statusBadge.label}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2">
                   <span
                     className={`text-xs px-2 py-0.5 rounded-full capitalize ${
                       org.membershipRole === "member"
@@ -195,128 +208,166 @@ export function OrganizationList({
                     {org.membershipRole}
                   </span>
                 </div>
+              </div>
 
-                {/* Destination override section */}
-                <div className="mt-2">
-                  <MirrorDestinationEditor
-                    organizationId={org.id!}
-                    organizationName={org.name!}
-                    currentDestination={org.destinationOrg}
-                    onUpdate={(newDestination) => handleUpdateDestination(org.id!, newDestination)}
-                    isUpdating={isLoading}
-                  />
+              {/* Destination override section */}
+              <div>
+                <MirrorDestinationEditor
+                  organizationId={org.id!}
+                  organizationName={org.name!}
+                  currentDestination={org.destinationOrg}
+                  onUpdate={(newDestination) => handleUpdateDestination(org.id!, newDestination)}
+                  isUpdating={isLoading}
+                />
+              </div>
+            </div>
+
+            {/* Desktop Layout */}
+            <div className="hidden sm:block">
+              {/* Header with org icon, name, role badge and status */}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-1">
+                      <a 
+                        href={`/repositories?organization=${encodeURIComponent(org.name || '')}`}
+                        className="text-xl font-semibold hover:underline cursor-pointer"
+                      >
+                        {org.name}
+                      </a>
+                      <Badge 
+                        variant={org.membershipRole === "member" ? "secondary" : "default"}
+                        className="capitalize"
+                      >
+                        {org.membershipRole}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Status badge */}
+                <Badge variant={statusBadge.variant} className="flex items-center gap-1">
+                  {StatusIcon && <StatusIcon className={cn(
+                    "h-3.5 w-3.5",
+                    org.status === "mirroring" && "animate-pulse"
+                  )} />}
+                  {statusBadge.label}
+                </Badge>
+              </div>
+
+              {/* Destination override section */}
+              <div className="mb-4">
+                <MirrorDestinationEditor
+                  organizationId={org.id!}
+                  organizationName={org.name!}
+                  currentDestination={org.destinationOrg}
+                  onUpdate={(newDestination) => handleUpdateDestination(org.id!, newDestination)}
+                  isUpdating={isLoading}
+                />
+              </div>
+
+              {/* Repository statistics */}
+              <div className="mb-4">
+                <div className="flex items-center gap-4 text-sm">
+                  <div>
+                    <span className="font-semibold text-lg">{org.repositoryCount}</span>
+                    <span className="text-muted-foreground ml-1">
+                      {org.repositoryCount === 1 ? "repository" : "repositories"}
+                    </span>
+                  </div>
+                  
+                  {/* Repository breakdown */}
+                  {isLoading || (org.status === "mirroring" && org.publicRepositoryCount === undefined) ? (
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      {org.publicRepositoryCount !== undefined && (
+                        <div className="flex items-center gap-1.5">
+                          <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                          <span className="text-muted-foreground">
+                            {org.publicRepositoryCount} public
+                          </span>
+                        </div>
+                      )}
+                      {org.privateRepositoryCount !== undefined && org.privateRepositoryCount > 0 && (
+                        <div className="flex items-center gap-1.5">
+                          <div className="h-2.5 w-2.5 rounded-full bg-orange-500" />
+                          <span className="text-muted-foreground">
+                            {org.privateRepositoryCount} private
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
-              <Badge variant={statusBadge.variant} className="ml-2">
-                {StatusIcon && <StatusIcon className={cn(
-                  "h-3 w-3",
-                  org.status === "mirroring" && "animate-pulse"
-                )} />}
-                {statusBadge.label}
-              </Badge>
             </div>
 
-            <div className="text-sm text-muted-foreground mb-4">
-              <div className="flex items-center justify-between">
-                <span className="font-medium">
-                  {org.repositoryCount}{" "}
-                  {org.repositoryCount === 1 ? "repository" : "repositories"}
-                </span>
-              </div>
-              {/* Always render this section to prevent layout shift */}
-              <div className="flex gap-4 mt-2 text-xs min-h-[20px]">
-                {isLoading || (org.status === "mirroring" && org.publicRepositoryCount === undefined) ? (
-                  <>
-                    <Skeleton className="h-3 w-16" />
-                    <Skeleton className="h-3 w-16" />
-                  </>
-                ) : (
-                  <>
-                    {org.publicRepositoryCount !== undefined ? (
-                      <span className="flex items-center gap-1">
-                        <div className="h-2 w-2 rounded-full bg-green-500" />
-                        {org.publicRepositoryCount} public
-                      </span>
-                    ) : null}
-                    {org.privateRepositoryCount !== undefined && org.privateRepositoryCount > 0 ? (
-                      <span className="flex items-center gap-1">
-                        <div className="h-2 w-2 rounded-full bg-orange-500" />
-                        {org.privateRepositoryCount} private
-                      </span>
-                    ) : null}
-                    {org.forkRepositoryCount !== undefined && org.forkRepositoryCount > 0 ? (
-                      <span className="flex items-center gap-1">
-                        <div className="h-2 w-2 rounded-full bg-blue-500" />
-                        {org.forkRepositoryCount} fork{org.forkRepositoryCount !== 1 ? 's' : ''}
-                      </span>
-                    ) : null}
-                    {/* Show a placeholder if no counts are available to maintain height */}
-                    {org.publicRepositoryCount === undefined && 
-                     org.privateRepositoryCount === undefined && 
-                     org.forkRepositoryCount === undefined && (
-                      <span className="invisible">Loading counts...</span>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
+            {/* Mobile Actions */}
+            <div className="flex flex-col gap-3 sm:hidden">
               <div className="flex items-center gap-2">
                 {org.status === "imported" && (
                   <Button
-                    size="sm"
+                    size="default"
                     onClick={() => org.id && onMirror({ orgId: org.id })}
                     disabled={isLoading}
+                    className="w-full h-10"
                   >
                     {isLoading ? (
                       <>
-                        <RefreshCw className="h-3 w-3 animate-spin mr-2" />
+                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
                         Starting...
                       </>
                     ) : (
-                      "Mirror"
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Mirror Organization
+                      </>
                     )}
                   </Button>
                 )}
                 
                 {org.status === "mirroring" && (
-                  <Button size="sm" disabled variant="outline">
-                    <RefreshCw className="h-3 w-3 animate-spin mr-2" />
+                  <Button size="default" disabled variant="outline" className="w-full h-10">
+                    <RefreshCw className="h-4 w-4 animate-spin mr-2" />
                     Mirroring...
                   </Button>
                 )}
                 
                 {org.status === "mirrored" && (
-                  <Button size="sm" disabled variant="secondary">
-                    <Check className="h-3 w-3 mr-2" />
+                  <Button size="default" disabled variant="secondary" className="w-full h-10">
+                    <Check className="h-4 w-4 mr-2" />
                     Mirrored
                   </Button>
                 )}
                 
                 {org.status === "failed" && (
                   <Button
-                    size="sm"
+                    size="default"
                     variant="destructive"
                     onClick={() => org.id && onMirror({ orgId: org.id })}
                     disabled={isLoading}
+                    className="w-full h-10"
                   >
                     {isLoading ? (
                       <>
-                        <RefreshCw className="h-3 w-3 animate-spin mr-2" />
+                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
                         Retrying...
                       </>
                     ) : (
                       <>
-                        <AlertCircle className="h-3 w-3 mr-2" />
-                        Retry
+                        <AlertCircle className="h-4 w-4 mr-2" />
+                        Retry Mirror
                       </>
                     )}
                   </Button>
                 )}
               </div>
-
-              <div className="flex items-center gap-1">
+              
+              <div className="flex items-center gap-2 justify-center">
                 {(() => {
                   const giteaUrl = getGiteaOrgUrl(org);
 
@@ -337,32 +388,164 @@ export function OrganizationList({
                   }
 
                   return giteaUrl ? (
-                    <Button variant="ghost" size="icon" asChild>
+                    <Button variant="outline" size="default" asChild className="flex-1 h-10 min-w-0">
                       <a
                         href={giteaUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         title={tooltip}
+                        className="flex items-center justify-center gap-2"
                       >
-                        <SiGitea className="h-4 w-4" />
+                        <SiGitea className="h-4 w-4 flex-shrink-0" />
+                        <span className="text-xs">Gitea</span>
                       </a>
                     </Button>
                   ) : (
-                    <Button variant="ghost" size="icon" disabled title={tooltip}>
+                    <Button variant="outline" size="default" disabled title={tooltip} className="flex-1 h-10">
                       <SiGitea className="h-4 w-4" />
+                      <span className="text-xs ml-2">Gitea</span>
                     </Button>
                   );
                 })()}
-                <Button variant="ghost" size="icon" asChild>
+                <Button variant="outline" size="default" asChild className="flex-1 h-10 min-w-0">
                   <a
                     href={`https://github.com/${org.name}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     title="View on GitHub"
+                    className="flex items-center justify-center gap-2"
                   >
-                     <SiGithub className="h-4 w-4" />
+                     <SiGithub className="h-4 w-4 flex-shrink-0" />
+                     <span className="text-xs">GitHub</span>
                   </a>
                 </Button>
+              </div>
+            </div>
+            
+            {/* Desktop Actions */}
+            <div className="hidden sm:flex items-center justify-between mt-4">
+              <div className="flex items-center gap-2">
+                {org.status === "imported" && (
+                  <Button
+                    size="default"
+                    onClick={() => org.id && onMirror({ orgId: org.id })}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                        Starting mirror...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Mirror Organization
+                      </>
+                    )}
+                  </Button>
+                )}
+                
+                {org.status === "mirroring" && (
+                  <Button size="default" disabled variant="outline">
+                    <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                    Mirroring in progress...
+                  </Button>
+                )}
+                
+                {org.status === "mirrored" && (
+                  <Button size="default" disabled variant="secondary">
+                    <Check className="h-4 w-4 mr-2" />
+                    Successfully mirrored
+                  </Button>
+                )}
+                
+                {org.status === "failed" && (
+                  <Button
+                    size="default"
+                    variant="destructive"
+                    onClick={() => org.id && onMirror({ orgId: org.id })}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                        Retrying...
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="h-4 w-4 mr-2" />
+                        Retry Mirror
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {(() => {
+                  const giteaUrl = getGiteaOrgUrl(org);
+
+                  // Determine tooltip based on status and configuration
+                  let tooltip: string;
+                  if (!giteaConfig?.url) {
+                    tooltip = "Gitea not configured";
+                  } else if (org.status === 'imported') {
+                    tooltip = "Organization not yet mirrored to Gitea";
+                  } else if (org.status === 'failed') {
+                    tooltip = "Organization mirroring failed";
+                  } else if (org.status === 'mirroring') {
+                    tooltip = "Organization is being mirrored to Gitea";
+                  } else if (giteaUrl) {
+                    tooltip = "View on Gitea";
+                  } else {
+                    tooltip = "Gitea organization not available";
+                  }
+
+                  return (
+                    <div className="flex items-center border rounded-md">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        asChild={!!giteaUrl}
+                        disabled={!giteaUrl} 
+                        title={tooltip}
+                        className="rounded-none rounded-l-md border-r"
+                      >
+                        {giteaUrl ? (
+                          <a
+                            href={giteaUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <SiGitea className="h-4 w-4 mr-2" />
+                            Gitea
+                          </a>
+                        ) : (
+                          <>
+                            <SiGitea className="h-4 w-4 mr-2" />
+                            Gitea
+                          </>
+                        )}
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        asChild
+                        className="rounded-none rounded-r-md"
+                      >
+                        <a
+                          href={`https://github.com/${org.name}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="View on GitHub"
+                        >
+                          <SiGithub className="h-4 w-4 mr-2" />
+                          GitHub
+                        </a>
+                      </Button>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </Card>
