@@ -13,13 +13,13 @@
 ## 🚀 Quick Start
 
 ```bash
-# Using Docker (recommended)
-docker compose up -d
+# Fastest way - using the simplified Docker setup
+docker compose -f docker-compose.alt.yml up -d
 
 # Access at http://localhost:4321
 ```
 
-First user signup becomes admin. No configuration needed to get started!
+First user signup becomes admin. Configure GitHub and Gitea through the web interface!
 
 <p align="center">
   <img src=".github/assets/dashboard.png" alt="Dashboard" width="full"/>
@@ -46,18 +46,57 @@ First user signup becomes admin. No configuration needed to get started!
 
 ### Docker (Recommended)
 
+We provide two Docker Compose options:
+
+#### Option 1: Quick Start (docker-compose.alt.yml)
+Perfect for trying out Gitea Mirror or simple deployments:
+
 ```bash
 # Clone repository
 git clone https://github.com/RayLabsHQ/gitea-mirror.git
 cd gitea-mirror
 
-# Start with Docker Compose
-docker compose up -d
+# Start with simplified setup
+docker compose -f docker-compose.alt.yml up -d
 
 # Access at http://localhost:4321
 ```
 
-Or use the pre-built image:
+**Features:**
+- ✅ Pre-built image - no building required
+- ✅ Minimal configuration needed
+- ✅ Data stored in `./data` directory
+- ✅ Configure everything through web UI
+- ✅ Automatic user/group ID mapping
+
+**Best for:**
+- First-time users
+- Testing and evaluation
+- Simple deployments
+- When you prefer web-based configuration
+
+#### Option 2: Full Setup (docker-compose.yml)
+For production deployments with environment-based configuration:
+
+```bash
+# Start with full configuration options
+docker compose up -d
+```
+
+**Features:**
+- ✅ Build from source or use pre-built image
+- ✅ Complete environment variable configuration
+- ✅ Support for custom CA certificates
+- ✅ Advanced mirror settings (forks, wiki, issues)
+- ✅ Multi-registry support
+
+**Best for:**
+- Production deployments
+- Automated/scripted setups
+- Advanced mirror configurations
+- When using self-signed certificates
+
+#### Using Pre-built Image Directly
 
 ```bash
 docker pull ghcr.io/raylabshq/gitea-mirror:v2.20.1
@@ -65,15 +104,27 @@ docker pull ghcr.io/raylabshq/gitea-mirror:v2.20.1
 
 ### Configuration Options
 
-Create a `.env` file for custom settings (optional):
+#### Quick Start Configuration (docker-compose.alt.yml)
+
+Minimal `.env` file (optional - has sensible defaults):
 
 ```bash
-# JWT secret for authentication (auto-generated if blank or default below)
-JWT_SECRET=your-secret-key-change-this-in-production
-
-# Port configuration
+# Custom port (default: 4321)
 PORT=4321
+
+# User/Group IDs for file permissions (default: 1000)
+PUID=1000
+PGID=1000
+
+# JWT secret (auto-generated if not set)
+JWT_SECRET=your-secret-key-change-this-in-production
 ```
+
+All other settings are configured through the web interface after starting.
+
+#### Full Setup Configuration (docker-compose.yml)
+
+Supports extensive environment variables for automated deployment. See the full [docker-compose.yml](docker-compose.yml) for all available options including GitHub tokens, Gitea URLs, mirror settings, and more.
 
 ### LXC Container (Proxmox)
 
