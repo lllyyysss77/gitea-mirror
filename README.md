@@ -10,6 +10,16 @@
   </p>
 </p>
 
+> [!IMPORTANT]
+> **Repository Migration Notice**: Starting from version 2.20, this project has moved from `arunavo4/gitea-mirror` to `RayLabsHQ/gitea-mirror`. Please update your Docker images and Git remotes to use the new location:
+> ```bash
+> # Docker
+> docker pull ghcr.io/raylabshq/gitea-mirror:latest
+> 
+> # Git remote
+> git remote set-url origin https://github.com/RayLabsHQ/gitea-mirror.git
+> ```
+
 ## 🚀 Quick Start
 
 ```bash

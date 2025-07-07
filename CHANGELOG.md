@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.20.0] - 2025-07-07
+
+### Changed
+- **BREAKING**: Repository moved from `arunavo4/gitea-mirror` to `RayLabsHQ/gitea-mirror`
+- Docker images now hosted at `ghcr.io/raylabshq/gitea-mirror`
+- Updated all repository references and links to new organization
+- License changed from MIT to GNU General Public License v3.0
+
+### Fixed
+- Updated GitHub API endpoint for version checking to use new repository location
+- Corrected all documentation references to point to RayLabsHQ organization
+
+### Security
+- Removed test security script after confirming vulnerability resolution
+- Updated base Docker image to version 1.2.18-alpine
+
+### Documentation
+- Added repository migration notice in README
+- Updated quickstart guide with new repository URLs
+- Updated LXC deployment documentation with new repository location
+
 ## [2.18.0] - 2025-06-24
 
 ### Added
