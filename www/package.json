@@ -1,7 +1,7 @@
 {
   "name": "www",
   "type": "module",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
@@ -29,5 +29,6 @@
   },
   "devDependencies": {
     "tw-animate-css": "^1.3.5"
-  }
+  },
+  "packageManager": "pnpm@10.12.4"
 }
