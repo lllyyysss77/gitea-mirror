@@ -127,21 +127,25 @@ export function Installation() {
                 <div className="flex-grow min-w-0">
                   <h3 className="font-semibold mb-2 text-sm sm:text-base">{step.title}</h3>
                   <div className="relative group">
-                    <pre className="bg-muted/50 rounded-lg p-3 sm:p-4 pr-12 overflow-x-auto text-xs sm:text-sm">
-                      <code className="break-all sm:break-normal">{step.command}</code>
-                    </pre>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-1 right-1 sm:top-2 sm:right-2 w-8 h-8 sm:w-9 sm:h-9 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                      onClick={() => copyToClipboard(step.command, step.id)}
-                    >
-                      {copiedCommand === step.id ? (
-                        <Check className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
-                      ) : (
-                        <Copy className="h-3 w-3 sm:h-4 sm:w-4" />
-                      )}
-                    </Button>
+                    <div className="relative overflow-hidden rounded-lg">
+                      <pre className="bg-muted/50 p-3 sm:p-4 pr-10 sm:pr-12 overflow-x-auto text-[11px] sm:text-sm font-mono scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
+                        <code className="block whitespace-nowrap">{step.command}</code>
+                      </pre>
+                      {/* Scroll indicator gradient for mobile */}
+                      <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-muted/50 to-transparent pointer-events-none sm:hidden" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-1 right-1 sm:top-2 sm:right-2 w-7 h-7 sm:w-9 sm:h-9 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10"
+                        onClick={() => copyToClipboard(step.command, step.id)}
+                      >
+                        {copiedCommand === step.id ? (
+                          <Check className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
+                        ) : (
+                          <Copy className="h-3 w-3 sm:h-4 sm:w-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
