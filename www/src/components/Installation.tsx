@@ -100,8 +100,8 @@ export function Installation() {
                 onClick={() => setActiveMethod(method)}
                 className={`flex items-center gap-3 px-4 sm:px-6 py-3 rounded-lg border transition-all min-h-[60px] ${
                   activeMethod === method
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-card hover:bg-muted border-border'
+                    ? 'bg-gradient-to-r from-primary to-accent text-primary-foreground border-transparent shadow-lg shadow-primary/25'
+                    : 'bg-card hover:bg-muted border-border hover:border-primary/30'
                 }`}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
@@ -121,8 +121,8 @@ export function Installation() {
           {installMethods[activeMethod].steps.map((step, index) => (
             <div key={step.id} className="relative">
               <div className="flex items-start gap-3 sm:gap-4">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-sm font-semibold text-primary">{index + 1}</span>
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-md shadow-primary/20">
+                  <span className="text-sm font-semibold text-primary-foreground">{index + 1}</span>
                 </div>
                 <div className="flex-grow min-w-0">
                   <h3 className="font-semibold mb-2 text-sm sm:text-base">{step.title}</h3>

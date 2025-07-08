@@ -93,7 +93,7 @@ export function Screenshots() {
   const current = screenshots[currentIndex];
 
   return (
-    <section id="screenshots" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 bg-muted/30">
+    <section id="screenshots" className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-muted/30 via-primary/5 to-muted/30">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-8 sm:mb-16">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">
