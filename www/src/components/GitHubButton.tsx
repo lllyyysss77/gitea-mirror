@@ -22,18 +22,39 @@ export function GitHubButton() {
   }, []);
 
   return (
-    <Button variant="outline" size="sm" className="hover:bg-primary/10 hover:border-primary/30 hover:text-foreground transition-all duration-300" asChild>
-      <a href="https://github.com/RayLabsHQ/gitea-mirror" target="_blank" rel="noopener noreferrer" className="flex items-center">
-        <Github className="w-4 h-4 mr-2" />
-        <span>Star on GitHub</span>
-        {stars !== null && (
-          <>
-            <span className="mx-2 text-muted-foreground">•</span>
-            <Star className="w-3 h-3 mr-1" />
-            <span>{stars}</span>
-          </>
-        )}
-      </a>
-    </Button>
+    <>
+      {/* Mobile version - compact with text */}
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="md:hidden hover:bg-primary/10 hover:border-primary/30 hover:text-foreground transition-all duration-300 px-3" 
+        asChild
+      >
+        <a href="https://github.com/RayLabsHQ/gitea-mirror" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5">
+          <Star className="w-4 h-4" />
+          <span className="font-semibold">{stars || '—'}</span>
+        </a>
+      </Button>
+      
+      {/* Desktop version - full button */}
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="hidden md:flex hover:bg-primary/10 hover:border-primary/30 hover:text-foreground transition-all duration-300" 
+        asChild
+      >
+        <a href="https://github.com/RayLabsHQ/gitea-mirror" target="_blank" rel="noopener noreferrer" className="flex items-center">
+          <Github className="w-4 h-4 mr-2" />
+          <span>Star on GitHub</span>
+          {stars !== null && (
+            <>
+              <span className="mx-2 text-muted-foreground">•</span>
+              <Star className="w-3 h-3 mr-1" />
+              <span>{stars}</span>
+            </>
+          )}
+        </a>
+      </Button>
+    </>
   );
 }

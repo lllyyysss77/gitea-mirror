@@ -15,8 +15,8 @@ export function CTA() {
           
           <div className="relative">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">
-              Start Protecting Your
-              <span className="text-gradient from-primary via-accent to-accent-purple"> Code Today</span>
+              <span className="block sm:inline">Start Protecting</span>
+              <span className="text-gradient from-primary via-accent to-accent-purple block sm:inline"> Your Code Today</span>
             </h2>
             <p className="text-base sm:text-lg text-muted-foreground mb-6 sm:mb-8 max-w-2xl mx-auto px-4">
               Join developers who trust Gitea Mirror to keep their repositories safe and accessible. 
