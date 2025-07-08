@@ -1,0 +1,8 @@
+# Robots.txt for Gitea Mirror
+User-agent: *
+Allow: /
+Sitemap: https://gitea-mirror.com/sitemap.xml
+
+# Crawl-delay for responsible crawling
+User-agent: *
+Crawl-delay: 1

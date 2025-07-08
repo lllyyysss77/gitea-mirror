@@ -1,343 +1,166 @@
 ---
 import '../styles/global.css';
-import { Button } from '../components/ui/button';
+import { Header } from '../components/Header';
+import { Hero } from '../components/Hero';
+import { Features } from '../components/Features';
+import { Screenshots } from '../components/Screenshots';
+import { Installation } from '../components/Installation';
+import { CTA } from '../components/CTA';
+import { Footer } from '../components/Footer';
 
-const features = [
-  {
-    title: "Automated Mirroring",
-    description: "Set it and forget it. Automatically sync your GitHub repositories to Gitea on a schedule.",
-    icon: "🔄"
-  },
-  {
-    title: "Bulk Operations", 
-    description: "Mirror entire organizations or user accounts with a single configuration.",
-    icon: "📦"
-  },
-  {
-    title: "Preserve Structure",
-    description: "Maintain your GitHub organization structure or customize how repos are organized.",
-    icon: "🏗️"
-  },
-  {
-    title: "Real-time Status",
-    description: "Monitor mirror progress with live updates and detailed activity logs.",
-    icon: "📊"
-  },
-  {
-    title: "Secure & Private",
-    description: "Self-hosted solution keeps your code on your infrastructure.",
-    icon: "🔒"
-  },
-  {
-    title: "Open Source",
-    description: "Free, transparent, and community-driven development.",
-    icon: "💚"
-  }
-];
+const siteUrl = 'https://gitea-mirror.com';
+const title = 'Gitea Mirror - Automated GitHub to Gitea Repository Mirroring & Backup';
+const description = 'Automatically mirror and backup your GitHub repositories to self-hosted Gitea. Keep your code safe with scheduled syncing, bulk operations, and real-time monitoring. Free and open source.';
+const keywords = 'github backup, gitea mirror, repository sync, github to gitea, git mirror, code backup, self-hosted git, repository migration, github mirror tool, gitea sync, automated backup, github repository backup, git repository mirror, self-hosted backup solution';
 
-const steps = [
-  { number: "1", title: "Install", description: "Deploy with Docker or run directly with Bun" },
-  { number: "2", title: "Connect", description: "Add your GitHub and Gitea credentials" },
-  { number: "3", title: "Configure", description: "Select repositories or organizations to mirror" },
-  { number: "4", title: "Relax", description: "Let Gitea Mirror handle the synchronization" }
-];
-
-const screenshots = [
-  { src: "/assets/dashboard.png", alt: "Dashboard view", mobile: "/assets/dashboard_mobile.png" },
-  { src: "/assets/repositories.png", alt: "Repository management", mobile: "/assets/repositories_mobile.png" },
-  { src: "/assets/configuration.png", alt: "Configuration interface", mobile: "/assets/configuration_mobile.png" },
-  { src: "/assets/activity.png", alt: "Activity monitoring", mobile: "/assets/activity_mobile.png" }
-];
+// Structured data for SEO
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Gitea Mirror",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Linux, macOS, Windows",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "description": description,
+  "url": siteUrl,
+  "author": {
+    "@type": "Organization",
+    "name": "RayLabs",
+    "url": "https://github.com/RayLabsHQ"
+  },
+  "softwareVersion": "2.22.0",
+  "screenshot": [
+    `${siteUrl}/assets/dashboard.png`,
+    `${siteUrl}/assets/repositories.png`,
+    `${siteUrl}/assets/organisation.png`
+  ],
+  "featureList": [
+    "Automated repository mirroring",
+    "Bulk organization sync",
+    "Real-time monitoring",
+    "Self-hosted solution",
+    "Open source"
+  ],
+  "softwareRequirements": "Docker or Bun runtime"
+};
 ---
 
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/assets/logo.png" />
     <meta name="generator" content={Astro.generator} />
     
-    <!-- SEO Meta Tags -->
-    <title>Gitea Mirror - Automated GitHub to Gitea Repository Backup & Sync</title>
-    <meta name="description" content="Automatically mirror and backup your GitHub repositories to self-hosted Gitea. Keep your code safe with scheduled syncing, bulk operations, and real-time monitoring." />
-    <meta name="keywords" content="github backup, gitea mirror, repository sync, github to gitea, git mirror, code backup, self-hosted git, repository migration" />
-    <meta name="robots" content="index, follow" />
+    <!-- Primary Meta Tags -->
+    <title>{title}</title>
+    <meta name="title" content={title} />
+    <meta name="description" content={description} />
+    <meta name="keywords" content={keywords} />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="author" content="RayLabs" />
     
-    <!-- Open Graph -->
-    <meta property="og:title" content="Gitea Mirror - Automated GitHub to Gitea Repository Backup" />
-    <meta property="og:description" content="Keep your GitHub repositories safely backed up to your self-hosted Gitea instance with automated mirroring." />
+    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="/assets/dashboard.png" />
+    <meta property="og:url" content={siteUrl} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={`${siteUrl}/assets/dashboard.png`} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Gitea Mirror" />
+    <meta property="og:locale" content="en_US" />
     
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Gitea Mirror - GitHub to Gitea Backup Solution" />
-    <meta name="twitter:description" content="Automated repository mirroring from GitHub to self-hosted Gitea instances." />
-    <meta name="twitter:image" content="/assets/dashboard.png" />
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content={siteUrl} />
+    <meta property="twitter:title" content={title} />
+    <meta property="twitter:description" content={description} />
+    <meta property="twitter:image" content={`${siteUrl}/assets/dashboard.png`} />
+    <meta name="twitter:creator" content="@RayLabsHQ" />
     
     <!-- Canonical URL -->
-    <link rel="canonical" href="https://gitea-mirror.com" />
+    <link rel="canonical" href={siteUrl} />
+    
+    <!-- Additional Meta Tags -->
+    <meta name="theme-color" content="#3b82f6" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Gitea Mirror" />
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
+    
+    <!-- Preconnect to external domains -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://github.com" />
+    
+    <!-- Theme detection script (prevent flash) -->
+    <script is:inline>
+      const theme = localStorage.getItem('theme') || 
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.classList.toggle('dark', theme === 'dark');
+    </script>
   </head>
 
   <body class="min-h-screen bg-background text-foreground antialiased">
-    <!-- Hero Section -->
-    <section class="relative overflow-hidden px-6 py-24 sm:py-32 lg:px-8">
-      <div class="absolute inset-0 -z-10 bg-gradient-to-br from-primary/5 via-transparent to-transparent"></div>
-      <div class="animate-float absolute -top-20 -right-20 h-72 w-72 rounded-full bg-primary/10 blur-3xl"></div>
-      <div class="animate-float-delayed absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-primary/10 blur-3xl"></div>
-      
-      <div class="mx-auto max-w-7xl text-center">
-        <div class="animate-fade-in">
-          <h1 class="text-4xl font-bold tracking-tight sm:text-6xl bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-            Keep Your GitHub Code
-            <span class="block text-primary">Safe & Synced</span>
-          </h1>
-          <p class="mt-6 text-lg leading-8 text-muted-foreground max-w-2xl mx-auto">
-            Automatically mirror your GitHub repositories to self-hosted Gitea. 
-            Never worry about losing access to your code with continuous backup and synchronization.
-          </p>
-          <div class="mt-10 flex items-center justify-center gap-4 flex-wrap">
-            <Button size="lg" className="animate-fade-in-up" asChild>
-              <a href="https://github.com/yourusername/gitea-mirror" target="_blank" rel="noopener noreferrer">
-                Get Started Free
-                <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </a>
-            </Button>
-            <Button size="lg" variant="outline" className="animate-fade-in-up animation-delay-200" asChild>
-              <a href="https://github.com/yourusername/gitea-mirror" target="_blank" rel="noopener noreferrer">
-                View on GitHub
-              </a>
-            </Button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Problem/Solution Section -->
-    <section class="px-6 py-24 sm:py-32 lg:px-8 bg-muted/30">
-      <div class="mx-auto max-w-7xl">
-        <div class="mx-auto max-w-2xl text-center">
-          <h2 class="text-3xl font-bold tracking-tight sm:text-4xl">Why You Need Repository Mirroring</h2>
-          <p class="mt-6 text-lg leading-8 text-muted-foreground">
-            GitHub is great, but what happens if you lose access? Service outages, account issues, or policy changes 
-            can lock you out of your own code. Gitea Mirror ensures you always have a backup on infrastructure you control.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Features Grid -->
-    <section class="px-6 py-24 sm:py-32 lg:px-8">
-      <div class="mx-auto max-w-7xl">
-        <div class="mx-auto max-w-2xl text-center mb-16">
-          <h2 class="text-3xl font-bold tracking-tight sm:text-4xl">Everything You Need for Reliable Backups</h2>
-        </div>
-        <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map((feature, index) => (
-            <div 
-              class="group relative rounded-2xl border bg-card p-8 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 animate-fade-in-up"
-              style={`animation-delay: ${index * 100}ms`}
-            >
-              <div class="text-4xl mb-4">{feature.icon}</div>
-              <h3 class="text-xl font-semibold mb-2">{feature.title}</h3>
-              <p class="text-muted-foreground">{feature.description}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-
-    <!-- Screenshots Section -->
-    <section class="px-6 py-24 sm:py-32 lg:px-8 bg-muted/30">
-      <div class="mx-auto max-w-7xl">
-        <div class="mx-auto max-w-2xl text-center mb-16">
-          <h2 class="text-3xl font-bold tracking-tight sm:text-4xl">See It In Action</h2>
-          <p class="mt-6 text-lg leading-8 text-muted-foreground">
-            A clean, intuitive interface for managing your repository mirrors
-          </p>
-        </div>
-        <div class="relative">
-          <div class="flex overflow-x-auto gap-6 pb-4 snap-x snap-mandatory scrollbar-hide">
-            {screenshots.map((screenshot, index) => (
-              <div 
-                class="flex-none w-full sm:w-[48%] lg:w-[32%] snap-center animate-fade-in-up"
-                style={`animation-delay: ${index * 150}ms`}
-              >
-                <picture>
-                  <source media="(max-width: 640px)" srcset={screenshot.mobile} />
-                  <img 
-                    src={screenshot.src} 
-                    alt={screenshot.alt}
-                    class="rounded-lg shadow-2xl w-full"
-                    loading="lazy"
-                  />
-                </picture>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- How It Works -->
-    <section class="px-6 py-24 sm:py-32 lg:px-8">
-      <div class="mx-auto max-w-7xl">
-        <div class="mx-auto max-w-2xl text-center mb-16">
-          <h2 class="text-3xl font-bold tracking-tight sm:text-4xl">Get Started in Minutes</h2>
-        </div>
-        <div class="mx-auto max-w-3xl">
-          <div class="space-y-8">
-            {steps.map((step, index) => (
-              <div 
-                class="flex gap-4 animate-fade-in-left"
-                style={`animation-delay: ${index * 200}ms`}
-              >
-                <div class="flex-none">
-                  <div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-lg">
-                    {step.number}
-                  </div>
-                </div>
-                <div class="flex-auto">
-                  <h3 class="text-xl font-semibold mb-1">{step.title}</h3>
-                  <p class="text-muted-foreground">{step.description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Open Source Section -->
-    <section class="px-6 py-24 sm:py-32 lg:px-8 bg-muted/30">
-      <div class="mx-auto max-w-7xl text-center">
-        <div class="mx-auto max-w-2xl">
-          <h2 class="text-3xl font-bold tracking-tight sm:text-4xl mb-6">Free & Open Source</h2>
-          <p class="text-lg leading-8 text-muted-foreground mb-8">
-            Gitea Mirror is completely free and open source. Self-host with confidence knowing you have 
-            full control over your infrastructure and data.
-          </p>
-          <div class="rounded-lg border bg-card/50 p-6 mb-8">
-            <p class="text-sm text-muted-foreground">
-              <span class="font-semibold text-foreground">Coming Soon:</span> Support development with an optional 
-              supporter tier ($20/year) for priority features and dedicated support.
-            </p>
-          </div>
-          <div class="flex items-center justify-center gap-4 flex-wrap">
-            <Button size="lg" asChild>
-              <a href="https://github.com/yourusername/gitea-mirror" target="_blank" rel="noopener noreferrer">
-                View Source Code
-                <svg className="ml-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                </svg>
-              </a>
-            </Button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="border-t">
-      <div class="mx-auto max-w-7xl px-6 py-12 lg:px-8">
-        <div class="flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <p class="text-sm text-muted-foreground">
-            © 2025 Gitea Mirror. Open source under MIT License.
-          </p>
-          <div class="flex gap-6">
-            <a href="https://github.com/yourusername/gitea-mirror" class="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              GitHub
-            </a>
-            <a href="https://github.com/yourusername/gitea-mirror/wiki" class="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Documentation
-            </a>
-            <a href="https://github.com/yourusername/gitea-mirror/issues" class="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Support
-            </a>
-          </div>
-        </div>
-      </div>
-    </footer>
+    <Header client:load />
+    
+    <main>
+      <Hero client:load />
+      <Features client:load />
+      <Screenshots client:load />
+      <Installation client:load />
+      <CTA client:load />
+    </main>
+    
+    <Footer client:load />
 
     <style>
-      /* Smooth scroll for screenshot carousel */
-      .scrollbar-hide {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
-      .scrollbar-hide::-webkit-scrollbar {
-        display: none;
+      /* Smooth scrolling */
+      html {
+        scroll-behavior: smooth;
       }
 
-      /* CSS Animations */
-      @keyframes fade-in {
-        from {
-          opacity: 0;
-          transform: translateY(10px);
+      /* Blob animation */
+      @keyframes blob {
+        0% {
+          transform: translate(0px, 0px) scale(1);
         }
-        to {
-          opacity: 1;
-          transform: translateY(0);
+        33% {
+          transform: translate(30px, -50px) scale(1.1);
         }
-      }
-
-      @keyframes fade-in-up {
-        from {
-          opacity: 0;
-          transform: translateY(20px);
+        66% {
+          transform: translate(-20px, 20px) scale(0.9);
         }
-        to {
-          opacity: 1;
-          transform: translateY(0);
+        100% {
+          transform: translate(0px, 0px) scale(1);
         }
       }
 
-      @keyframes fade-in-left {
-        from {
-          opacity: 0;
-          transform: translateX(-20px);
-        }
-        to {
-          opacity: 1;
-          transform: translateX(0);
-        }
+      .animate-blob {
+        animation: blob 7s infinite;
       }
 
-      @keyframes float {
-        0%, 100% {
-          transform: translateY(0);
-        }
-        50% {
-          transform: translateY(-20px);
-        }
+      .animation-delay-2000 {
+        animation-delay: 2s;
       }
 
-      .animate-fade-in {
-        animation: fade-in 0.6s ease-out forwards;
+      .animation-delay-4000 {
+        animation-delay: 4s;
       }
 
-      .animate-fade-in-up {
-        opacity: 0;
-        animation: fade-in-up 0.6s ease-out forwards;
-      }
-
-      .animate-fade-in-left {
-        opacity: 0;
-        animation: fade-in-left 0.6s ease-out forwards;
-      }
-
-      .animate-float {
-        animation: float 6s ease-in-out infinite;
-      }
-
-      .animate-float-delayed {
-        animation: float 6s ease-in-out 3s infinite;
-      }
-
-      .animation-delay-200 {
-        animation-delay: 200ms;
+      /* Grid background pattern */
+      .bg-grid-white\/10 {
+        background-image: linear-gradient(to right, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+        background-size: 20px 20px;
       }
     </style>
   </body>
