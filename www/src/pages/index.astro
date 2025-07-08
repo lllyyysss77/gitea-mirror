@@ -2,11 +2,11 @@
 import '../styles/global.css';
 import { Header } from '../components/Header';
 import { Hero } from '../components/Hero';
-import { Features } from '../components/Features';
-import { Screenshots } from '../components/Screenshots';
+import Features from '../components/Features.astro';
+import Screenshots from '../components/Screenshots.astro';
 import { Installation } from '../components/Installation';
 import { CTA } from '../components/CTA';
-import { Footer } from '../components/Footer';
+import Footer from '../components/Footer.astro';
 
 const siteUrl = 'https://gitea-mirror.com';
 const title = 'Gitea Mirror - Automated GitHub to Gitea Repository Mirroring & Backup';
@@ -118,13 +118,13 @@ const structuredData = {
     
     <main>
       <Hero client:load />
-      <Features client:load />
-      <Screenshots client:load />
+      <Features />
+      <Screenshots />
       <Installation client:load />
       <CTA client:load />
     </main>
     
-    <Footer client:load />
+    <Footer />
 
     <style>
       /* Smooth scrolling */
