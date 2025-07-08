@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ThemeToggle } from './ThemeToggle';
-import { Github, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { Button } from './ui/button';
+import { GitHubButton } from './GitHubButton';
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -58,12 +59,7 @@ export function Header() {
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-4">
             <ThemeToggle />
-            <Button variant="outline" size="sm" asChild>
-              <a href="https://github.com/RayLabsHQ/gitea-mirror" target="_blank" rel="noopener noreferrer">
-                <Github className="w-4 h-4 mr-2" />
-                Star on GitHub
-              </a>
-            </Button>
+            <GitHubButton />
           </div>
 
           {/* Mobile Actions */}
@@ -103,12 +99,7 @@ export function Header() {
               </a>
             ))}
             <div className="pt-3 border-t">
-              <Button variant="outline" size="sm" className="w-full" asChild>
-                <a href="https://github.com/RayLabsHQ/gitea-mirror" target="_blank" rel="noopener noreferrer">
-                  <Github className="w-4 h-4 mr-2" />
-                  Star on GitHub
-                </a>
-              </Button>
+              <GitHubButton />
             </div>
           </nav>
         </div>

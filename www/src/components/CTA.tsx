@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from './ui/button';
-import { ArrowRight, Star, GitFork, Users } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import { GitHubStats } from './GitHubStats';
 
 export function CTA() {
   return (
@@ -20,20 +21,7 @@ export function CTA() {
             </p>
 
             {/* Stats */}
-            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 md:gap-8 mb-6 sm:mb-8 text-white/80 text-sm sm:text-base">
-              <div className="flex items-center gap-2">
-                <Star className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="font-semibold">500+ Stars</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <GitFork className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="font-semibold">50+ Forks</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="font-semibold">Active Community</span>
-              </div>
-            </div>
+            <GitHubStats />
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
               <Button size="lg" variant="secondary" className="group w-full sm:w-auto min-h-[48px]" asChild>

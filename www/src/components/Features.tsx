@@ -6,9 +6,6 @@ import {
   Activity, 
   Lock, 
   Heart,
-  Zap,
-  Shield,
-  GitBranch
 } from 'lucide-react';
 
 const features = [
@@ -89,37 +86,6 @@ export function Features() {
               </div>
             );
           })}
-        </div>
-
-        {/* Additional feature highlights */}
-        <div className="mt-12 sm:mt-16 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 p-6 sm:p-8 rounded-xl sm:rounded-2xl bg-muted/30">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="p-2 rounded-lg bg-blue-500/10 flex-shrink-0">
-              <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <p className="font-semibold text-sm sm:text-base">Lightning Fast</p>
-              <p className="text-xs sm:text-sm text-muted-foreground">Optimized for speed</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="p-2 rounded-lg bg-green-500/10 flex-shrink-0">
-              <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
-            </div>
-            <div>
-              <p className="font-semibold text-sm sm:text-base">Enterprise Ready</p>
-              <p className="text-xs sm:text-sm text-muted-foreground">Scale with confidence</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="p-2 rounded-lg bg-purple-500/10 flex-shrink-0">
-              <GitBranch className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
-            </div>
-            <div>
-              <p className="font-semibold text-sm sm:text-base">Full Git Support</p>
-              <p className="text-xs sm:text-sm text-muted-foreground">All features preserved</p>
-            </div>
-          </div>
         </div>
       </div>
     </section>
