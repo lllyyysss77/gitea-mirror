@@ -32,7 +32,16 @@ export function Footer() {
           {/* Logo and tagline */}
           <div className="text-center">
             <div className="flex items-center justify-center gap-2 mb-2">
-              <img src="/assets/logo-no-bg.png" alt="Gitea Mirror" className="w-6 h-6 sm:w-8 sm:h-8" />
+              <img
+                src="/logo-light.svg"
+                alt="Gitea Mirror"
+                className="w-6 h-6 sm:w-8 sm:h-8 dark:hidden"
+              />
+              <img
+                src="/logo-dark.svg"
+                alt="Gitea Mirror"
+                className="w-6 h-6 sm:w-8 sm:h-8 hidden dark:block"
+              />
               <span className="font-semibold text-base sm:text-lg">Gitea Mirror</span>
             </div>
             <p className="text-xs sm:text-sm text-muted-foreground">

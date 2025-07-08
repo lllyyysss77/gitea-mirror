@@ -1,35 +1,38 @@
 import React from 'react';
 import { Button } from './ui/button';
-import { ArrowRight, Github, Shield, RefreshCw } from 'lucide-react';
+import { ArrowRight, Shield, RefreshCw } from 'lucide-react';
+import { GitHubLogoIcon } from '@radix-ui/react-icons';
 
 export function Hero() {
   return (
     <section className="relative min-h-[100vh] pt-20 pb-10 flex items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden">
-      {/* Background gradients */}
+      {/* Subtle background pattern */}
       <div className="absolute inset-0 -z-10">
-        <div className="absolute top-20 -left-4 w-48 h-48 sm:w-72 sm:h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob dark:opacity-10"></div>
-        <div className="absolute top-20 -right-4 w-48 h-48 sm:w-72 sm:h-72 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000 dark:opacity-10"></div>
-        <div className="absolute -bottom-8 left-10 w-48 h-48 sm:w-72 sm:h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000 dark:opacity-10"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-muted/20 to-transparent"></div>
       </div>
 
       <div className="max-w-7xl mx-auto text-center w-full">
         <div className="mb-6 sm:mb-8 flex justify-center">
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full blur-lg opacity-75 animate-pulse"></div>
-            <img 
-              src="/assets/logo-no-bg.png" 
-              alt="Gitea Mirror Logo" 
-              className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32"
+            <img
+              src="/assets/logo-no-bg.png"
+              alt="Gitea Mirror Logo"
+              className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 dark:hidden"
+            />
+            <img
+              src="/assets/logo-no-bg.png"
+              alt="Gitea Mirror Logo"
+              className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 hidden dark:block"
             />
           </div>
         </div>
 
         <h1 className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight">
-          <span className="bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
+          <span className="text-foreground">
             Keep Your Code
           </span>
           <br />
-          <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <span className="text-primary">
             Safe & Synced
           </span>
         </h1>
@@ -41,17 +44,17 @@ export function Hero() {
 
         <div className="mt-6 sm:mt-8 flex flex-wrap items-center justify-center gap-3 text-xs sm:text-sm text-muted-foreground px-4">
           <div className="flex items-center gap-2">
-            <Shield className="w-3 h-3 sm:w-4 sm:h-4" />
+            <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" />
             <span>Self-Hosted</span>
           </div>
-          <span className="text-gray-300 dark:text-gray-700 hidden xs:inline">•</span>
+          <span className="text-border hidden xs:inline">•</span>
           <div className="flex items-center gap-2">
-            <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4" />
+            <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" />
             <span>Auto-Sync</span>
           </div>
-          <span className="text-gray-300 dark:text-gray-700 hidden xs:inline">•</span>
+          <span className="text-border hidden xs:inline">•</span>
           <div className="flex items-center gap-2">
-            <Github className="w-3 h-3 sm:w-4 sm:h-4" />
+            <GitHubLogoIcon className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" />
             <span>Open Source</span>
           </div>
         </div>

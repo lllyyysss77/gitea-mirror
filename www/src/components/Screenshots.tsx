@@ -113,7 +113,7 @@ export function Screenshots() {
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
           >
-            <div className="aspect-[16/10] overflow-hidden rounded-lg sm:rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 dark:from-gray-800 dark:to-gray-900 shadow-2xl">
+            <div className="aspect-[16/10] overflow-hidden rounded-lg sm:rounded-2xl bg-card border shadow-lg">
               <picture>
                 <source media="(max-width: 640px)" srcSet={current.mobile} />
                 <img

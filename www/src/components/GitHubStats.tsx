@@ -41,7 +41,7 @@ export function GitHubStats() {
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 md:gap-8 mb-6 sm:mb-8 text-white/80 text-sm sm:text-base">
+    <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 md:gap-8 mb-6 sm:mb-8 text-foreground text-sm sm:text-base">
       <div className="flex items-center gap-2">
         <Star className="w-4 h-4 sm:w-5 sm:h-5" />
         <span className="font-semibold">{stats?.stargazers_count || 0} Stars</span>

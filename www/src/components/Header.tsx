@@ -35,12 +35,17 @@ export function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <a href="#" className="flex items-center gap-2 group">
-            <img 
-              src="/assets/logo-no-bg.png" 
-              alt="Gitea Mirror" 
-              className="w-8 h-8 transition-transform group-hover:scale-110" 
+            <img
+              src="/logo-light.svg"
+              alt="Gitea Mirror Logo"
+              className="h-6 w-6 dark:hidden"
             />
-            <span className="font-semibold text-lg hidden sm:block">Gitea Mirror</span>
+            <img
+              src="/logo-dark.svg"
+              alt="Gitea Mirror Logo"
+              className="h-6 w-6 hidden dark:block"
+            />
+            <span className="text-xl font-bold hidden sm:inline">Gitea Mirror</span>
           </a>
 
           {/* Desktop Navigation */}
