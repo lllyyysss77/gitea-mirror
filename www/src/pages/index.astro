@@ -1,0 +1,186 @@
+---
+import '../styles/global.css';
+import { Header } from '../components/Header';
+import { Hero } from '../components/Hero';
+import { Features } from '../components/Features';
+import { Screenshots } from '../components/Screenshots';
+import { Installation } from '../components/Installation';
+import { CTA } from '../components/CTA';
+import { Footer } from '../components/Footer';
+
+const siteUrl = 'https://gitea-mirror.com';
+const title = 'Gitea Mirror - Automated GitHub to Gitea Repository Mirroring & Backup';
+const description = 'Automatically mirror and backup your GitHub repositories to self-hosted Gitea. Keep your code safe with scheduled syncing, bulk operations, and real-time monitoring. Free and open source.';
+const keywords = 'github backup, gitea mirror, repository sync, github to gitea, git mirror, code backup, self-hosted git, repository migration, github mirror tool, gitea sync, automated backup, github repository backup, git repository mirror, self-hosted backup solution';
+
+// Structured data for SEO
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Gitea Mirror",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Linux, macOS, Windows",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "description": description,
+  "url": siteUrl,
+  "author": {
+    "@type": "Organization",
+    "name": "RayLabs",
+    "url": "https://github.com/RayLabsHQ"
+  },
+  "softwareVersion": "2.22.0",
+  "screenshot": [
+    `${siteUrl}/assets/dashboard.png`,
+    `${siteUrl}/assets/repositories.png`,
+    `${siteUrl}/assets/organisation.png`
+  ],
+  "featureList": [
+    "Automated repository mirroring",
+    "Bulk organization sync",
+    "Real-time monitoring",
+    "Self-hosted solution",
+    "Open source"
+  ],
+  "softwareRequirements": "Docker or Bun runtime"
+};
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/assets/logo.png" />
+    <meta name="generator" content={Astro.generator} />
+    
+    <!-- Primary Meta Tags -->
+    <title>{title}</title>
+    <meta name="title" content={title} />
+    <meta name="description" content={description} />
+    <meta name="keywords" content={keywords} />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="author" content="RayLabs" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={siteUrl} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={`${siteUrl}/og-image.png`} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="Gitea Mirror" />
+    <meta property="og:locale" content="en_US" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content={siteUrl} />
+    <meta property="twitter:title" content={title} />
+    <meta property="twitter:description" content={description} />
+    <meta property="twitter:image" content={`${siteUrl}/og-image.png`} />
+    <meta name="twitter:creator" content="@RayLabsHQ" />
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href={siteUrl} />
+    
+    <!-- Additional Meta Tags -->
+    <meta name="theme-color" content="#5b6fff" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Gitea Mirror" />
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json" is:inline set:html={JSON.stringify(structuredData)} />
+    
+    <!-- Preconnect to external domains -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://github.com" />
+    
+    <!-- Theme detection script (prevent flash) -->
+    <script is:inline>
+      const theme = localStorage.getItem('theme') || 
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.classList.toggle('dark', theme === 'dark');
+    </script>
+    
+    <!-- 100% privacy-first analytics -->
+    <script async src="https://scripts.simpleanalyticscdn.com/latest.js" is:inline></script>
+  </head>
+
+  <body class="min-h-screen bg-background text-foreground antialiased">
+    <Header client:load />
+    
+    <main>
+      <Hero client:load />
+      <Features client:load />
+      <Screenshots client:load />
+      <Installation client:load />
+      <CTA client:load />
+    </main>
+    
+    <Footer client:load />
+
+    <style>
+      /* Smooth scrolling */
+      html {
+        scroll-behavior: smooth;
+      }
+
+      /* Blob animation */
+      @keyframes blob {
+        0% {
+          transform: translate(0px, 0px) scale(1);
+        }
+        33% {
+          transform: translate(30px, -50px) scale(1.1);
+        }
+        66% {
+          transform: translate(-20px, 20px) scale(0.9);
+        }
+        100% {
+          transform: translate(0px, 0px) scale(1);
+        }
+      }
+
+      .animate-blob {
+        animation: blob 7s infinite;
+      }
+
+      .animation-delay-2000 {
+        animation-delay: 2s;
+      }
+
+      .animation-delay-4000 {
+        animation-delay: 4s;
+      }
+
+      /* Grid background pattern */
+      .bg-grid-white\/10 {
+        background-image: linear-gradient(to right, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+        background-size: 20px 20px;
+      }
+      
+      /* Smooth gradient animations */
+      @keyframes gradient-shift {
+        0%, 100% {
+          background-position: 0% 50%;
+        }
+        50% {
+          background-position: 100% 50%;
+        }
+      }
+      
+      .animate-gradient {
+        background-size: 200% 200%;
+        animation: gradient-shift 15s ease infinite;
+      }
+    </style>
+  </body>
+</html>
