@@ -504,6 +504,102 @@ export const verificationTokens = sqliteTable("verification_tokens", {
   };
 });
 
+// ===== OIDC Provider Tables =====
+
+// OAuth Applications table
+export const oauthApplications = sqliteTable("oauth_applications", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id").notNull().unique(),
+  clientSecret: text("client_secret").notNull(),
+  name: text("name").notNull(),
+  redirectURLs: text("redirect_urls").notNull(), // Comma-separated list
+  metadata: text("metadata"), // JSON string
+  type: text("type").notNull(), // web, mobile, etc
+  disabled: integer("disabled", { mode: "boolean" }).notNull().default(false),
+  userId: text("user_id"), // Optional - owner of the application
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+}, (table) => {
+  return {
+    clientIdIdx: index("idx_oauth_applications_client_id").on(table.clientId),
+    userIdIdx: index("idx_oauth_applications_user_id").on(table.userId),
+  };
+});
+
+// OAuth Access Tokens table
+export const oauthAccessTokens = sqliteTable("oauth_access_tokens", {
+  id: text("id").primaryKey(),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token"),
+  accessTokenExpiresAt: integer("access_token_expires_at", { mode: "timestamp" }).notNull(),
+  refreshTokenExpiresAt: integer("refresh_token_expires_at", { mode: "timestamp" }),
+  clientId: text("client_id").notNull(),
+  userId: text("user_id").notNull().references(() => users.id),
+  scopes: text("scopes").notNull(), // Comma-separated list
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+}, (table) => {
+  return {
+    accessTokenIdx: index("idx_oauth_access_tokens_access_token").on(table.accessToken),
+    userIdIdx: index("idx_oauth_access_tokens_user_id").on(table.userId),
+    clientIdIdx: index("idx_oauth_access_tokens_client_id").on(table.clientId),
+  };
+});
+
+// OAuth Consent table
+export const oauthConsent = sqliteTable("oauth_consent", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id),
+  clientId: text("client_id").notNull(),
+  scopes: text("scopes").notNull(), // Comma-separated list
+  consentGiven: integer("consent_given", { mode: "boolean" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+}, (table) => {
+  return {
+    userIdIdx: index("idx_oauth_consent_user_id").on(table.userId),
+    clientIdIdx: index("idx_oauth_consent_client_id").on(table.clientId),
+    userClientIdx: index("idx_oauth_consent_user_client").on(table.userId, table.clientId),
+  };
+});
+
+// ===== SSO Provider Tables =====
+
+// SSO Providers table
+export const ssoProviders = sqliteTable("sso_providers", {
+  id: text("id").primaryKey(),
+  issuer: text("issuer").notNull(),
+  domain: text("domain").notNull(),
+  oidcConfig: text("oidc_config").notNull(), // JSON string with OIDC configuration
+  userId: text("user_id").notNull(), // Admin who created this provider
+  providerId: text("provider_id").notNull().unique(), // Unique identifier for the provider
+  organizationId: text("organization_id"), // Optional - if provider is linked to an organization
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+}, (table) => {
+  return {
+    providerIdIdx: index("idx_sso_providers_provider_id").on(table.providerId),
+    domainIdx: index("idx_sso_providers_domain").on(table.domain),
+    issuerIdx: index("idx_sso_providers_issuer").on(table.issuer),
+  };
+});
+
 // Export type definitions
 export type User = z.infer<typeof userSchema>;
 export type Config = z.infer<typeof configSchema>;

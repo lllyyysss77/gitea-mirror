@@ -47,7 +47,8 @@ import MainLayout from '../../layouts/main.astro';
                 { name: 'Shadcn UI', desc: 'UI component library built on Tailwind CSS' },
                 { name: 'SQLite', desc: 'Database for storing configuration, state, and events' },
                 { name: 'Bun', desc: 'JavaScript runtime and package manager' },
-                { name: 'Drizzle ORM', desc: 'Type-safe ORM for database interactions' }
+                { name: 'Drizzle ORM', desc: 'Type-safe ORM for database interactions' },
+                { name: 'Better Auth', desc: 'Modern authentication library with SSO/OIDC support' }
               ].map(tech => (
                 <div class="flex items-start gap-3">
                   <div class="w-2 h-2 rounded-full bg-primary mt-2"></div>
@@ -184,7 +185,8 @@ import MainLayout from '../../layouts/main.astro';
             
             <div class="space-y-3">
               {[
-                'Authentication and user management',
+                'Authentication with Better Auth (email/password, SSO, OIDC)',
+                'OAuth2/OIDC provider functionality',
                 'GitHub API integration',
                 'Gitea API integration',
                 'Mirroring operations and job queue',
@@ -213,11 +215,13 @@ import MainLayout from '../../layouts/main.astro';
             
             <div class="space-y-3">
               {[
-                'User accounts and authentication data',
+                'User accounts and authentication data (Better Auth)',
+                'OAuth applications and SSO provider configurations',
                 'GitHub and Gitea configuration',
                 'Repository and organization information',
                 'Mirroring job history and status',
-                'Event notifications and their read status'
+                'Event notifications and their read status',
+                'OAuth tokens and consent records'
               ].map(item => (
                 <div class="flex gap-3">
                   <span class="text-primary font-mono text-sm">▸</span>
@@ -238,7 +242,7 @@ import MainLayout from '../../layouts/main.astro';
         <div class="bg-gradient-to-r from-primary/5 to-transparent rounded-lg p-6 border-l-4 border-primary">
           <ol class="space-y-4">
             {[
-              { title: 'User Authentication', desc: 'Users authenticate through the frontend, which communicates with the backend to validate credentials.' },
+              { title: 'User Authentication', desc: 'Users authenticate via Better Auth using email/password, SSO providers, or as OIDC clients.' },
               { title: 'Configuration', desc: 'Users configure GitHub and Gitea settings through the UI, which are stored in the SQLite database.' },
               { title: 'Repository Discovery', desc: 'The backend queries the GitHub API to discover repositories based on user configuration.' },
               { title: 'Mirroring Process', desc: 'When triggered, the backend fetches repository data from GitHub and pushes it to Gitea.' },

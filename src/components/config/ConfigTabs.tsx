@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { GitHubConfigForm } from './GitHubConfigForm';
 import { GiteaConfigForm } from './GiteaConfigForm';
 import { AutomationSettings } from './AutomationSettings';
+import { SSOSettings } from './SSOSettings';
 import type {
   ConfigApiResponse,
   GiteaConfig,
@@ -20,6 +21,7 @@ import { RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { invalidateConfigCache } from '@/hooks/useConfigStatus';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type ConfigState = {
   githubConfig: GitHubConfig;
@@ -601,65 +603,71 @@ export function ConfigTabs() {
         </div>
       </div>
 
-      {/* Content section - Grid layout */}
-      <div className="space-y-6">
-        {/* GitHub & Gitea connections - Side by side */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:items-stretch">
-          <GitHubConfigForm
-            config={config.githubConfig}
-            setConfig={update =>
-              setConfig(prev => ({
-                ...prev,
-                githubConfig:
-                  typeof update === 'function'
-                    ? update(prev.githubConfig)
-                    : update,
-              }))
-            }
-            mirrorOptions={config.mirrorOptions}
-            setMirrorOptions={update =>
-              setConfig(prev => ({
-                ...prev,
-                mirrorOptions:
-                  typeof update === 'function'
-                    ? update(prev.mirrorOptions)
-                    : update,
-              }))
-            }
-            advancedOptions={config.advancedOptions}
-            setAdvancedOptions={update =>
-              setConfig(prev => ({
-                ...prev,
-                advancedOptions:
-                  typeof update === 'function'
-                    ? update(prev.advancedOptions)
-                    : update,
-              }))
-            }
-            onAutoSave={autoSaveGitHubConfig}
-            onMirrorOptionsAutoSave={autoSaveMirrorOptions}
-            onAdvancedOptionsAutoSave={autoSaveAdvancedOptions}
-            isAutoSaving={isAutoSavingGitHub}
-          />
-          <GiteaConfigForm
-            config={config.giteaConfig}
-            setConfig={update =>
-              setConfig(prev => ({
-                ...prev,
-                giteaConfig:
-                  typeof update === 'function'
-                    ? update(prev.giteaConfig)
-                    : update,
-              }))
-            }
-            onAutoSave={autoSaveGiteaConfig}
-            isAutoSaving={isAutoSavingGitea}
-            githubUsername={config.githubConfig.username}
-          />
-        </div>
+      {/* Content section - Tabs layout */}
+      <Tabs defaultValue="connections" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="connections">Connections</TabsTrigger>
+          <TabsTrigger value="automation">Automation</TabsTrigger>
+          <TabsTrigger value="sso">Authentication</TabsTrigger>
+        </TabsList>
 
-        {/* Automation & Maintenance - Full width */}
-        <div>
+        <TabsContent value="connections" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:items-stretch">
+            <GitHubConfigForm
+              config={config.githubConfig}
+              setConfig={update =>
+                setConfig(prev => ({
+                  ...prev,
+                  githubConfig:
+                    typeof update === 'function'
+                      ? update(prev.githubConfig)
+                      : update,
+                }))
+              }
+              mirrorOptions={config.mirrorOptions}
+              setMirrorOptions={update =>
+                setConfig(prev => ({
+                  ...prev,
+                  mirrorOptions:
+                    typeof update === 'function'
+                      ? update(prev.mirrorOptions)
+                      : update,
+                }))
+              }
+              advancedOptions={config.advancedOptions}
+              setAdvancedOptions={update =>
+                setConfig(prev => ({
+                  ...prev,
+                  advancedOptions:
+                    typeof update === 'function'
+                      ? update(prev.advancedOptions)
+                      : update,
+                }))
+              }
+              onAutoSave={autoSaveGitHubConfig}
+              onMirrorOptionsAutoSave={autoSaveMirrorOptions}
+              onAdvancedOptionsAutoSave={autoSaveAdvancedOptions}
+              isAutoSaving={isAutoSavingGitHub}
+            />
+            <GiteaConfigForm
+              config={config.giteaConfig}
+              setConfig={update =>
+                setConfig(prev => ({
+                  ...prev,
+                  giteaConfig:
+                    typeof update === 'function'
+                      ? update(prev.giteaConfig)
+                      : update,
+                }))
+              }
+              onAutoSave={autoSaveGiteaConfig}
+              isAutoSaving={isAutoSavingGitea}
+              githubUsername={config.githubConfig.username}
+            />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="automation" className="space-y-4">
           <AutomationSettings
             scheduleConfig={config.scheduleConfig}
             cleanupConfig={config.cleanupConfig}
@@ -674,8 +682,12 @@ export function ConfigTabs() {
             isAutoSavingSchedule={isAutoSavingSchedule}
             isAutoSavingCleanup={isAutoSavingCleanup}
           />
-        </div>
-      </div>
+        </TabsContent>
+
+        <TabsContent value="sso" className="space-y-4">
+          <SSOSettings />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

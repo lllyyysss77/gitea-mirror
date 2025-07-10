@@ -1,5 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { oidcProvider } from "better-auth/plugins";
+import { sso } from "better-auth/plugins/sso";
 import { db, users } from "./db";
 import * as schema from "./db/schema";
 import { eq } from "drizzle-orm";
@@ -50,8 +52,42 @@ export const auth = betterAuth({
     },
   },
 
-  // TODO: Add plugins for SSO and OIDC support in the future
-  // plugins: [],
+  // Plugins configuration
+  plugins: [
+    // OIDC Provider plugin - allows this app to act as an OIDC provider
+    oidcProvider({
+      loginPage: "/login",
+      consentPage: "/oauth/consent",
+      // Allow dynamic client registration for flexibility
+      allowDynamicClientRegistration: true,
+      // Customize user info claims based on scopes
+      getAdditionalUserInfoClaim: (user, scopes) => {
+        const claims: Record<string, any> = {};
+        if (scopes.includes("profile")) {
+          claims.username = user.username;
+        }
+        return claims;
+      },
+    }),
+    
+    // SSO plugin - allows users to authenticate with external OIDC providers
+    sso({
+      // Provision new users when they sign in with SSO
+      provisionUser: async (user) => {
+        // Derive username from email if not provided
+        const username = user.name || user.email?.split('@')[0] || 'user';
+        return {
+          ...user,
+          username,
+        };
+      },
+      // Organization provisioning settings
+      organizationProvisioning: {
+        disabled: false,
+        defaultRole: "member",
+      },
+    }),
+  ],
 
   // Trusted origins for CORS
   trustedOrigins: [

@@ -70,5 +70,9 @@ export {
   organizations,
   sessions,
   accounts,
-  verificationTokens 
+  verificationTokens,
+  oauthApplications,
+  oauthAccessTokens,
+  oauthConsent,
+  ssoProviders
 } from "./schema";
