@@ -81,21 +81,23 @@ async function repairMirroredRepositories() {
 
   try {
     // Find repositories that might need repair
-    let query = db
-      .select()
-      .from(repositories)
-      .where(
-        or(
+    const whereConditions = specificRepo
+      ? and(
+          or(
+            eq(repositories.status, "imported"),
+            eq(repositories.status, "failed")
+          ),
+          eq(repositories.name, specificRepo)
+        )
+      : or(
           eq(repositories.status, "imported"),
           eq(repositories.status, "failed")
-        )
-      );
+        );
 
-    if (specificRepo) {
-      query = query.where(eq(repositories.name, specificRepo));
-    }
-
-    const repos = await query;
+    const repos = await db
+      .select()
+      .from(repositories)
+      .where(whereConditions);
 
     if (repos.length === 0) {
       if (!isStartupMode) {
@@ -137,7 +139,7 @@ async function repairMirroredRepositories() {
         }
 
         const userConfig = config[0];
-        const giteaUsername = userConfig.giteaConfig?.username;
+        const giteaUsername = userConfig.giteaConfig?.defaultOwner;
 
         if (!giteaUsername) {
           if (!isStartupMode) {

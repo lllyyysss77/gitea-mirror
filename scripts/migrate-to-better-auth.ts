@@ -46,12 +46,14 @@ async function migrateUsers() {
       }
 
       // Create credential account with existing password hash
+      const accountId = uuidv4();
       await db.insert(accounts).values({
-        id: uuidv4(),
+        id: accountId,
+        accountId: accountId,
         userId: user.id,
         providerId: "credential",
         providerUserId: user.email, // Use email as provider user ID
-        password: user.password, // Move existing password hash
+        // password: user.password, // Password is not in users table anymore
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       });

@@ -22,7 +22,8 @@ const auth = betterAuth({
 });
 
 // Generate the schema
-const schema = auth.$internal.schema;
+// Note: $internal API is not available in current better-auth version
+// const schema = auth.$internal.schema;
 
 console.log("Better Auth Tables Required:");
 console.log("============================");

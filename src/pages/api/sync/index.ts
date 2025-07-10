@@ -47,7 +47,7 @@ export const POST: APIRoute = async ({ request }) => {
     // Fetch GitHub data in parallel
     const [basicAndForkedRepos, starredRepos, gitOrgs] = await Promise.all([
       getGithubRepositories({ octokit, config }),
-      config.githubConfig?.mirrorStarred
+      config.githubConfig?.includeStarred
         ? getGithubStarredRepositories({ octokit, config })
         : Promise.resolve([]),
       getGithubOrganizations({ octokit, config }),

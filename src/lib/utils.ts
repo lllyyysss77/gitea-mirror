@@ -194,7 +194,7 @@ export async function apiRequest<T>(
   }
 }
 
-export const getStatusColor = (status: RepoStatus): string => {
+export const getStatusColor = (status: string): string => {
   switch (status) {
     case "imported":
       return "bg-blue-500"; // Info/primary-like
@@ -208,6 +208,12 @@ export const getStatusColor = (status: RepoStatus): string => {
       return "bg-indigo-500"; // Sync in progress
     case "synced":
       return "bg-teal-500"; // Sync complete
+    case "skipped":
+      return "bg-gray-500"; // Skipped
+    case "deleting":
+      return "bg-orange-500"; // Deleting
+    case "deleted":
+      return "bg-gray-600"; // Deleted
     default:
       return "bg-gray-400"; // Unknown/neutral
   }

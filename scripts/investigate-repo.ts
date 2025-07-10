@@ -79,11 +79,11 @@ async function investigateRepository() {
     if (config.length > 0) {
       const userConfig = config[0];
       console.log(`   User ID: ${userConfig.userId}`);
-      console.log(`   GitHub Username: ${userConfig.githubConfig?.username || "Not set"}`);
+      console.log(`   GitHub Owner: ${userConfig.githubConfig?.owner || "Not set"}`);
       console.log(`   Gitea URL: ${userConfig.giteaConfig?.url || "Not set"}`);
-      console.log(`   Gitea Username: ${userConfig.giteaConfig?.username || "Not set"}`);
-      console.log(`   Preserve Org Structure: ${userConfig.githubConfig?.preserveOrgStructure || false}`);
-      console.log(`   Mirror Issues: ${userConfig.githubConfig?.mirrorIssues || false}`);
+      console.log(`   Gitea Default Owner: ${userConfig.giteaConfig?.defaultOwner || "Not set"}`);
+      console.log(`   Mirror Strategy: ${userConfig.githubConfig?.mirrorStrategy || "preserve"}`);
+      console.log(`   Include Starred: ${userConfig.githubConfig?.includeStarred || false}`);
     }
 
     // Check for any active jobs
@@ -123,7 +123,7 @@ async function investigateRepository() {
       try {
         const giteaUrl = userConfig.giteaConfig?.url;
         const giteaToken = userConfig.giteaConfig?.token;
-        const giteaUsername = userConfig.giteaConfig?.username;
+        const giteaUsername = userConfig.giteaConfig?.defaultOwner;
 
         if (giteaUrl && giteaToken && giteaUsername) {
           const checkUrl = `${giteaUrl}/api/v1/repos/${giteaUsername}/${repo.name}`;

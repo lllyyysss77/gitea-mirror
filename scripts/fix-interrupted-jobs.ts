@@ -10,7 +10,7 @@
  */
 
 import { db, mirrorJobs } from "../src/lib/db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -21,18 +21,19 @@ async function fixInterruptedJobs() {
     console.log("Checking for interrupted jobs...");
 
     // Build the query
-    let query = db
-      .select()
-      .from(mirrorJobs)
-      .where(eq(mirrorJobs.inProgress, true));
+    const whereConditions = userId 
+      ? and(eq(mirrorJobs.inProgress, true), eq(mirrorJobs.userId, userId))
+      : eq(mirrorJobs.inProgress, true);
 
     if (userId) {
       console.log(`Filtering for user: ${userId}`);
-      query = query.where(eq(mirrorJobs.userId, userId));
     }
 
     // Find all in-progress jobs
-    const inProgressJobs = await query;
+    const inProgressJobs = await db
+      .select()
+      .from(mirrorJobs)
+      .where(whereConditions);
 
     if (inProgressJobs.length === 0) {
       console.log("No interrupted jobs found.");
@@ -45,7 +46,7 @@ async function fixInterruptedJobs() {
     });
 
     // Mark all in-progress jobs as failed
-    let updateQuery = db
+    await db
       .update(mirrorJobs)
       .set({
         inProgress: false,
@@ -53,13 +54,7 @@ async function fixInterruptedJobs() {
         status: "failed",
         message: "Job interrupted and marked as failed by cleanup script"
       })
-      .where(eq(mirrorJobs.inProgress, true));
-
-    if (userId) {
-      updateQuery = updateQuery.where(eq(mirrorJobs.userId, userId));
-    }
-
-    await updateQuery;
+      .where(whereConditions);
 
     console.log(`✅ Successfully marked ${inProgressJobs.length} interrupted jobs as failed.`);
     console.log("These jobs can now be deleted through the normal cleanup process.");
