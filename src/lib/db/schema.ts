@@ -8,6 +8,7 @@ export const userSchema = z.object({
   username: z.string(),
   password: z.string(),
   email: z.string().email(),
+  emailVerified: z.boolean().default(false),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 });
@@ -215,6 +216,7 @@ export const users = sqliteTable("users", {
   username: text("username").notNull(),
   password: text("password").notNull(),
   email: text("email").notNull(),
+  emailVerified: integer("email_verified", { mode: "boolean" }).notNull().default(false),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
@@ -431,6 +433,70 @@ export const organizations = sqliteTable("organizations", {
     configIdIdx: index("idx_organizations_config_id").on(table.configId),
     statusIdx: index("idx_organizations_status").on(table.status),
     isIncludedIdx: index("idx_organizations_is_included").on(table.isIncluded),
+  };
+});
+
+// ===== Better Auth Tables =====
+
+// Sessions table
+export const sessions = sqliteTable("sessions", {
+  id: text("id").primaryKey(),
+  token: text("token").notNull().unique(),
+  userId: text("user_id").notNull().references(() => users.id),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+}, (table) => {
+  return {
+    userIdIdx: index("idx_sessions_user_id").on(table.userId),
+    tokenIdx: index("idx_sessions_token").on(table.token),
+    expiresAtIdx: index("idx_sessions_expires_at").on(table.expiresAt),
+  };
+});
+
+// Accounts table (for OAuth providers and credentials)
+export const accounts = sqliteTable("accounts", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id),
+  providerId: text("provider_id").notNull(),
+  providerUserId: text("provider_user_id").notNull(),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  expiresAt: integer("expires_at", { mode: "timestamp" }),
+  password: text("password"), // For credential provider
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+}, (table) => {
+  return {
+    userIdIdx: index("idx_accounts_user_id").on(table.userId),
+    providerIdx: index("idx_accounts_provider").on(table.providerId, table.providerUserId),
+  };
+});
+
+// Verification tokens table
+export const verificationTokens = sqliteTable("verification_tokens", {
+  id: text("id").primaryKey(),
+  token: text("token").notNull().unique(),
+  identifier: text("identifier").notNull(),
+  type: text("type").notNull(), // email, password-reset, etc
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+}, (table) => {
+  return {
+    tokenIdx: index("idx_verification_tokens_token").on(table.token),
+    identifierIdx: index("idx_verification_tokens_identifier").on(table.identifier),
   };
 });
 

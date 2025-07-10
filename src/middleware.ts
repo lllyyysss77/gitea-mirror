@@ -3,6 +3,7 @@ import { initializeRecovery, hasJobsNeedingRecovery, getRecoveryStatus } from '.
 import { startCleanupService, stopCleanupService } from './lib/cleanup-service';
 import { initializeShutdownManager, registerShutdownCallback } from './lib/shutdown-manager';
 import { setupSignalHandlers } from './lib/signal-handlers';
+import { auth } from './lib/auth';
 
 // Flag to track if recovery has been initialized
 let recoveryInitialized = false;
@@ -11,6 +12,25 @@ let cleanupServiceStarted = false;
 let shutdownManagerInitialized = false;
 
 export const onRequest = defineMiddleware(async (context, next) => {
+  // Handle Better Auth session
+  try {
+    const session = await auth.api.getSession({
+      headers: context.request.headers,
+    });
+
+    if (session) {
+      context.locals.user = session.user;
+      context.locals.session = session.session;
+    } else {
+      context.locals.user = null;
+      context.locals.session = null;
+    }
+  } catch (error) {
+    // If there's an error getting the session, set to null
+    context.locals.user = null;
+    context.locals.session = null;
+  }
+
   // Initialize shutdown manager and signal handlers first
   if (!shutdownManagerInitialized) {
     try {

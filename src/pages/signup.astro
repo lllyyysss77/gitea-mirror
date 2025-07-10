@@ -2,11 +2,14 @@
 import '../styles/global.css';
 import ThemeScript from '@/components/theme/ThemeScript.astro';
 import { SignupForm } from '@/components/auth/SignupForm';
-import { client } from '../lib/db';
+import { db, users } from '@/lib/db';
+import { sql } from 'drizzle-orm';
 
 // Check if any users exist in the database
-const userCountResult = await client.execute(`SELECT COUNT(*) as count FROM users`);
-const userCount = userCountResult.rows[0]?.count;
+const userCountResult = await db
+  .select({ count: sql<number>`count(*)` })
+  .from(users);
+const userCount = userCountResult[0]?.count;
 
 // Redirect to login if users already exist
 if (userCount !== null && Number(userCount) > 0) {

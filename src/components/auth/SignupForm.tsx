@@ -5,9 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast, Toaster } from 'sonner';
 import { showErrorToast } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
 
 export function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const { register } = useAuth();
 
   async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -31,28 +33,13 @@ export function SignupForm() {
       return;
     }
 
-    const signupData = { username, email, password };
-
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(signupData),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success('Account created successfully! Redirecting to dashboard...');
-        // Small delay before redirecting to see the success message
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 1500);
-      } else {
-        showErrorToast(data.error || 'Failed to create account. Please try again.', toast);
-      }
+      await register(username, email, password);
+      toast.success('Account created successfully! Redirecting to dashboard...');
+      // Small delay before redirecting to see the success message
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 1500);
     } catch (error) {
       showErrorToast(error, toast);
     } finally {

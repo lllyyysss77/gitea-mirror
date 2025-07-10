@@ -4,6 +4,7 @@ import * as React from 'react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/hooks/useAuth';
 
 import { toast, Toaster } from 'sonner';
 import { showErrorToast } from '@/lib/utils';
@@ -11,43 +12,29 @@ import { showErrorToast } from '@/lib/utils';
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
 
   async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsLoading(true);
     const form = e.currentTarget;
     const formData = new FormData(form);
-    const username = formData.get('username') as string | null;
+    const email = formData.get('email') as string | null;
     const password = formData.get('password') as string | null;
 
-    if (!username || !password) {
-      toast.error('Please enter both username and password');
+    if (!email || !password) {
+      toast.error('Please enter both email and password');
       setIsLoading(false);
       return;
     }
 
-    const loginData = { username, password };
-
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(loginData),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success('Login successful!');
-        // Small delay before redirecting to see the success message
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 1000);
-      } else {
-        showErrorToast(data.error || 'Login failed. Please try again.', toast);
-      }
+      await login(email, password);
+      toast.success('Login successful!');
+      // Small delay before redirecting to see the success message
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 1000);
     } catch (error) {
       showErrorToast(error, toast);
     } finally {
@@ -80,16 +67,16 @@ export function LoginForm() {
           <form id="login-form" onSubmit={handleLogin}>
             <div className="space-y-4">
               <div>
-                <label htmlFor="username" className="block text-sm font-medium mb-1">
-                  Username
+                <label htmlFor="email" className="block text-sm font-medium mb-1">
+                  Email
                 </label>
                 <input
-                  id="username"
-                  name="username"
-                  type="text"
+                  id="email"
+                  name="email"
+                  type="email"
                   required
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  placeholder="Enter your username"
+                  placeholder="Enter your email"
                   disabled={isLoading}
                 />
               </div>

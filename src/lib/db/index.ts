@@ -23,13 +23,13 @@ let sqlite: Database;
 try {
   sqlite = new Database(dbPath);
   console.log("Successfully connected to SQLite database using Bun's native driver");
-
-  // Run Drizzle migrations if needed
-  runDrizzleMigrations();
 } catch (error) {
   console.error("Error opening database:", error);
   throw error;
 }
+
+// Create drizzle instance with the SQLite client
+export const db = drizzle({ client: sqlite });
 
 /**
  * Run Drizzle migrations
@@ -57,8 +57,18 @@ function runDrizzleMigrations() {
   }
 }
 
-// Create drizzle instance with the SQLite client
-export const db = drizzle({ client: sqlite });
+// Run Drizzle migrations after db is initialized
+runDrizzleMigrations();
 
 // Export all table definitions from schema
-export { users, events, configs, repositories, mirrorJobs, organizations } from "./schema";
+export { 
+  users, 
+  events, 
+  configs, 
+  repositories, 
+  mirrorJobs, 
+  organizations,
+  sessions,
+  accounts,
+  verificationTokens 
+} from "./schema";
