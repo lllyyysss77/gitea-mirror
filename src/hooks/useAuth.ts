@@ -37,28 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const user = betterAuthSession.data?.user || null;
   const session = betterAuthSession.data || null;
 
-  // Check if this is first load and redirect if needed
-  useEffect(() => {
-    const checkFirstUser = async () => {
-      if (!betterAuthSession.isPending && !user) {
-        try {
-          // Check if there are any users in the system
-          const response = await fetch("/api/auth/check-users");
-          if (response.status === 404) {
-            // No users found, redirect to signup
-            window.location.href = "/signup";
-          } else if (!window.location.pathname.includes("/login")) {
-            // User not authenticated, redirect to login
-            window.location.href = "/login";
-          }
-        } catch (err) {
-          console.error("Failed to check users:", err);
-        }
-      }
-    };
-
-    checkFirstUser();
-  }, [betterAuthSession.isPending, user]);
+  // Don't do any redirects here - let the pages handle their own redirect logic
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
@@ -67,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const result = await authClient.signIn.email({
         email,
         password,
-        callbackURL: "/dashboard",
+        callbackURL: "/",
       });
       
       if (result.error) {
@@ -93,9 +72,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const result = await authClient.signUp.email({
         email,
         password,
-        name: username, // Better Auth uses 'name' field
-        username, // Also pass username as additional field
-        callbackURL: "/dashboard",
+        name: username, // Better Auth uses 'name' field for display name
+        callbackURL: "/",
       });
 
       if (result.error) {

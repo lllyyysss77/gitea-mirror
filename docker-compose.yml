@@ -28,7 +28,7 @@ services:
       - DATABASE_URL=file:data/gitea-mirror.db
       - HOST=0.0.0.0
       - PORT=4321
-      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-this-in-production}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-your-secret-key-change-this-in-production}
       # GitHub/Gitea Mirror Config
       - GITHUB_USERNAME=${GITHUB_USERNAME:-}
       - GITHUB_TOKEN=${GITHUB_TOKEN:-}

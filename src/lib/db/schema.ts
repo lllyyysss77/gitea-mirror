@@ -213,16 +213,18 @@ export const eventSchema = z.object({
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
-  username: text("username").notNull(),
-  password: text("password").notNull(),
-  email: text("email").notNull(),
+  name: text("name"),
+  email: text("email").notNull().unique(),
   emailVerified: integer("email_verified", { mode: "boolean" }).notNull().default(false),
+  image: text("image"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
+  // Custom fields
+  username: text("username"),
 });
 
 export const events = sqliteTable("events", {
@@ -463,9 +465,10 @@ export const sessions = sqliteTable("sessions", {
 // Accounts table (for OAuth providers and credentials)
 export const accounts = sqliteTable("accounts", {
   id: text("id").primaryKey(),
+  accountId: text("account_id").notNull(), 
   userId: text("user_id").notNull().references(() => users.id),
   providerId: text("provider_id").notNull(),
-  providerUserId: text("provider_user_id").notNull(),
+  providerUserId: text("provider_user_id"), // Make nullable for email/password auth
   accessToken: text("access_token"),
   refreshToken: text("refresh_token"),
   expiresAt: integer("expires_at", { mode: "timestamp" }),
@@ -478,6 +481,7 @@ export const accounts = sqliteTable("accounts", {
     .default(sql`(unixepoch())`),
 }, (table) => {
   return {
+    accountIdIdx: index("idx_accounts_account_id").on(table.accountId),
     userIdIdx: index("idx_accounts_user_id").on(table.userId),
     providerIdx: index("idx_accounts_provider").on(table.providerId, table.providerUserId),
   };

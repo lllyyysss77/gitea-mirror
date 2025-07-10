@@ -52,15 +52,26 @@ if [ "$GITEA_SKIP_TLS_VERIFY" = "true" ]; then
   export NODE_TLS_REJECT_UNAUTHORIZED=0
 fi
 
-# Generate a secure JWT secret if one isn't provided or is using the default value
-JWT_SECRET_FILE="/app/data/.jwt_secret"
-if [ "$JWT_SECRET" = "your-secret-key-change-this-in-production" ] || [ -z "$JWT_SECRET" ]; then
+# Generate a secure BETTER_AUTH_SECRET if one isn't provided or is using the default value
+BETTER_AUTH_SECRET_FILE="/app/data/.better_auth_secret"
+JWT_SECRET_FILE="/app/data/.jwt_secret"  # Old file for backward compatibility
+
+if [ "$BETTER_AUTH_SECRET" = "your-secret-key-change-this-in-production" ] || [ -z "$BETTER_AUTH_SECRET" ]; then
   # Check if we have a previously generated secret
-  if [ -f "$JWT_SECRET_FILE" ]; then
-    echo "Using previously generated JWT secret"
-    export JWT_SECRET=$(cat "$JWT_SECRET_FILE")
+  if [ -f "$BETTER_AUTH_SECRET_FILE" ]; then
+    echo "Using previously generated BETTER_AUTH_SECRET"
+    export BETTER_AUTH_SECRET=$(cat "$BETTER_AUTH_SECRET_FILE")
+  # Check for old JWT_SECRET file for backward compatibility
+  elif [ -f "$JWT_SECRET_FILE" ]; then
+    echo "Migrating from old JWT_SECRET to BETTER_AUTH_SECRET"
+    export BETTER_AUTH_SECRET=$(cat "$JWT_SECRET_FILE")
+    # Save to new file
+    echo "$BETTER_AUTH_SECRET" > "$BETTER_AUTH_SECRET_FILE"
+    chmod 600 "$BETTER_AUTH_SECRET_FILE"
+    # Optionally remove old file after successful migration
+    rm -f "$JWT_SECRET_FILE"
   else
-    echo "Generating a secure random JWT secret"
+    echo "Generating a secure random BETTER_AUTH_SECRET"
     # Try to generate a secure random string using OpenSSL
     if command -v openssl >/dev/null 2>&1; then
       GENERATED_SECRET=$(openssl rand -hex 32)
@@ -69,12 +80,12 @@ if [ "$JWT_SECRET" = "your-secret-key-change-this-in-production" ] || [ -z "$JWT
       echo "OpenSSL not found, using fallback method for random generation"
       GENERATED_SECRET=$(head -c 32 /dev/urandom | sha256sum | cut -d' ' -f1)
     fi
-    export JWT_SECRET="$GENERATED_SECRET"
+    export BETTER_AUTH_SECRET="$GENERATED_SECRET"
     # Save the secret to a file for persistence across container restarts
-    echo "$GENERATED_SECRET" > "$JWT_SECRET_FILE"
-    chmod 600 "$JWT_SECRET_FILE"
+    echo "$GENERATED_SECRET" > "$BETTER_AUTH_SECRET_FILE"
+    chmod 600 "$BETTER_AUTH_SECRET_FILE"
   fi
-  echo "JWT_SECRET has been set to a secure random value"
+  echo "BETTER_AUTH_SECRET has been set to a secure random value"
 fi
 
 

@@ -1,7 +1,7 @@
 ---
 import '../styles/global.css';
 import ThemeScript from '@/components/theme/ThemeScript.astro';
-import { LoginForm } from '@/components/auth/LoginForm';
+import { LoginPage } from '@/components/auth/LoginPage';
 import { db, users } from '@/lib/db';
 import { sql } from 'drizzle-orm';
 
@@ -30,7 +30,7 @@ const generator = Astro.generator;
   </head>
   <body>
     <div class="h-dvh flex items-center justify-center bg-muted/30 p-4">
-      <LoginForm client:load />
+      <LoginPage client:load />
     </div>
   </body>
 </html>

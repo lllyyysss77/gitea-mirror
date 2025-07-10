@@ -1,23 +1,22 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { db } from "./db";
-
-// Generate or use existing JWT secret
-const JWT_SECRET = process.env.JWT_SECRET || process.env.BETTER_AUTH_SECRET;
-
-if (!JWT_SECRET) {
-  throw new Error("JWT_SECRET or BETTER_AUTH_SECRET environment variable is required");
-}
+import { db, users } from "./db";
+import * as schema from "./db/schema";
+import { eq } from "drizzle-orm";
 
 export const auth = betterAuth({
   // Database configuration
   database: drizzleAdapter(db, {
     provider: "sqlite",
     usePlural: true, // Our tables use plural names (users, not user)
+    schema, // Pass the schema explicitly
   }),
 
+  // Secret for signing tokens
+  secret: process.env.BETTER_AUTH_SECRET,
+
   // Base URL configuration
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:4321",
   basePath: "/api/auth", // Specify the base path for auth endpoints
 
   // Authentication methods
@@ -30,6 +29,7 @@ export const auth = betterAuth({
       console.log("Reset URL:", url);
     },
   },
+  
 
   // Session configuration
   session: {
@@ -44,9 +44,8 @@ export const auth = betterAuth({
       // Keep the username field from our existing schema
       username: {
         type: "string",
-        required: true,
-        defaultValue: "user", // Default for migration
-        input: true, // Allow in signup form
+        required: false,
+        input: false, // Don't show in signup form - we'll derive from email
       }
     },
   },
@@ -56,7 +55,7 @@ export const auth = betterAuth({
 
   // Trusted origins for CORS
   trustedOrigins: [
-    process.env.BETTER_AUTH_URL || "http://localhost:3000",
+    process.env.BETTER_AUTH_URL || "http://localhost:4321",
   ],
 });
 

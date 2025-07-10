@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1752161775910,
-      "tag": "0000_big_xorn",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1752166860985,
-      "tag": "0001_vengeful_whirlwind",
+      "when": 1752171873627,
+      "tag": "0000_init",
       "breakpoints": true
     }
   ]

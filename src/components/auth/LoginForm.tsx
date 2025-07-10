@@ -33,7 +33,7 @@ export function LoginForm() {
       toast.success('Login successful!');
       // Small delay before redirecting to see the success message
       setTimeout(() => {
-        window.location.href = '/dashboard';
+        window.location.href = '/';
       }, 1000);
     } catch (error) {
       showErrorToast(error, toast);

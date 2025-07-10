@@ -3,13 +3,6 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { sso, oidcProvider } from "better-auth/plugins";
 import type { BunSQLiteDatabase } from "drizzle-orm/bun-sqlite";
 
-// Generate or use existing JWT secret
-const JWT_SECRET = process.env.JWT_SECRET || process.env.BETTER_AUTH_SECRET;
-
-if (!JWT_SECRET) {
-  throw new Error("JWT_SECRET or BETTER_AUTH_SECRET environment variable is required");
-}
-
 // This function will be called with the actual database instance
 export function createAuth(db: BunSQLiteDatabase) {
   return betterAuth({

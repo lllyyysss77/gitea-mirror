@@ -1,7 +1,7 @@
 ---
 import '../styles/global.css';
 import ThemeScript from '@/components/theme/ThemeScript.astro';
-import { SignupForm } from '@/components/auth/SignupForm';
+import { SignupPage } from '@/components/auth/SignupPage';
 import { db, users } from '@/lib/db';
 import { sql } from 'drizzle-orm';
 
@@ -34,7 +34,7 @@ const generator = Astro.generator;
         <h1 class="text-3xl font-bold mb-2">Welcome to Gitea Mirror</h1>
         <p class="text-muted-foreground">Let's set up your administrator account to get started.</p>
       </div>
-      <SignupForm client:load />
+      <SignupPage client:load />
     </div>
   </body>
 </html>
