@@ -201,6 +201,16 @@ Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTIN
 
 GNU General Public License v3.0 - see [LICENSE](LICENSE) file for details.
 
+## Star History
+
+<a href="https://www.star-history.com/#RayLabsHQ/gitea-mirror&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=RayLabsHQ/gitea-mirror&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=RayLabsHQ/gitea-mirror&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=RayLabsHQ/gitea-mirror&type=Date" />
+ </picture>
+</a>
+
 ## Support
 
 - 📖 [Documentation](https://github.com/RayLabsHQ/gitea-mirror/tree/main/docs)
