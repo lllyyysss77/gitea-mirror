@@ -392,7 +392,7 @@ export const mirrorGithubRepoToGitea = async ({
         config,
         octokit,
         repository,
-        isRepoInOrg: false,
+        giteaOwner: repoOwner,
       });
     }
 
@@ -741,7 +741,7 @@ export async function mirrorGitHubRepoToGiteaOrg({
         config,
         octokit,
         repository,
-        isRepoInOrg: true,
+        giteaOwner: orgName,
       });
     }
 
@@ -1183,12 +1183,12 @@ export const mirrorGitRepoIssuesToGitea = async ({
   config,
   octokit,
   repository,
-  isRepoInOrg,
+  giteaOwner,
 }: {
   config: Partial<Config>;
   octokit: Octokit;
   repository: Repository;
-  isRepoInOrg: boolean;
+  giteaOwner: string;
 }) => {
   //things covered here are- issue, title, body, labels, comments and assignees
   if (
@@ -1199,10 +1199,6 @@ export const mirrorGitRepoIssuesToGitea = async ({
   ) {
     throw new Error("Missing GitHub or Gitea configuration.");
   }
-
-  const repoOrigin = isRepoInOrg
-    ? repository.organization
-    : config.githubConfig.username;
 
   const [owner, repo] = repository.fullName.split("/");
 
@@ -1232,7 +1228,7 @@ export const mirrorGitRepoIssuesToGitea = async ({
 
   // Get existing labels from Gitea
   const giteaLabelsRes = await httpGet(
-    `${config.giteaConfig.url}/api/v1/repos/${repoOrigin}/${repository.name}/labels`,
+    `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repository.name}/labels`,
     {
       Authorization: `token ${config.giteaConfig.token}`,
     }
@@ -1264,7 +1260,7 @@ export const mirrorGitRepoIssuesToGitea = async ({
         } else {
           try {
             const created = await httpPost(
-              `${config.giteaConfig!.url}/api/v1/repos/${repoOrigin}/${
+              `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${
                 repository.name
               }/labels`,
               { name, color: "#ededed" }, // Default color
@@ -1301,7 +1297,7 @@ export const mirrorGitRepoIssuesToGitea = async ({
 
       // Create the issue in Gitea
       const createdIssue = await httpPost(
-        `${config.giteaConfig!.url}/api/v1/repos/${repoOrigin}/${
+        `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${
           repository.name
         }/issues`,
         issuePayload,
@@ -1328,7 +1324,7 @@ export const mirrorGitRepoIssuesToGitea = async ({
           comments,
           async (comment) => {
             await httpPost(
-              `${config.giteaConfig!.url}/api/v1/repos/${repoOrigin}/${
+              `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${
                 repository.name
               }/issues/${createdIssue.data.number}/comments`,
               {
