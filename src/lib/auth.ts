@@ -1,7 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { oidcProvider } from "better-auth/plugins";
-import { sso } from "better-auth/plugins/sso";
+import { oidcProvider, sso } from "better-auth/plugins";
 import { db, users } from "./db";
 import * as schema from "./db/schema";
 import { eq } from "drizzle-orm";
