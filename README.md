@@ -199,6 +199,25 @@ bun run build
 - **APIs**: GitHub (Octokit), Gitea REST API
 - **Auth**: JWT tokens with bcryptjs password hashing
 
+## Security
+
+### Token Encryption
+- All GitHub and Gitea API tokens are encrypted at rest using AES-256-GCM
+- Encryption is automatic and transparent to users
+- Set `ENCRYPTION_SECRET` environment variable for production deployments
+- Falls back to `BETTER_AUTH_SECRET` or `JWT_SECRET` if not set
+
+### Password Security
+- User passwords are hashed using bcrypt (via Better Auth)
+- Never stored in plaintext
+- Secure session management with JWT tokens
+
+### Migration
+If upgrading from a version without token encryption:
+```bash
+bun run migrate:encrypt-tokens
+```
+
 ## Contributing
 
 Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.

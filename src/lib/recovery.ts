@@ -11,6 +11,7 @@ import { createGitHubClient } from './github';
 import { processWithResilience } from './utils/concurrency';
 import { repositoryVisibilityEnum, repoStatusEnum } from '@/types/Repository';
 import type { Repository } from './db/schema';
+import { getDecryptedGitHubToken } from './utils/config-encryption';
 
 // Recovery state tracking
 let recoveryInProgress = false;
@@ -262,7 +263,8 @@ async function recoverMirrorJob(job: any, remainingItemIds: string[]) {
     // Create GitHub client with error handling
     let octokit;
     try {
-      octokit = createGitHubClient(config.githubConfig.token);
+      const decryptedToken = getDecryptedGitHubToken(config);
+      octokit = createGitHubClient(decryptedToken);
     } catch (error) {
       throw new Error(`Failed to create GitHub client: ${error instanceof Error ? error.message : String(error)}`);
     }

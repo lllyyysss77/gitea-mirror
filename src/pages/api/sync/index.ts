@@ -10,6 +10,7 @@ import {
   getGithubStarredRepositories,
 } from "@/lib/github";
 import { jsonResponse, createSecureErrorResponse } from "@/lib/utils";
+import { getDecryptedGitHubToken } from "@/lib/utils/config-encryption";
 
 export const POST: APIRoute = async ({ request }) => {
   const url = new URL(request.url);
@@ -33,16 +34,16 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
 
-    const token = config.githubConfig?.token;
-
-    if (!token) {
+    if (!config.githubConfig?.token) {
       return jsonResponse({
         data: { error: "GitHub token is missing in config" },
         status: 400,
       });
     }
 
-    const octokit = createGitHubClient(token);
+    // Decrypt the GitHub token before using it
+    const decryptedToken = getDecryptedGitHubToken(config);
+    const octokit = createGitHubClient(decryptedToken);
 
     // Fetch GitHub data in parallel
     const [basicAndForkedRepos, starredRepos, gitOrgs] = await Promise.all([

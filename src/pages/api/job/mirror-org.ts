@@ -9,6 +9,7 @@ import { type MembershipRole } from "@/types/organizations";
 import { createSecureErrorResponse } from "@/lib/utils";
 import { processWithResilience } from "@/lib/utils/concurrency";
 import { v4 as uuidv4 } from "uuid";
+import { getDecryptedGitHubToken } from "@/lib/utils/config-encryption";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -71,7 +72,8 @@ export const POST: APIRoute = async ({ request }) => {
       }
 
       // Create a single Octokit instance to be reused
-      const octokit = createGitHubClient(config.githubConfig.token);
+      const decryptedToken = getDecryptedGitHubToken(config);
+      const octokit = createGitHubClient(decryptedToken);
 
       // Define the concurrency limit - adjust based on API rate limits
       // Using a lower concurrency for organizations since each org might contain many repos

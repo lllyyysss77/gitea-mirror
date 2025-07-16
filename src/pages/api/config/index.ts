@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { calculateCleanupInterval } from "@/lib/cleanup-service";
 import { createSecureErrorResponse } from "@/lib/utils";
 import { mapUiToDbConfig, mapDbToUiConfig } from "@/lib/utils/config-mapper";
+import { encrypt, decrypt, migrateToken } from "@/lib/utils/encryption";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -55,16 +56,26 @@ export const POST: APIRoute = async ({ request }) => {
             ? JSON.parse(existingConfig.giteaConfig)
             : existingConfig.giteaConfig;
 
+        // Decrypt existing tokens before preserving
         if (!mappedGithubConfig.token && existingGithub.token) {
-          mappedGithubConfig.token = existingGithub.token;
+          mappedGithubConfig.token = decrypt(existingGithub.token);
         }
 
         if (!mappedGiteaConfig.token && existingGitea.token) {
-          mappedGiteaConfig.token = existingGitea.token;
+          mappedGiteaConfig.token = decrypt(existingGitea.token);
         }
       } catch (tokenError) {
         console.error("Failed to preserve tokens:", tokenError);
       }
+    }
+    
+    // Encrypt tokens before saving
+    if (mappedGithubConfig.token) {
+      mappedGithubConfig.token = encrypt(mappedGithubConfig.token);
+    }
+    
+    if (mappedGiteaConfig.token) {
+      mappedGiteaConfig.token = encrypt(mappedGiteaConfig.token);
     }
 
     // Process schedule config - set/update nextRun if enabled, clear if disabled
@@ -279,15 +290,54 @@ export const GET: APIRoute = async ({ request }) => {
 
     // Map database structure to UI structure
     const dbConfig = config[0];
-    const uiConfig = mapDbToUiConfig(dbConfig);
     
-    return new Response(JSON.stringify({
-      ...dbConfig,
-      ...uiConfig,
-    }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    // Decrypt tokens before sending to UI
+    try {
+      const githubConfig = typeof dbConfig.githubConfig === "string"
+        ? JSON.parse(dbConfig.githubConfig)
+        : dbConfig.githubConfig;
+      
+      const giteaConfig = typeof dbConfig.giteaConfig === "string"
+        ? JSON.parse(dbConfig.giteaConfig)
+        : dbConfig.giteaConfig;
+      
+      // Decrypt tokens
+      if (githubConfig.token) {
+        githubConfig.token = decrypt(githubConfig.token);
+      }
+      
+      if (giteaConfig.token) {
+        giteaConfig.token = decrypt(giteaConfig.token);
+      }
+      
+      // Create modified config with decrypted tokens
+      const decryptedConfig = {
+        ...dbConfig,
+        githubConfig,
+        giteaConfig
+      };
+      
+      const uiConfig = mapDbToUiConfig(decryptedConfig);
+      
+      return new Response(JSON.stringify({
+        ...dbConfig,
+        ...uiConfig,
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      console.error("Failed to decrypt tokens:", error);
+      // Return config without decrypting tokens if there's an error
+      const uiConfig = mapDbToUiConfig(dbConfig);
+      return new Response(JSON.stringify({
+        ...dbConfig,
+        ...uiConfig,
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
   } catch (error) {
     return createSecureErrorResponse(error, "config fetch", 500);
   }

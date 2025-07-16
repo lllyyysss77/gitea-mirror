@@ -11,6 +11,7 @@ import { httpPost, httpGet } from "./http-client";
 import { createMirrorJob } from "./helpers";
 import { db, organizations, repositories } from "./db";
 import { eq, and } from "drizzle-orm";
+import { decryptConfigTokens } from "./utils/config-encryption";
 
 /**
  * Helper function to get organization configuration including destination override
@@ -183,12 +184,15 @@ export const isRepoPresentInGitea = async ({
       throw new Error("Gitea config is required.");
     }
 
+    // Decrypt config tokens for API usage
+    const decryptedConfig = decryptConfigTokens(config as Config);
+
     // Check if the repository exists at the specified owner location
     const response = await fetch(
       `${config.giteaConfig.url}/api/v1/repos/${owner}/${repoName}`,
       {
         headers: {
-          Authorization: `token ${config.giteaConfig.token}`,
+          Authorization: `token ${decryptedConfig.giteaConfig.token}`,
         },
       }
     );
@@ -371,7 +375,7 @@ export const mirrorGithubRepoToGitea = async ({
         service: "git",
       },
       {
-        Authorization: `token ${config.giteaConfig.token}`,
+        Authorization: `token ${decryptedConfig.giteaConfig.token}`,
       }
     );
 
@@ -480,7 +484,7 @@ export async function getOrCreateGiteaOrg({
       `${config.giteaConfig.url}/api/v1/orgs/${orgName}`,
       {
         headers: {
-          Authorization: `token ${config.giteaConfig.token}`,
+          Authorization: `token ${decryptedConfig.giteaConfig.token}`,
           "Content-Type": "application/json",
         },
       }
@@ -533,7 +537,7 @@ export async function getOrCreateGiteaOrg({
     const createRes = await fetch(`${config.giteaConfig.url}/api/v1/orgs`, {
       method: "POST",
       headers: {
-        Authorization: `token ${config.giteaConfig.token}`,
+        Authorization: `token ${decryptedConfig.giteaConfig.token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -720,7 +724,7 @@ export async function mirrorGitHubRepoToGiteaOrg({
         private: repository.isPrivate,
       },
       {
-        Authorization: `token ${config.giteaConfig.token}`,
+        Authorization: `token ${decryptedConfig.giteaConfig.token}`,
       }
     );
 
@@ -1074,6 +1078,9 @@ export const syncGiteaRepo = async ({
       throw new Error("Gitea config is required.");
     }
 
+    // Decrypt config tokens for API usage
+    const decryptedConfig = decryptConfigTokens(config as Config);
+
     console.log(`Syncing repository ${repository.name}`);
 
     // Mark repo as "syncing" in DB
@@ -1199,6 +1206,9 @@ export const mirrorGitRepoIssuesToGitea = async ({
   ) {
     throw new Error("Missing GitHub or Gitea configuration.");
   }
+
+  // Decrypt config tokens for API usage
+  const decryptedConfig = decryptConfigTokens(config as Config);
 
   const [owner, repo] = repository.fullName.split("/");
 

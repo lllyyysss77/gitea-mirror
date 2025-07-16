@@ -23,6 +23,7 @@
     "db:check": "bun drizzle-kit check",
     "db:studio": "bun drizzle-kit studio",
     "migrate:better-auth": "bun scripts/migrate-to-better-auth.ts",
+    "migrate:encrypt-tokens": "bun scripts/migrate-tokens-encryption.ts",
     "startup-recovery": "bun scripts/startup-recovery.ts",
     "startup-recovery-force": "bun scripts/startup-recovery.ts --force",
     "test-recovery": "bun scripts/test-recovery.ts",

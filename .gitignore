@@ -31,3 +31,6 @@ certs/*.crt
 certs/*.pem
 certs/*.cer
 !certs/README.md
+
+# Hosted version documentation (local only)
+docs/HOSTED_VERSION.md
