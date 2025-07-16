@@ -170,6 +170,12 @@ bun run dev
    - Override individual repository destinations in the table view
    - Starred repositories automatically go to a dedicated organization
 
+## Troubleshooting
+
+### Reverse Proxy Configuration
+
+If using a reverse proxy (e.g., nginx proxy manager) and experiencing issues with JavaScript files not loading properly, try enabling HTTP/2 support in your proxy configuration. While not required by the application, some proxy configurations may have better compatibility with HTTP/2 enabled. See [issue #43](https://github.com/RayLabsHQ/gitea-mirror/issues/43) for reference.
+
 ## Development
 
 ```bash
