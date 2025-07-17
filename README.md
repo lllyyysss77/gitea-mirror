@@ -218,6 +218,71 @@ If upgrading from a version without token encryption:
 bun run migrate:encrypt-tokens
 ```
 
+## Authentication
+
+Gitea Mirror supports multiple authentication methods. **Email/password authentication is the default and always enabled.**
+
+### 1. Email & Password (Default)
+The standard authentication method. First user to sign up becomes the admin.
+
+### 2. Single Sign-On (SSO) with OIDC
+Enable users to sign in with external identity providers like Google, Azure AD, Okta, Authentik, or any OIDC-compliant service.
+
+**Configuration:**
+1. Navigate to Settings → Authentication & SSO
+2. Click "Add Provider"
+3. Enter your OIDC provider details:
+   - Issuer URL (e.g., `https://accounts.google.com`)
+   - Client ID and Secret from your provider
+   - Use the "Discover" button to auto-fill endpoints
+
+**Redirect URL for your provider:**
+```
+https://your-domain.com/api/auth/sso/callback/{provider-id}
+```
+
+### 3. Header Authentication (Reverse Proxy)
+Perfect for automatic authentication when using reverse proxies like Authentik, Authelia, or Traefik Forward Auth.
+
+**Environment Variables:**
+```bash
+# Enable header authentication
+HEADER_AUTH_ENABLED=true
+
+# Header names (customize based on your proxy)
+HEADER_AUTH_USER_HEADER=X-Authentik-Username
+HEADER_AUTH_EMAIL_HEADER=X-Authentik-Email
+HEADER_AUTH_NAME_HEADER=X-Authentik-Name
+
+# Auto-provision new users
+HEADER_AUTH_AUTO_PROVISION=true
+
+# Restrict to specific email domains (optional)
+HEADER_AUTH_ALLOWED_DOMAINS=example.com,company.org
+```
+
+**How it works:**
+- Users authenticated by your reverse proxy are automatically logged in
+- No additional login step required
+- New users can be auto-provisioned if enabled
+- Falls back to regular authentication if headers are missing
+
+**Example Authentik Configuration:**
+```nginx
+# In your reverse proxy configuration
+proxy_set_header X-Authentik-Username $authentik_username;
+proxy_set_header X-Authentik-Email $authentik_email;
+proxy_set_header X-Authentik-Name $authentik_name;
+```
+
+### 4. OAuth Applications (Act as Identity Provider)
+Gitea Mirror can also act as an OIDC provider for other applications. Register OAuth applications in Settings → Authentication & SSO → OAuth Applications tab.
+
+**Use cases:**
+- Allow other services to authenticate using Gitea Mirror accounts
+- Create service-to-service authentication
+- Build integrations with your Gitea Mirror instance
+
 ## Contributing
 
 Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.

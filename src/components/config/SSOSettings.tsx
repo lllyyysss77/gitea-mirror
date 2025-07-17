@@ -9,9 +9,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { apiRequest, showErrorToast } from '@/lib/utils';
 import { toast } from 'sonner';
-import { Plus, Trash2, ExternalLink, Loader2, AlertCircle, Copy } from 'lucide-react';
+import { Plus, Trash2, ExternalLink, Loader2, AlertCircle, Copy, Shield, Info } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '../ui/skeleton';
+import { Badge } from '../ui/badge';
 
 interface SSOProvider {
   id: string;
@@ -43,6 +44,7 @@ export function SSOSettings() {
   const [isLoading, setIsLoading] = useState(true);
   const [showProviderDialog, setShowProviderDialog] = useState(false);
   const [isDiscovering, setIsDiscovering] = useState(false);
+  const [headerAuthEnabled, setHeaderAuthEnabled] = useState(false);
 
   // Form states for new provider
   const [providerForm, setProviderForm] = useState({
@@ -66,8 +68,13 @@ export function SSOSettings() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const providersRes = await apiRequest<SSOProvider[]>('/sso/providers');
+      const [providersRes, headerAuthStatus] = await Promise.all([
+        apiRequest<SSOProvider[]>('/sso/providers'),
+        apiRequest<{ enabled: boolean }>('/auth/header-status').catch(() => ({ enabled: false }))
+      ]);
+      
       setProviders(providersRes);
+      setHeaderAuthEnabled(headerAuthStatus.enabled);
     } catch (error) {
       showErrorToast(error, toast);
     } finally {
@@ -183,16 +190,58 @@ export function SSOSettings() {
         </div>
       </div>
 
-      {/* Info Alert for Authentication Flow */}
-      {providers.length === 0 && (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            <strong>Current authentication:</strong> Users sign in with email and password only. 
-            Add SSO providers to enable users to sign in with their existing accounts from external services like Google, Azure AD, or any OIDC-compliant provider.
-          </AlertDescription>
-        </Alert>
-      )}
+      {/* Authentication Methods Overview */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-base">Active Authentication Methods</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {/* Email & Password - Always enabled */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-green-500" />
+                <span className="text-sm font-medium">Email & Password</span>
+                <Badge variant="secondary" className="text-xs">Default</Badge>
+              </div>
+              <span className="text-xs text-muted-foreground">Always enabled</span>
+            </div>
+            
+            {/* Header Authentication Status */}
+            {headerAuthEnabled && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-green-500" />
+                  <span className="text-sm font-medium">Header Authentication</span>
+                  <Badge variant="secondary" className="text-xs">Auto-login</Badge>
+                </div>
+                <span className="text-xs text-muted-foreground">Via reverse proxy</span>
+              </div>
+            )}
+            
+            {/* SSO Providers Status */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className={`h-2 w-2 rounded-full ${providers.length > 0 ? 'bg-green-500' : 'bg-muted'}`} />
+                <span className="text-sm font-medium">SSO/OIDC Providers</span>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {providers.length > 0 ? `${providers.length} provider${providers.length !== 1 ? 's' : ''} configured` : 'Not configured'}
+              </span>
+            </div>
+          </div>
+          
+          {/* Header Auth Info */}
+          {headerAuthEnabled && (
+            <Alert className="mt-4">
+              <Shield className="h-4 w-4" />
+              <AlertDescription className="text-xs">
+                Header authentication is enabled. Users authenticated by your reverse proxy will be automatically logged in.
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
 
       {/* SSO Providers */}
       <Card>

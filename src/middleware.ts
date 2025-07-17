@@ -4,6 +4,7 @@ import { startCleanupService, stopCleanupService } from './lib/cleanup-service';
 import { initializeShutdownManager, registerShutdownCallback } from './lib/shutdown-manager';
 import { setupSignalHandlers } from './lib/signal-handlers';
 import { auth } from './lib/auth';
+import { isHeaderAuthEnabled, authenticateWithHeaders } from './lib/auth-header';
 
 // Flag to track if recovery has been initialized
 let recoveryInitialized = false;
@@ -12,7 +13,7 @@ let cleanupServiceStarted = false;
 let shutdownManagerInitialized = false;
 
 export const onRequest = defineMiddleware(async (context, next) => {
-  // Handle Better Auth session
+  // First, try Better Auth session (cookie-based)
   try {
     const session = await auth.api.getSession({
       headers: context.request.headers,
@@ -22,8 +23,35 @@ export const onRequest = defineMiddleware(async (context, next) => {
       context.locals.user = session.user;
       context.locals.session = session.session;
     } else {
-      context.locals.user = null;
-      context.locals.session = null;
+      // No cookie session, check for header authentication
+      if (isHeaderAuthEnabled()) {
+        const headerUser = await authenticateWithHeaders(context.request.headers);
+        if (headerUser) {
+          // Create a session-like object for header auth
+          context.locals.user = {
+            id: headerUser.id,
+            email: headerUser.email,
+            emailVerified: headerUser.emailVerified,
+            name: headerUser.name || headerUser.username,
+            username: headerUser.username,
+            createdAt: headerUser.createdAt,
+            updatedAt: headerUser.updatedAt,
+          };
+          context.locals.session = {
+            id: `header-${headerUser.id}`,
+            userId: headerUser.id,
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 1 day
+            ipAddress: context.request.headers.get('x-forwarded-for') || context.clientAddress,
+            userAgent: context.request.headers.get('user-agent'),
+          };
+        } else {
+          context.locals.user = null;
+          context.locals.session = null;
+        }
+      } else {
+        context.locals.user = null;
+        context.locals.session = null;
+      }
     }
   } catch (error) {
     // If there's an error getting the session, set to null
