@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { sso, oidcProvider } from "better-auth/plugins";
+import { oidcProvider } from "better-auth/plugins";
+import { sso } from "better-auth/plugins/sso";
 import type { BunSQLiteDatabase } from "drizzle-orm/bun-sqlite";
 
 // This function will be called with the actual database instance
@@ -40,7 +41,7 @@ export function createAuth(db: BunSQLiteDatabase) {
       },
     },
 
-    // Plugins for future OIDC/SSO support
+    // Plugins for OIDC/SSO support
     plugins: [
       // SSO plugin for OIDC client support
       sso({

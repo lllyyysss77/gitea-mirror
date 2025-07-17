@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -39,26 +38,10 @@ interface SSOProvider {
   updatedAt: string;
 }
 
-interface OAuthApplication {
-  id: string;
-  clientId: string;
-  clientSecret?: string;
-  name: string;
-  redirectURLs: string;
-  type: string;
-  disabled: boolean;
-  metadata?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export function SSOSettings() {
-  const [activeTab, setActiveTab] = useState('providers');
   const [providers, setProviders] = useState<SSOProvider[]>([]);
-  const [applications, setApplications] = useState<OAuthApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showProviderDialog, setShowProviderDialog] = useState(false);
-  const [showAppDialog, setShowAppDialog] = useState(false);
   const [isDiscovering, setIsDiscovering] = useState(false);
 
   // Form states for new provider
@@ -74,19 +57,7 @@ export function SSOSettings() {
     userInfoEndpoint: '',
   });
 
-  // Form states for new application
-  const [appForm, setAppForm] = useState({
-    name: '',
-    redirectURLs: '',
-    type: 'web',
-  });
 
-  // Authentication methods state
-  const [authMethods, setAuthMethods] = useState({
-    emailPassword: true,
-    sso: false,
-    oidc: false,
-  });
 
   useEffect(() => {
     loadData();
@@ -95,19 +66,8 @@ export function SSOSettings() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [providersRes, appsRes] = await Promise.all([
-        apiRequest<SSOProvider[]>('/sso/providers'),
-        apiRequest<OAuthApplication[]>('/sso/applications'),
-      ]);
+      const providersRes = await apiRequest<SSOProvider[]>('/sso/providers');
       setProviders(providersRes);
-      setApplications(appsRes);
-      
-      // Set auth methods based on what's configured
-      setAuthMethods({
-        emailPassword: true, // Always enabled
-        sso: providersRes.length > 0,
-        oidc: appsRes.length > 0,
-      });
     } catch (error) {
       showErrorToast(error, toast);
     } finally {
@@ -175,9 +135,6 @@ export function SSOSettings() {
         userInfoEndpoint: '',
       });
       toast.success('SSO provider created successfully');
-      
-      // Enable SSO auth method
-      setAuthMethods(prev => ({ ...prev, sso: true }));
     } catch (error) {
       showErrorToast(error, toast);
     }
@@ -188,56 +145,11 @@ export function SSOSettings() {
       await apiRequest(`/sso/providers?id=${id}`, { method: 'DELETE' });
       setProviders(providers.filter(p => p.id !== id));
       toast.success('Provider deleted successfully');
-      
-      // Disable SSO if no providers left
-      if (providers.length === 1) {
-        setAuthMethods(prev => ({ ...prev, sso: false }));
-      }
     } catch (error) {
       showErrorToast(error, toast);
     }
   };
 
-  const createApplication = async () => {
-    try {
-      const newApp = await apiRequest<OAuthApplication>('/sso/applications', {
-        method: 'POST',
-        data: {
-          ...appForm,
-          redirectURLs: appForm.redirectURLs.split('\n').filter(url => url.trim()),
-        },
-      });
-
-      setApplications([...applications, newApp]);
-      setShowAppDialog(false);
-      setAppForm({
-        name: '',
-        redirectURLs: '',
-        type: 'web',
-      });
-      toast.success('OAuth application created successfully');
-      
-      // Enable OIDC auth method
-      setAuthMethods(prev => ({ ...prev, oidc: true }));
-    } catch (error) {
-      showErrorToast(error, toast);
-    }
-  };
-
-  const deleteApplication = async (id: string) => {
-    try {
-      await apiRequest(`/sso/applications?id=${id}`, { method: 'DELETE' });
-      setApplications(applications.filter(a => a.id !== id));
-      toast.success('Application deleted successfully');
-      
-      // Disable OIDC if no applications left
-      if (applications.length === 1) {
-        setAuthMethods(prev => ({ ...prev, oidc: false }));
-      }
-    } catch (error) {
-      showErrorToast(error, toast);
-    }
-  };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -255,78 +167,41 @@ export function SSOSettings() {
 
   return (
     <div className="space-y-6">
-      {/* Authentication Methods Card */}
+      {/* Header with status indicators */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold">Authentication & SSO</h3>
+          <p className="text-sm text-muted-foreground">
+            Configure how users authenticate with your application
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className={`h-2 w-2 rounded-full ${providers.length > 0 ? 'bg-green-500' : 'bg-muted'}`} />
+          <span className="text-sm text-muted-foreground">
+            {providers.length} Provider{providers.length !== 1 ? 's' : ''} configured
+          </span>
+        </div>
+      </div>
+
+      {/* Info Alert for Authentication Flow */}
+      {providers.length === 0 && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Current authentication:</strong> Users sign in with email and password only. 
+            Add SSO providers to enable users to sign in with their existing accounts from external services like Google, Azure AD, or any OIDC-compliant provider.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* SSO Providers */}
       <Card>
-        <CardHeader>
-          <CardTitle>Authentication Methods</CardTitle>
-          <CardDescription>
-            Choose which authentication methods are available for users
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Email & Password</Label>
-              <p className="text-sm text-muted-foreground">
-                Traditional email and password authentication
-              </p>
-            </div>
-            <Switch
-              checked={authMethods.emailPassword}
-              disabled
-              aria-label="Email & Password authentication"
-            />
-          </div>
-          
-          <Separator />
-          
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Single Sign-On (SSO)</Label>
-              <p className="text-sm text-muted-foreground">
-                Allow users to sign in with external OIDC providers
-              </p>
-            </div>
-            <Switch
-              checked={authMethods.sso}
-              disabled
-              aria-label="SSO authentication"
-            />
-          </div>
-          
-          <Separator />
-          
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>OIDC Provider</Label>
-              <p className="text-sm text-muted-foreground">
-                Allow other applications to authenticate through this app
-              </p>
-            </div>
-            <Switch
-              checked={authMethods.oidc}
-              disabled
-              aria-label="OIDC Provider"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* SSO Configuration Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="providers">SSO Providers</TabsTrigger>
-          <TabsTrigger value="applications">OAuth Applications</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="providers" className="space-y-4">
-          <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>SSO Providers</CardTitle>
+                  <CardTitle>External Identity Providers</CardTitle>
                   <CardDescription>
-                    Configure external OIDC providers for user authentication
+                    Connect external OIDC/OAuth providers (Google, Azure AD, etc.) to allow users to sign in with their existing accounts
                   </CardDescription>
                 </div>
                 <Dialog open={showProviderDialog} onOpenChange={setShowProviderDialog}>
@@ -443,11 +318,23 @@ export function SSOSettings() {
             </CardHeader>
             <CardContent>
               {providers.length === 0 ? (
-                <Alert>
-                  <AlertDescription>
-                    No SSO providers configured. Add a provider to enable SSO authentication.
-                  </AlertDescription>
-                </Alert>
+                <div className="text-center py-12">
+                  <div className="mx-auto h-12 w-12 text-muted-foreground/50">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                    </svg>
+                  </div>
+                  <h3 className="mt-4 text-lg font-medium">No SSO providers configured</h3>
+                  <p className="mt-2 text-sm text-muted-foreground max-w-sm mx-auto">
+                    Enable Single Sign-On by adding an external identity provider like Google, Azure AD, or any OIDC-compliant service.
+                  </p>
+                  <div className="mt-6">
+                    <Button onClick={() => setShowProviderDialog(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Your First Provider
+                    </Button>
+                  </div>
+                </div>
               ) : (
                 <div className="space-y-4">
                   {providers.map(provider => (
@@ -484,151 +371,7 @@ export function SSOSettings() {
                 </div>
               )}
             </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="applications" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>OAuth Applications</CardTitle>
-                  <CardDescription>
-                    Applications that can authenticate users through this OIDC provider
-                  </CardDescription>
-                </div>
-                <Dialog open={showAppDialog} onOpenChange={setShowAppDialog}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create Application
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Create OAuth Application</DialogTitle>
-                      <DialogDescription>
-                        Register a new application that can use this service for authentication
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="appName">Application Name</Label>
-                        <Input
-                          id="appName"
-                          value={appForm.name}
-                          onChange={e => setAppForm(prev => ({ ...prev, name: e.target.value }))}
-                          placeholder="My Application"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="appType">Application Type</Label>
-                        <Select
-                          value={appForm.type}
-                          onValueChange={value => setAppForm(prev => ({ ...prev, type: value }))}
-                        >
-                          <SelectTrigger id="appType">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="web">Web Application</SelectItem>
-                            <SelectItem value="mobile">Mobile Application</SelectItem>
-                            <SelectItem value="desktop">Desktop Application</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="redirectURLs">Redirect URLs (one per line)</Label>
-                        <textarea
-                          id="redirectURLs"
-                          className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                          value={appForm.redirectURLs}
-                          onChange={e => setAppForm(prev => ({ ...prev, redirectURLs: e.target.value }))}
-                          placeholder="https://example.com/callback&#10;https://example.com/auth/callback"
-                        />
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button variant="outline" onClick={() => setShowAppDialog(false)}>
-                        Cancel
-                      </Button>
-                      <Button onClick={createApplication}>Create Application</Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {applications.length === 0 ? (
-                <Alert>
-                  <AlertDescription>
-                    No OAuth applications registered. Create an application to enable OIDC provider functionality.
-                  </AlertDescription>
-                </Alert>
-              ) : (
-                <div className="space-y-4">
-                  {applications.map(app => (
-                    <Card key={app.id}>
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-semibold">{app.name}</h4>
-                            <p className="text-sm text-muted-foreground">{app.type} application</p>
-                          </div>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => deleteApplication(app.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm font-medium">Client ID</p>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => copyToClipboard(app.clientId)}
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          <p className="text-sm text-muted-foreground font-mono bg-muted p-2 rounded">
-                            {app.clientId}
-                          </p>
-                        </div>
-                        
-                        {app.clientSecret && (
-                          <Alert>
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>
-                              Client secret is only shown once. Store it securely.
-                            </AlertDescription>
-                          </Alert>
-                        )}
-
-                        <div>
-                          <p className="text-sm font-medium mb-1">Redirect URLs</p>
-                          <div className="text-sm text-muted-foreground space-y-1">
-                            {app.redirectURLs.split(',').map((url, i) => (
-                              <p key={i} className="font-mono">{url}</p>
-                            ))}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      </Card>
     </div>
   );
 }
