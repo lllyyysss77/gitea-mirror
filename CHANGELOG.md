@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2025-07-17
+
+### 🔴 Breaking Changes
+- **Authentication System Overhaul**: Migrated from JWT to Better Auth session-based authentication
+- **Login Method Changed**: Users now log in with email instead of username
+- **Environment Variables**: `JWT_SECRET` renamed to `BETTER_AUTH_SECRET`, new `BETTER_AUTH_URL` required
+- **API Endpoints**: Authentication endpoints moved from `/api/auth/login` to `/api/auth/[...all]`
+
+### Added
+- **Token Encryption**: All GitHub and Gitea tokens now encrypted with AES-256-GCM
+- **SSO/OIDC Support**: Enterprise authentication with OAuth providers (Google, Azure AD, Okta, Authentik, etc.)
+- **Header Authentication**: Support for reverse proxy authentication headers (Authentik, Authelia, Traefik Forward Auth)
+- **OAuth Provider**: Gitea Mirror can act as an OIDC provider for other applications
+- **Automated Migration**: Docker containers auto-migrate from v2 to v3
+- **Session Management**: Improved security with session-based authentication
+- **Database Migration System**: Drizzle Kit for better schema management
+- **Zod v4 Compatibility**: Updated to Zod v4 for schema validation
+
+### Improved
+- **Security**: Enhanced error handling and security practices throughout
+- **Documentation**: Comprehensive migration guide for v2 to v3 upgrade
+- **User Management**: Better Auth provides improved user lifecycle management
+- **Database Schema**: Optimized with proper indexes and relationships
+- **Password Hashing**: Using bcrypt via Better Auth for secure password storage
+
+### Fixed
+- Mirroring issues for starred repositories
+- Various security vulnerabilities in authentication system
+- Improved error handling across all API endpoints
+
+### Migration Required
+- All users must re-authenticate after upgrade
+- Existing tokens will be automatically encrypted
+- Database schema updates applied automatically
+- See [Migration Guide](MIGRATION_GUIDE.md) for detailed instructions
+
 ## [2.22.0] - 2025-07-07
 
 ### Added
