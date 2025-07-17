@@ -52,13 +52,11 @@ export async function getGithubRepositories({
       { per_page: 100 }
     );
 
-    const includePrivate = config.githubConfig?.privateRepositories ?? false;
     const skipForks = config.githubConfig?.skipForks ?? false;
 
     const filteredRepos = repos.filter((repo) => {
-      const isPrivateAllowed = includePrivate || !repo.private;
       const isForkAllowed = !skipForks || !repo.fork;
-      return isPrivateAllowed && isForkAllowed;
+      return isForkAllowed;
     });
 
     return filteredRepos.map((repo) => ({

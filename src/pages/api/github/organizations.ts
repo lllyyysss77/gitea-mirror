@@ -91,29 +91,27 @@ export const GET: APIRoute = async ({ request }) => {
           .from(repositories)
           .where(and(...publicConditions));
 
-        // Get private count (only if private repos are enabled in config)
-        const [privateCount] = githubConfig.privateRepositories ? await db
+        // Get private count (always show actual count regardless of config)
+        const [privateCount] = await db
           .select({ count: count() })
           .from(repositories)
           .where(
             and(
               ...baseConditions,
-              eq(repositories.isPrivate, true),
-              ...(githubConfig.skipForks ? [eq(repositories.isForked, false)] : [])
+              eq(repositories.isPrivate, true)
             )
-          ) : [{ count: 0 }];
+          );
 
-        // Get fork count (only if forks are enabled in config)
-        const [forkCount] = !githubConfig.skipForks ? await db
+        // Get fork count (always show actual count regardless of config)
+        const [forkCount] = await db
           .select({ count: count() })
           .from(repositories)
           .where(
             and(
               ...baseConditions,
-              eq(repositories.isForked, true),
-              ...(!githubConfig.privateRepositories ? [eq(repositories.isPrivate, false)] : [])
+              eq(repositories.isForked, true)
             )
-          ) : [{ count: 0 }];
+          );
 
         return {
           ...org,

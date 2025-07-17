@@ -281,6 +281,7 @@ export function OrganizationList({
                     <div className="flex items-center gap-3">
                       <Skeleton className="h-4 w-20" />
                       <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-4 w-20" />
                     </div>
                   ) : (
                     <div className="flex items-center gap-3">
@@ -297,6 +298,14 @@ export function OrganizationList({
                           <div className="h-2.5 w-2.5 rounded-full bg-orange-500" />
                           <span className="text-muted-foreground">
                             {org.privateRepositoryCount} private
+                          </span>
+                        </div>
+                      )}
+                      {org.forkRepositoryCount !== undefined && org.forkRepositoryCount > 0 && (
+                        <div className="flex items-center gap-1.5">
+                          <div className="h-2.5 w-2.5 rounded-full bg-blue-500" />
+                          <span className="text-muted-foreground">
+                            {org.forkRepositoryCount} {org.forkRepositoryCount === 1 ? "fork" : "forks"}
                           </span>
                         </div>
                       )}

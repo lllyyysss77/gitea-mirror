@@ -78,7 +78,7 @@ export const POST: APIRoute = async ({ request }) => {
     // Fetch repos based on config settings
     const allRepos = [];
     
-    // Always fetch public repos
+    // Fetch all repos (public, private, and member) to show in UI
     const publicRepos = await octokit.paginate(octokit.repos.listForOrg, {
       org,
       type: "public",
@@ -86,28 +86,24 @@ export const POST: APIRoute = async ({ request }) => {
     });
     allRepos.push(...publicRepos);
     
-    // Fetch private repos if enabled in config
-    if (decryptedConfig.githubConfig?.includePrivate) {
-      const privateRepos = await octokit.paginate(octokit.repos.listForOrg, {
-        org,
-        type: "private",
-        per_page: 100,
-      });
-      allRepos.push(...privateRepos);
-    }
+    // Always fetch private repos to show them in the UI
+    const privateRepos = await octokit.paginate(octokit.repos.listForOrg, {
+      org,
+      type: "private",
+      per_page: 100,
+    });
+    allRepos.push(...privateRepos);
     
     // Also fetch member repos (includes private repos the user has access to)
-    if (decryptedConfig.githubConfig?.includePrivate) {
-      const memberRepos = await octokit.paginate(octokit.repos.listForOrg, {
-        org,
-        type: "member",
-        per_page: 100,
-      });
-      // Filter out duplicates
-      const existingIds = new Set(allRepos.map(r => r.id));
-      const uniqueMemberRepos = memberRepos.filter(r => !existingIds.has(r.id));
-      allRepos.push(...uniqueMemberRepos);
-    }
+    const memberRepos = await octokit.paginate(octokit.repos.listForOrg, {
+      org,
+      type: "member",
+      per_page: 100,
+    });
+    // Filter out duplicates
+    const existingIds = new Set(allRepos.map(r => r.id));
+    const uniqueMemberRepos = memberRepos.filter(r => !existingIds.has(r.id));
+    allRepos.push(...uniqueMemberRepos);
 
     // Insert repositories
     const repoRecords = allRepos.map((repo) => ({
