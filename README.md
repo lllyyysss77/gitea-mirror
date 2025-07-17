@@ -10,6 +10,10 @@
   </p>
 </p>
 
+> [!IMPORTANT]
+> **Upgrading to v3?** Please read the [Migration Guide](MIGRATION_GUIDE.md) for breaking changes and upgrade instructions.
+
+
 ## 🚀 Quick Start
 
 ```bash
@@ -105,7 +109,7 @@ docker compose up -d
 #### Using Pre-built Image Directly
 
 ```bash
-docker pull ghcr.io/raylabshq/gitea-mirror:v2.20.1
+docker pull ghcr.io/raylabshq/gitea-mirror:v3.0.0
 ```
 
 ### Configuration Options
@@ -212,8 +216,11 @@ bun run build
 - Never stored in plaintext
 - Secure session management with JWT tokens
 
-### Migration
-If upgrading from a version without token encryption:
+### Upgrading to v3
+
+**Important**: If upgrading from v2.x to v3.0, please read the [Migration Guide](MIGRATION_GUIDE.md) for breaking changes and upgrade instructions.
+
+For quick token encryption migration:
 ```bash
 bun run migrate:encrypt-tokens
 ```
