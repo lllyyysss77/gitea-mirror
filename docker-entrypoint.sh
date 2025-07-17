@@ -52,15 +52,26 @@ if [ "$GITEA_SKIP_TLS_VERIFY" = "true" ]; then
   export NODE_TLS_REJECT_UNAUTHORIZED=0
 fi
 
-# Generate a secure JWT secret if one isn't provided or is using the default value
-JWT_SECRET_FILE="/app/data/.jwt_secret"
-if [ "$JWT_SECRET" = "your-secret-key-change-this-in-production" ] || [ -z "$JWT_SECRET" ]; then
+# Generate a secure BETTER_AUTH_SECRET if one isn't provided or is using the default value
+BETTER_AUTH_SECRET_FILE="/app/data/.better_auth_secret"
+JWT_SECRET_FILE="/app/data/.jwt_secret"  # Old file for backward compatibility
+
+if [ "$BETTER_AUTH_SECRET" = "your-secret-key-change-this-in-production" ] || [ -z "$BETTER_AUTH_SECRET" ]; then
   # Check if we have a previously generated secret
-  if [ -f "$JWT_SECRET_FILE" ]; then
-    echo "Using previously generated JWT secret"
-    export JWT_SECRET=$(cat "$JWT_SECRET_FILE")
+  if [ -f "$BETTER_AUTH_SECRET_FILE" ]; then
+    echo "Using previously generated BETTER_AUTH_SECRET"
+    export BETTER_AUTH_SECRET=$(cat "$BETTER_AUTH_SECRET_FILE")
+  # Check for old JWT_SECRET file for backward compatibility
+  elif [ -f "$JWT_SECRET_FILE" ]; then
+    echo "Migrating from old JWT_SECRET to BETTER_AUTH_SECRET"
+    export BETTER_AUTH_SECRET=$(cat "$JWT_SECRET_FILE")
+    # Save to new file
+    echo "$BETTER_AUTH_SECRET" > "$BETTER_AUTH_SECRET_FILE"
+    chmod 600 "$BETTER_AUTH_SECRET_FILE"
+    # Optionally remove old file after successful migration
+    rm -f "$JWT_SECRET_FILE"
   else
-    echo "Generating a secure random JWT secret"
+    echo "Generating a secure random BETTER_AUTH_SECRET"
     # Try to generate a secure random string using OpenSSL
     if command -v openssl >/dev/null 2>&1; then
       GENERATED_SECRET=$(openssl rand -hex 32)
@@ -69,12 +80,38 @@ if [ "$JWT_SECRET" = "your-secret-key-change-this-in-production" ] || [ -z "$JWT
       echo "OpenSSL not found, using fallback method for random generation"
       GENERATED_SECRET=$(head -c 32 /dev/urandom | sha256sum | cut -d' ' -f1)
     fi
-    export JWT_SECRET="$GENERATED_SECRET"
+    export BETTER_AUTH_SECRET="$GENERATED_SECRET"
     # Save the secret to a file for persistence across container restarts
-    echo "$GENERATED_SECRET" > "$JWT_SECRET_FILE"
-    chmod 600 "$JWT_SECRET_FILE"
+    echo "$GENERATED_SECRET" > "$BETTER_AUTH_SECRET_FILE"
+    chmod 600 "$BETTER_AUTH_SECRET_FILE"
   fi
-  echo "JWT_SECRET has been set to a secure random value"
+  echo "BETTER_AUTH_SECRET has been set to a secure random value"
+fi
+
+# Generate a secure ENCRYPTION_SECRET if one isn't provided
+ENCRYPTION_SECRET_FILE="/app/data/.encryption_secret"
+
+if [ -z "$ENCRYPTION_SECRET" ]; then
+  # Check if we have a previously generated secret
+  if [ -f "$ENCRYPTION_SECRET_FILE" ]; then
+    echo "Using previously generated ENCRYPTION_SECRET"
+    export ENCRYPTION_SECRET=$(cat "$ENCRYPTION_SECRET_FILE")
+  else
+    echo "Generating a secure random ENCRYPTION_SECRET"
+    # Generate a 48-character secret for encryption
+    if command -v openssl >/dev/null 2>&1; then
+      GENERATED_ENCRYPTION_SECRET=$(openssl rand -base64 36)
+    else
+      # Fallback to using /dev/urandom if openssl is not available
+      echo "OpenSSL not found, using fallback method for encryption secret generation"
+      GENERATED_ENCRYPTION_SECRET=$(head -c 36 /dev/urandom | base64 | tr -d '\n' | head -c 48)
+    fi
+    export ENCRYPTION_SECRET="$GENERATED_ENCRYPTION_SECRET"
+    # Save the secret to a file for persistence across container restarts
+    echo "$GENERATED_ENCRYPTION_SECRET" > "$ENCRYPTION_SECRET_FILE"
+    chmod 600 "$ENCRYPTION_SECRET_FILE"
+  fi
+  echo "ENCRYPTION_SECRET has been set to a secure random value"
 fi
 
 
@@ -244,6 +281,69 @@ else
     bun scripts/update-mirror-jobs-table.ts
   else
     echo "Warning: Could not find mirror_jobs table update script."
+  fi
+
+  # Run v3 migrations if needed
+  echo "Checking for v3 migrations..."
+  
+  # Check if we need to run Better Auth migration (check if accounts table exists)
+  if ! sqlite3 /app/data/gitea-mirror.db "SELECT name FROM sqlite_master WHERE type='table' AND name='accounts';" | grep -q accounts; then
+    echo "🔄 v3 Migration: Creating Better Auth tables..."
+    # Create Better Auth tables
+    sqlite3 /app/data/gitea-mirror.db <<EOF
+    CREATE TABLE IF NOT EXISTS accounts (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      accountId TEXT NOT NULL,
+      providerId TEXT NOT NULL,
+      accessToken TEXT,
+      refreshToken TEXT,
+      expiresAt INTEGER,
+      password TEXT,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL,
+      FOREIGN KEY (userId) REFERENCES users(id)
+    );
+    
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      token TEXT NOT NULL,
+      expiresAt INTEGER NOT NULL,
+      createdAt INTEGER NOT NULL,
+      updatedAt INTEGER NOT NULL,
+      FOREIGN KEY (userId) REFERENCES users(id)
+    );
+    
+    CREATE TABLE IF NOT EXISTS verification_tokens (
+      id TEXT PRIMARY KEY,
+      identifier TEXT NOT NULL,
+      token TEXT NOT NULL,
+      expires INTEGER NOT NULL
+    );
+    
+    CREATE INDEX IF NOT EXISTS idx_accounts_userId ON accounts(userId);
+    CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token);
+    CREATE INDEX IF NOT EXISTS idx_verification_identifier_token ON verification_tokens(identifier, token);
+EOF
+  fi
+  
+  # Run Better Auth user migration
+  if [ -f "dist/scripts/migrate-better-auth.js" ]; then
+    echo "🔄 v3 Migration: Migrating users to Better Auth..."
+    bun dist/scripts/migrate-better-auth.js
+  elif [ -f "scripts/migrate-better-auth.ts" ]; then
+    echo "🔄 v3 Migration: Migrating users to Better Auth..."
+    bun scripts/migrate-better-auth.ts
+  fi
+  
+  # Run token encryption migration
+  if [ -f "dist/scripts/migrate-tokens-encryption.js" ]; then
+    echo "🔄 v3 Migration: Encrypting stored tokens..."
+    bun dist/scripts/migrate-tokens-encryption.js
+  elif [ -f "scripts/migrate-tokens-encryption.ts" ]; then
+    echo "🔄 v3 Migration: Encrypting stored tokens..."
+    bun scripts/migrate-tokens-encryption.ts
   fi
 fi
 

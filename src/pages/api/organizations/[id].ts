@@ -2,36 +2,17 @@ import type { APIRoute } from "astro";
 import { db, organizations } from "@/lib/db";
 import { eq, and } from "drizzle-orm";
 import { createSecureErrorResponse } from "@/lib/utils";
-import jwt from "jsonwebtoken";
+import { requireAuth } from "@/lib/utils/auth-helpers";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
-
-export const PATCH: APIRoute = async ({ request, params, cookies }) => {
+export const PATCH: APIRoute = async (context) => {
   try {
-    // Get token from Authorization header or cookies
-    const authHeader = request.headers.get("Authorization");
-    const token = authHeader?.split(" ")[1] || cookies.get("token")?.value;
+    // Check authentication
+    const { user, response } = await requireAuth(context);
+    if (response) return response;
 
-    if (!token) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    const userId = user!.id;
 
-    // Verify token and get user ID
-    let userId: string;
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET) as { id: string };
-      userId = decoded.id;
-    } catch (error) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    const orgId = params.id;
+    const orgId = context.params.id;
     if (!orgId) {
       return new Response(JSON.stringify({ error: "Organization ID is required" }), {
         status: 400,
@@ -39,7 +20,7 @@ export const PATCH: APIRoute = async ({ request, params, cookies }) => {
       });
     }
 
-    const body = await request.json();
+    const body = await context.request.json();
     const { destinationOrg } = body;
 
     // Validate that the organization belongs to the user

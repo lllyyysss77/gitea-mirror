@@ -129,9 +129,9 @@ export function Header({ currentPage, onNavigate, onMenuClick }: HeaderProps) {
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="lg" className="relative h-10 w-10 rounded-full p-0">
                   <Avatar className="h-full w-full">
-                    <AvatarImage src="" alt="@shadcn" />
+                    <AvatarImage src={user.image || ""} alt={user.name || user.email} />
                     <AvatarFallback>
-                      {user.username.charAt(0).toUpperCase()}
+                      {(user.name || user.email || "U").charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 </Button>

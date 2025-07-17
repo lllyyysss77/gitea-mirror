@@ -28,7 +28,10 @@ services:
       - DATABASE_URL=file:data/gitea-mirror.db
       - HOST=0.0.0.0
       - PORT=4321
-      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-this-in-production}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-your-secret-key-change-this-in-production}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL:-http://localhost:4321}
+      # Optional: ENCRYPTION_SECRET will be auto-generated if not provided
+      # - ENCRYPTION_SECRET=${ENCRYPTION_SECRET:-}
       # GitHub/Gitea Mirror Config
       - GITHUB_USERNAME=${GITHUB_USERNAME:-}
       - GITHUB_TOKEN=${GITHUB_TOKEN:-}
@@ -49,6 +52,13 @@ services:
       - DELAY=${DELAY:-3600}
       # Optional: Skip TLS verification (insecure, use only for testing)
       # - GITEA_SKIP_TLS_VERIFY=${GITEA_SKIP_TLS_VERIFY:-false}
+      # Header Authentication (for Reverse Proxy SSO)
+      - HEADER_AUTH_ENABLED=${HEADER_AUTH_ENABLED:-false}
+      - HEADER_AUTH_USER_HEADER=${HEADER_AUTH_USER_HEADER:-X-Authentik-Username}
+      - HEADER_AUTH_EMAIL_HEADER=${HEADER_AUTH_EMAIL_HEADER:-X-Authentik-Email}
+      - HEADER_AUTH_NAME_HEADER=${HEADER_AUTH_NAME_HEADER:-X-Authentik-Name}
+      - HEADER_AUTH_AUTO_PROVISION=${HEADER_AUTH_AUTO_PROVISION:-false}
+      - HEADER_AUTH_ALLOWED_DOMAINS=${HEADER_AUTH_ALLOWED_DOMAINS:-}
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=3", "--spider", "http://localhost:4321/api/health"]
       interval: 30s

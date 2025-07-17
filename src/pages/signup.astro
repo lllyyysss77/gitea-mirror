@@ -1,12 +1,15 @@
 ---
 import '../styles/global.css';
 import ThemeScript from '@/components/theme/ThemeScript.astro';
-import { SignupForm } from '@/components/auth/SignupForm';
-import { client } from '../lib/db';
+import { SignupPage } from '@/components/auth/SignupPage';
+import { db, users } from '@/lib/db';
+import { sql } from 'drizzle-orm';
 
 // Check if any users exist in the database
-const userCountResult = await client.execute(`SELECT COUNT(*) as count FROM users`);
-const userCount = userCountResult.rows[0]?.count;
+const userCountResult = await db
+  .select({ count: sql<number>`count(*)` })
+  .from(users);
+const userCount = userCountResult[0]?.count;
 
 // Redirect to login if users already exist
 if (userCount !== null && Number(userCount) > 0) {
@@ -31,7 +34,7 @@ const generator = Astro.generator;
         <h1 class="text-3xl font-bold mb-2">Welcome to Gitea Mirror</h1>
         <p class="text-muted-foreground">Let's set up your administrator account to get started.</p>
       </div>
-      <SignupForm client:load />
+      <SignupPage client:load />
     </div>
   </body>
 </html>

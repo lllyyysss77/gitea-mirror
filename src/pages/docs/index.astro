@@ -1,16 +1,16 @@
 ---
 import MainLayout from '../../layouts/main.astro';
-import { LuSettings, LuRocket, LuBookOpen } from 'react-icons/lu';
+import { LuSettings, LuRocket, LuBookOpen, LuShield, LuKey, LuNetwork } from 'react-icons/lu';
 
 // Define our documentation pages directly
 const docs = [
   {
-    slug: 'architecture',
-    title: 'Architecture',
-    description: 'Comprehensive overview of the Gitea Mirror application architecture.',
+    slug: 'quickstart',
+    title: 'Quick Start Guide',
+    description: 'Get started with Gitea Mirror quickly.',
     order: 1,
-    icon: LuBookOpen,
-    href: '/docs/architecture'
+    icon: LuRocket,
+    href: '/docs/quickstart'
   },
   {
     slug: 'configuration',
@@ -21,12 +21,36 @@ const docs = [
     href: '/docs/configuration'
   },
   {
-    slug: 'quickstart',
-    title: 'Quick Start Guide',
-    description: 'Get started with Gitea Mirror quickly.',
+    slug: 'authentication',
+    title: 'Authentication & SSO',
+    description: 'Configure authentication methods, SSO providers, and OIDC.',
     order: 3,
-    icon: LuRocket,
-    href: '/docs/quickstart'
+    icon: LuKey,
+    href: '/docs/authentication'
+  },
+  {
+    slug: 'architecture',
+    title: 'Architecture',
+    description: 'Comprehensive overview of the Gitea Mirror application architecture.',
+    order: 4,
+    icon: LuBookOpen,
+    href: '/docs/architecture'
+  },
+  {
+    slug: 'ca-certificates',
+    title: 'CA Certificates',
+    description: 'Configure custom CA certificates for self-signed Gitea instances.',
+    order: 5,
+    icon: LuShield,
+    href: '/docs/ca-certificates'
+  },
+  {
+    slug: 'advanced',
+    title: 'Advanced Topics',
+    description: 'Advanced configuration, troubleshooting, and deployment options.',
+    order: 6,
+    icon: LuNetwork,
+    href: '/docs/advanced'
   }
 ];
 

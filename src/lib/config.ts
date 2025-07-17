@@ -18,9 +18,9 @@ export const ENV = {
     return "sqlite://data/gitea-mirror.db";
   },
 
-  // JWT secret for authentication
-  JWT_SECRET:
-    process.env.JWT_SECRET || "your-secret-key-change-this-in-production",
+  // Better Auth secret for authentication
+  BETTER_AUTH_SECRET:
+    process.env.BETTER_AUTH_SECRET || "your-secret-key-change-this-in-production",
 
   // Server host and port
   HOST: process.env.HOST || "localhost",

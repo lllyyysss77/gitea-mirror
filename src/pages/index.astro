@@ -1,12 +1,13 @@
 ---
 import '../styles/global.css';
 import App from '@/components/layout/MainLayout';
-import { db, repositories, mirrorJobs, client } from '@/lib/db';
+import { db, repositories, mirrorJobs, users } from '@/lib/db';
+import { sql } from 'drizzle-orm';
 import ThemeScript from '@/components/theme/ThemeScript.astro';
 
 // Check if any users exist in the database
-const userCountResult = await client.execute(`SELECT COUNT(*) as count FROM users`);
-const userCount = userCountResult.rows[0].count;
+const userCountResult = await db.select({ count: sql<number>`count(*)` }).from(users);
+const userCount = userCountResult[0]?.count || 0;
 
 // Redirect to signup if no users exist
 if (userCount === 0) {

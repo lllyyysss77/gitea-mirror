@@ -1,149 +1,236 @@
-# Custom CA Certificate Support
+# CA Certificates Configuration
 
-This guide explains how to configure Gitea Mirror to work with self-signed certificates or custom Certificate Authorities (CAs).
-
-> **📁 This is the certs directory!** Place your `.crt` certificate files directly in this directory and they will be automatically loaded when the Docker container starts.
+This document explains how to configure custom Certificate Authority (CA) certificates for Gitea Mirror when connecting to self-signed or privately signed Gitea instances.
 
 ## Overview
 
-When connecting to a Gitea instance that uses self-signed certificates or certificates from a private CA, you need to configure the application to trust these certificates. Gitea Mirror supports mounting custom CA certificates that will be automatically configured for use.
+When your Gitea instance uses a self-signed certificate or a certificate signed by a private Certificate Authority (CA), you need to configure Gitea Mirror to trust these certificates.
 
-## Configuration Steps
+## Common SSL/TLS Errors
 
-### 1. Prepare Your CA Certificates
+If you encounter any of these errors, you need to configure CA certificates:
 
-You're already in the right place! Simply copy your CA certificate(s) into this `certs` directory with `.crt` extension:
+- `UNABLE_TO_VERIFY_LEAF_SIGNATURE`
+- `SELF_SIGNED_CERT_IN_CHAIN`
+- `UNABLE_TO_GET_ISSUER_CERT_LOCALLY`
+- `CERT_UNTRUSTED`
+- `unable to verify the first certificate`
 
-```bash
-# From the project root:
-cp /path/to/your/ca-certificate.crt ./certs/
+## Configuration by Deployment Method
 
-# Or if you're already in the certs directory:
-cp /path/to/your/ca-certificate.crt .
-```
+### Docker
 
-You can add multiple CA certificates - they will all be combined into a single bundle.
+#### Method 1: Volume Mount (Recommended)
 
-### 2. Mount Certificates in Docker
-
-Edit your `docker-compose.yml` file to mount the certificates. You have two options:
-
-**Option 1: Mount individual certificates from certs directory**
-```yaml
-services:
-  gitea-mirror:
-    # ... other configuration ...
-    volumes:
-      - gitea-mirror-data:/app/data
-      - ./certs:/app/certs:ro  # Mount CA certificates directory
-```
-
-**Option 2: Mount system CA bundle (if your CA is already installed system-wide)**
-```yaml
-services:
-  gitea-mirror:
-    # ... other configuration ...
-    volumes:
-      - gitea-mirror-data:/app/data
-      - /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro
-```
-
-> **Note**: Use Option 2 if you've already added your CA certificate to your system's certificate store using `update-ca-certificates` or similar commands.
-
-> **System CA Bundle Locations**:
-> - Debian/Ubuntu: `/etc/ssl/certs/ca-certificates.crt`
-> - RHEL/CentOS/Fedora: `/etc/pki/tls/certs/ca-bundle.crt`
-> - Alpine Linux: `/etc/ssl/certs/ca-certificates.crt`
-> - macOS: `/etc/ssl/cert.pem`
-
-### 3. Start the Container
-
-Start or restart your container:
-
-```bash
-docker-compose up -d
-```
-
-The container will automatically:
-1. Detect any `.crt` files in `/app/certs` (Option 1) OR detect mounted system CA bundle (Option 2)
-2. For Option 1: Combine certificates into a CA bundle
-3. Configure Node.js to use these certificates via `NODE_EXTRA_CA_CERTS`
-
-You should see log messages like:
-
-**For Option 1 (individual certificates):**
-```
-Custom CA certificates found, configuring Node.js to use them...
-Adding certificate: my-ca.crt
-NODE_EXTRA_CA_CERTS set to: /app/certs/ca-bundle.crt
-```
-
-**For Option 2 (system CA bundle):**
-```
-System CA bundle mounted, configuring Node.js to use it...
-NODE_EXTRA_CA_CERTS set to: /etc/ssl/certs/ca-certificates.crt
-```
-
-## Testing & Troubleshooting
-
-### Disable TLS Verification (Testing Only)
-
-For testing purposes only, you can disable TLS verification entirely:
-
-```yaml
-environment:
-  - GITEA_SKIP_TLS_VERIFY=true
-```
-
-**WARNING**: This is insecure and should never be used in production!
-
-### Common Issues
-
-1. **Certificate not recognized**: Ensure your certificate file has a `.crt` extension
-2. **Connection still fails**: Check that the certificate is in PEM format
-3. **Multiple certificates needed**: Add all required certificates (root and intermediate) to the certs directory
-
-### Verifying Certificate Loading
-
-Check the container logs to confirm certificates are loaded:
-
-```bash
-docker-compose logs gitea-mirror | grep "CA certificates"
-```
-
-## Security Considerations
-
-- Always use proper CA certificates in production
-- Never disable TLS verification in production environments
-- Keep your CA certificates secure and limit access to the certs directory
-- Regularly update certificates before they expire
-
-## Example Setup
-
-Here's a complete example for a self-hosted Gitea with custom CA:
-
-1. Copy your Gitea server's CA certificate to this directory:
+1. Create a certificates directory:
    ```bash
-   cp /etc/ssl/certs/my-company-ca.crt ./certs/
+   mkdir -p ./certs
    ```
 
-2. Update `docker-compose.yml`:
+2. Copy your CA certificate(s):
+   ```bash
+   cp /path/to/your-ca-cert.crt ./certs/
+   ```
+
+3. Update `docker-compose.yml`:
    ```yaml
+   version: '3.8'
    services:
      gitea-mirror:
-       image: ghcr.io/raylabshq/gitea-mirror:latest
+       image: raylabs/gitea-mirror:latest
        volumes:
-         - gitea-mirror-data:/app/data
-         - ./certs:/app/certs:ro
+         - ./data:/app/data
+         - ./certs:/usr/local/share/ca-certificates:ro
        environment:
-         - GITEA_URL=https://gitea.mycompany.local
-         - GITEA_TOKEN=your-token
-         # ... other configuration ...
+         - NODE_EXTRA_CA_CERTS=/usr/local/share/ca-certificates/your-ca-cert.crt
    ```
 
-3. Start the service:
+4. Restart the container:
    ```bash
-   docker-compose up -d
+   docker-compose down && docker-compose up -d
    ```
 
-The application will now trust your custom CA when connecting to your Gitea instance.
+#### Method 2: Custom Docker Image
+
+Create a `Dockerfile`:
+
+```dockerfile
+FROM raylabs/gitea-mirror:latest
+
+# Copy CA certificates
+COPY ./certs/*.crt /usr/local/share/ca-certificates/
+
+# Update CA certificates
+RUN update-ca-certificates
+
+# Set environment variable
+ENV NODE_EXTRA_CA_CERTS=/usr/local/share/ca-certificates/your-ca-cert.crt
+```
+
+Build and use:
+```bash
+docker build -t my-gitea-mirror .
+```
+
+### Native/Bun
+
+#### Method 1: Environment Variable
+
+```bash
+export NODE_EXTRA_CA_CERTS=/path/to/your-ca-cert.crt
+bun run start
+```
+
+#### Method 2: .env File
+
+Add to your `.env` file:
+```
+NODE_EXTRA_CA_CERTS=/path/to/your-ca-cert.crt
+```
+
+#### Method 3: System CA Store
+
+**Ubuntu/Debian:**
+```bash
+sudo cp your-ca-cert.crt /usr/local/share/ca-certificates/
+sudo update-ca-certificates
+```
+
+**RHEL/CentOS/Fedora:**
+```bash
+sudo cp your-ca-cert.crt /etc/pki/ca-trust/source/anchors/
+sudo update-ca-trust
+```
+
+**macOS:**
+```bash
+sudo security add-trusted-cert -d -r trustRoot \
+  -k /Library/Keychains/System.keychain your-ca-cert.crt
+```
+
+### LXC Container (Proxmox VE)
+
+1. Enter the container:
+   ```bash
+   pct enter <container-id>
+   ```
+
+2. Create certificates directory:
+   ```bash
+   mkdir -p /usr/local/share/ca-certificates
+   ```
+
+3. Copy your CA certificate:
+   ```bash
+   cat > /usr/local/share/ca-certificates/your-ca.crt
+   ```
+   (Paste certificate content and press Ctrl+D)
+
+4. Update the systemd service:
+   ```bash
+   cat >> /etc/systemd/system/gitea-mirror.service << EOF
+   Environment="NODE_EXTRA_CA_CERTS=/usr/local/share/ca-certificates/your-ca.crt"
+   EOF
+   ```
+
+5. Reload and restart:
+   ```bash
+   systemctl daemon-reload
+   systemctl restart gitea-mirror
+   ```
+
+## Multiple CA Certificates
+
+### Option 1: Bundle Certificates
+
+```bash
+cat ca-cert1.crt ca-cert2.crt ca-cert3.crt > ca-bundle.crt
+export NODE_EXTRA_CA_CERTS=/path/to/ca-bundle.crt
+```
+
+### Option 2: System CA Store
+
+```bash
+# Copy all certificates
+cp *.crt /usr/local/share/ca-certificates/
+update-ca-certificates
+```
+
+## Verification
+
+### 1. Test Gitea Connection
+Use the "Test Connection" button in the Gitea configuration section.
+
+### 2. Check Logs
+
+**Docker:**
+```bash
+docker logs gitea-mirror
+```
+
+**Native:**
+Check terminal output
+
+**LXC:**
+```bash
+journalctl -u gitea-mirror -f
+```
+
+### 3. Manual Certificate Test
+
+```bash
+openssl s_client -connect your-gitea-domain.com:443 -CAfile /path/to/ca-cert.crt
+```
+
+## Best Practices
+
+1. **Certificate Security**
+   - Keep CA certificates secure
+   - Use read-only mounts in Docker
+   - Limit certificate file permissions
+   - Regularly update certificates
+
+2. **Certificate Management**
+   - Use descriptive certificate filenames
+   - Document certificate purposes
+   - Track certificate expiration dates
+   - Maintain certificate backups
+
+3. **Production Deployment**
+   - Use proper SSL certificates when possible
+   - Consider Let's Encrypt for public instances
+   - Implement certificate rotation procedures
+   - Monitor certificate expiration
+
+## Troubleshooting
+
+### Certificate not being recognized
+- Ensure the certificate is in PEM format
+- Check that `NODE_EXTRA_CA_CERTS` points to the correct file
+- Restart the application after adding certificates
+
+### Still getting SSL errors
+- Verify the complete certificate chain is included
+- Check if intermediate certificates are needed
+- Ensure the certificate matches the server hostname
+
+### Certificate expired
+- Check validity: `openssl x509 -in cert.crt -noout -dates`
+- Update with new certificate from your CA
+- Restart Gitea Mirror after updating
+
+## Certificate Format
+
+Certificates must be in PEM format. Example:
+
+```
+-----BEGIN CERTIFICATE-----
+MIIDXTCCAkWgAwIBAgIJAKl8bUgMdErlMA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNV
+[... certificate content ...]
+-----END CERTIFICATE-----
+```
+
+If your certificate is in DER format, convert it:
+```bash
+openssl x509 -inform der -in certificate.cer -out certificate.crt
+```

@@ -7,7 +7,7 @@ CONTAINER="gitea-test"
 IMAGE="ubuntu:22.04"
 INSTALL_DIR="/opt/gitea-mirror"
 PORT=4321
-JWT_SECRET="$(openssl rand -hex 32)"
+BETTER_AUTH_SECRET="$(openssl rand -hex 32)"
 
 BUN_ZIP="/tmp/bun-linux-x64.zip"
 BUN_URL="https://github.com/oven-sh/bun/releases/latest/download/bun-linux-x64.zip"
@@ -73,7 +73,7 @@ Environment=NODE_ENV=production
 Environment=HOST=0.0.0.0
 Environment=PORT=$PORT
 Environment=DATABASE_URL=file:data/gitea-mirror.db
-Environment=JWT_SECRET=$JWT_SECRET
+Environment=BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
 [Install]
 WantedBy=multi-user.target
 SERVICE

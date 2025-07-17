@@ -11,6 +11,7 @@ import { httpPost, httpGet } from "./http-client";
 import { createMirrorJob } from "./helpers";
 import { db, organizations, repositories } from "./db";
 import { eq, and } from "drizzle-orm";
+import { decryptConfigTokens } from "./utils/config-encryption";
 
 /**
  * Helper function to get organization configuration including destination override
@@ -183,12 +184,15 @@ export const isRepoPresentInGitea = async ({
       throw new Error("Gitea config is required.");
     }
 
+    // Decrypt config tokens for API usage
+    const decryptedConfig = decryptConfigTokens(config as Config);
+
     // Check if the repository exists at the specified owner location
     const response = await fetch(
       `${config.giteaConfig.url}/api/v1/repos/${owner}/${repoName}`,
       {
         headers: {
-          Authorization: `token ${config.giteaConfig.token}`,
+          Authorization: `token ${decryptedConfig.giteaConfig.token}`,
         },
       }
     );
@@ -371,7 +375,7 @@ export const mirrorGithubRepoToGitea = async ({
         service: "git",
       },
       {
-        Authorization: `token ${config.giteaConfig.token}`,
+        Authorization: `token ${decryptedConfig.giteaConfig.token}`,
       }
     );
 
@@ -392,7 +396,7 @@ export const mirrorGithubRepoToGitea = async ({
         config,
         octokit,
         repository,
-        isRepoInOrg: false,
+        giteaOwner: repoOwner,
       });
     }
 
@@ -476,11 +480,14 @@ export async function getOrCreateGiteaOrg({
   try {
     console.log(`Attempting to get or create Gitea organization: ${orgName}`);
 
+    // Decrypt config tokens for API usage
+    const decryptedConfig = decryptConfigTokens(config as Config);
+
     const orgRes = await fetch(
       `${config.giteaConfig.url}/api/v1/orgs/${orgName}`,
       {
         headers: {
-          Authorization: `token ${config.giteaConfig.token}`,
+          Authorization: `token ${decryptedConfig.giteaConfig.token}`,
           "Content-Type": "application/json",
         },
       }
@@ -533,7 +540,7 @@ export async function getOrCreateGiteaOrg({
     const createRes = await fetch(`${config.giteaConfig.url}/api/v1/orgs`, {
       method: "POST",
       headers: {
-        Authorization: `token ${config.giteaConfig.token}`,
+        Authorization: `token ${decryptedConfig.giteaConfig.token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -720,7 +727,7 @@ export async function mirrorGitHubRepoToGiteaOrg({
         private: repository.isPrivate,
       },
       {
-        Authorization: `token ${config.giteaConfig.token}`,
+        Authorization: `token ${decryptedConfig.giteaConfig.token}`,
       }
     );
 
@@ -741,7 +748,7 @@ export async function mirrorGitHubRepoToGiteaOrg({
         config,
         octokit,
         repository,
-        isRepoInOrg: true,
+        giteaOwner: orgName,
       });
     }
 
@@ -1074,6 +1081,9 @@ export const syncGiteaRepo = async ({
       throw new Error("Gitea config is required.");
     }
 
+    // Decrypt config tokens for API usage
+    const decryptedConfig = decryptConfigTokens(config as Config);
+
     console.log(`Syncing repository ${repository.name}`);
 
     // Mark repo as "syncing" in DB
@@ -1183,12 +1193,12 @@ export const mirrorGitRepoIssuesToGitea = async ({
   config,
   octokit,
   repository,
-  isRepoInOrg,
+  giteaOwner,
 }: {
   config: Partial<Config>;
   octokit: Octokit;
   repository: Repository;
-  isRepoInOrg: boolean;
+  giteaOwner: string;
 }) => {
   //things covered here are- issue, title, body, labels, comments and assignees
   if (
@@ -1200,9 +1210,8 @@ export const mirrorGitRepoIssuesToGitea = async ({
     throw new Error("Missing GitHub or Gitea configuration.");
   }
 
-  const repoOrigin = isRepoInOrg
-    ? repository.organization
-    : config.githubConfig.username;
+  // Decrypt config tokens for API usage
+  const decryptedConfig = decryptConfigTokens(config as Config);
 
   const [owner, repo] = repository.fullName.split("/");
 
@@ -1232,7 +1241,7 @@ export const mirrorGitRepoIssuesToGitea = async ({
 
   // Get existing labels from Gitea
   const giteaLabelsRes = await httpGet(
-    `${config.giteaConfig.url}/api/v1/repos/${repoOrigin}/${repository.name}/labels`,
+    `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repository.name}/labels`,
     {
       Authorization: `token ${config.giteaConfig.token}`,
     }
@@ -1264,7 +1273,7 @@ export const mirrorGitRepoIssuesToGitea = async ({
         } else {
           try {
             const created = await httpPost(
-              `${config.giteaConfig!.url}/api/v1/repos/${repoOrigin}/${
+              `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${
                 repository.name
               }/labels`,
               { name, color: "#ededed" }, // Default color
@@ -1301,7 +1310,7 @@ export const mirrorGitRepoIssuesToGitea = async ({
 
       // Create the issue in Gitea
       const createdIssue = await httpPost(
-        `${config.giteaConfig!.url}/api/v1/repos/${repoOrigin}/${
+        `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${
           repository.name
         }/issues`,
         issuePayload,
@@ -1328,7 +1337,7 @@ export const mirrorGitRepoIssuesToGitea = async ({
           comments,
           async (comment) => {
             await httpPost(
-              `${config.giteaConfig!.url}/api/v1/repos/${repoOrigin}/${
+              `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${
                 repository.name
               }/issues/${createdIssue.data.number}/comments`,
               {

@@ -13,6 +13,7 @@ import type { RetryRepoRequest, RetryRepoResponse } from "@/types/retry";
 import { processWithRetry } from "@/lib/utils/concurrency";
 import { createMirrorJob } from "@/lib/helpers";
 import { createSecureErrorResponse } from "@/lib/utils";
+import { getDecryptedGitHubToken } from "@/lib/utils/config-encryption";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -71,8 +72,11 @@ export const POST: APIRoute = async ({ request }) => {
     // Start background retry with parallel processing
     setTimeout(async () => {
       // Create a single Octokit instance to be reused if needed
-      const octokit = config.githubConfig.token
-        ? createGitHubClient(config.githubConfig.token)
+      const decryptedToken = config.githubConfig.token
+        ? getDecryptedGitHubToken(config)
+        : null;
+      const octokit = decryptedToken
+        ? createGitHubClient(decryptedToken)
         : null;
 
       // Define the concurrency limit - adjust based on API rate limits

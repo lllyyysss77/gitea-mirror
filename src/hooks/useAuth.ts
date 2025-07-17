@@ -6,21 +6,22 @@ import {
   useContext,
   type Context,
 } from "react";
-import { authApi } from "@/lib/api";
-import type { ExtendedUser } from "@/types/user";
+import { authClient, useSession as useBetterAuthSession } from "@/lib/auth-client";
+import type { Session, AuthUser } from "@/lib/auth-client";
 
 interface AuthContextType {
-  user: ExtendedUser | null;
+  user: AuthUser | null;
+  session: Session | null;
   isLoading: boolean;
   error: string | null;
-  login: (username: string, password: string) => Promise<void>;
+  login: (email: string, password: string, username?: string) => Promise<void>;
   register: (
     username: string,
     email: string,
     password: string
   ) => Promise<void>;
   logout: () => Promise<void>;
-  refreshUser: () => Promise<void>; // Added refreshUser function
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext: Context<AuthContextType | undefined> = createContext<
@@ -28,60 +29,32 @@ const AuthContext: Context<AuthContextType | undefined> = createContext<
 >(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<ExtendedUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const betterAuthSession = useBetterAuthSession();
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Function to refetch the user data
-  const refreshUser = async () => {
-    // not using loading state to keep the ui seamless and refresh the data in bg
-    // setIsLoading(true);
-    try {
-      const user = await authApi.getCurrentUser();
-      setUser(user);
-    } catch (err: any) {
-      setUser(null);
-      console.error("Failed to refresh user data", err);
-    } finally {
-      // setIsLoading(false);
-    }
-  };
+  // Derive user and session from Better Auth hook
+  const user = betterAuthSession.data?.user || null;
+  const session = betterAuthSession.data || null;
 
-  // Automatically check the user status when the app loads
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const user = await authApi.getCurrentUser();
+  // Don't do any redirects here - let the pages handle their own redirect logic
 
-        console.log("User data fetched:", user);
-
-        setUser(user);
-      } catch (err: any) {
-        setUser(null);
-
-        // Redirect user based on error
-        if (err?.message === "No users found") {
-          window.location.href = "/signup";
-        } else {
-          window.location.href = "/login";
-        }
-        console.error("Auth check failed", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, []);
-
-  const login = async (username: string, password: string) => {
+  const login = async (email: string, password: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      const user = await authApi.login(username, password);
-      setUser(user);
+      const result = await authClient.signIn.email({
+        email,
+        password,
+        callbackURL: "/",
+      });
+      
+      if (result.error) {
+        throw new Error(result.error.message || "Login failed");
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      const message = err instanceof Error ? err.message : "Login failed";
+      setError(message);
       throw err;
     } finally {
       setIsLoading(false);
@@ -96,10 +69,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     setError(null);
     try {
-      const user = await authApi.register(username, email, password);
-      setUser(user);
+      const result = await authClient.signUp.email({
+        email,
+        password,
+        name: username, // Better Auth uses 'name' field for display name
+        callbackURL: "/",
+      });
+
+      if (result.error) {
+        throw new Error(result.error.message || "Registration failed");
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+      const message = err instanceof Error ? err.message : "Registration failed";
+      setError(message);
       throw err;
     } finally {
       setIsLoading(false);
@@ -109,9 +91,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     setIsLoading(true);
     try {
-      await authApi.logout();
-      setUser(null);
-      window.location.href = "/login";
+      await authClient.signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            window.location.href = "/login";
+          },
+        },
+      });
     } catch (err) {
       console.error("Logout error:", err);
     } finally {
@@ -119,10 +105,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Create the context value with the added refreshUser function
+  const refreshUser = async () => {
+    // Better Auth automatically handles session refresh
+    // We can force a refetch if needed
+    await betterAuthSession.refetch();
+  };
+
+  // Create the context value
   const contextValue = {
-    user,
-    isLoading,
+    user: user as AuthUser | null,
+    session,
+    isLoading: isLoading || betterAuthSession.isPending,
     error,
     login,
     register,
@@ -145,3 +138,6 @@ export function useAuth() {
   }
   return context;
 }
+
+// Export the Better Auth session hook for direct use when needed
+export { useBetterAuthSession };

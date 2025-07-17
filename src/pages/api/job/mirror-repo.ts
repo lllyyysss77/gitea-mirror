@@ -9,6 +9,7 @@ import {
   getGiteaRepoOwnerAsync,
 } from "@/lib/gitea";
 import { createGitHubClient } from "@/lib/github";
+import { getDecryptedGitHubToken } from "@/lib/utils/config-encryption";
 import { processWithResilience } from "@/lib/utils/concurrency";
 import { createSecureErrorResponse } from "@/lib/utils";
 
@@ -73,7 +74,8 @@ export const POST: APIRoute = async ({ request }) => {
       }
 
       // Create a single Octokit instance to be reused
-      const octokit = createGitHubClient(config.githubConfig.token);
+      const decryptedToken = getDecryptedGitHubToken(config);
+      const octokit = createGitHubClient(decryptedToken);
 
       // Define the concurrency limit - adjust based on API rate limits
       const CONCURRENCY_LIMIT = 3;
