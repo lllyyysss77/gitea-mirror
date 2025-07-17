@@ -1,11 +1,12 @@
 /**
  * Deployment mode utilities
- * For the open source self-hosted version
+ * Supports both self-hosted and hosted versions
  */
 
-export const DEPLOYMENT_MODE = 'selfhosted';
+export const DEPLOYMENT_MODE = process.env.DEPLOYMENT_MODE || 'selfhosted';
 
-export const isSelfHostedMode = () => true;
+export const isSelfHostedMode = () => DEPLOYMENT_MODE === 'selfhosted';
+export const isHostedMode = () => DEPLOYMENT_MODE === 'hosted';
 
 /**
  * Feature flags for self-hosted version
