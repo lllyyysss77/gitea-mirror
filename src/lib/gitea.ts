@@ -272,6 +272,9 @@ export const mirrorGithubRepoToGitea = async ({
       throw new Error("Gitea username is required.");
     }
 
+    // Decrypt config tokens for API usage
+    const decryptedConfig = decryptConfigTokens(config as Config);
+
     // Get the correct owner based on the strategy (with organization overrides)
     const repoOwner = await getGiteaRepoOwnerAsync({ config, repository });
 
@@ -347,7 +350,7 @@ export const mirrorGithubRepoToGitea = async ({
 
       cloneAddress = repository.cloneUrl.replace(
         "https://",
-        `https://${config.githubConfig.token}@`
+        `https://${decryptedConfig.githubConfig.token}@`
       );
     }
 
@@ -644,6 +647,9 @@ export async function mirrorGitHubRepoToGiteaOrg({
       throw new Error("Gitea config is required.");
     }
 
+    // Decrypt config tokens for API usage
+    const decryptedConfig = decryptConfigTokens(config as Config);
+
     const isExisting = await isRepoPresentInGitea({
       config,
       owner: orgName,
@@ -698,7 +704,7 @@ export async function mirrorGitHubRepoToGiteaOrg({
 
       cloneAddress = repository.cloneUrl.replace(
         "https://",
-        `https://${config.githubConfig.token}@`
+        `https://${decryptedConfig.githubConfig.token}@`
       );
     }
 
@@ -1125,7 +1131,7 @@ export const syncGiteaRepo = async ({
     const apiUrl = `${config.giteaConfig.url}/api/v1/repos/${actualOwner}/${repository.name}/mirror-sync`;
 
     const response = await httpPost(apiUrl, undefined, {
-      Authorization: `token ${config.giteaConfig.token}`,
+      Authorization: `token ${decryptedConfig.giteaConfig.token}`,
     });
 
     // Mark repo as "synced" in DB
@@ -1243,7 +1249,7 @@ export const mirrorGitRepoIssuesToGitea = async ({
   const giteaLabelsRes = await httpGet(
     `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repository.name}/labels`,
     {
-      Authorization: `token ${config.giteaConfig.token}`,
+      Authorization: `token ${decryptedConfig.giteaConfig.token}`,
     }
   );
 

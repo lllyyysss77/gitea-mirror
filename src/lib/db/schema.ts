@@ -47,6 +47,13 @@ export const giteaConfigSchema = z.object({
   forkStrategy: z
     .enum(["skip", "reference", "full-copy"])
     .default("reference"),
+  // Mirror options
+  mirrorReleases: z.boolean().default(false),
+  mirrorMetadata: z.boolean().default(false),
+  mirrorIssues: z.boolean().default(false),
+  mirrorPullRequests: z.boolean().default(false),
+  mirrorLabels: z.boolean().default(false),
+  mirrorMilestones: z.boolean().default(false),
 });
 
 export const scheduleConfigSchema = z.object({

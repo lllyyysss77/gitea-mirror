@@ -114,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Create the context value
   const contextValue = {
     user: user as AuthUser | null,
-    session,
+    session: session as Session | null,
     isLoading: isLoading || betterAuthSession.isPending,
     error,
     login,

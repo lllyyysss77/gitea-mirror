@@ -9,6 +9,8 @@ import type {
 } from "@/types/organizations";
 import type { RepositoryVisibility, RepoStatus } from "@/types/Repository";
 import { v4 as uuidv4 } from "uuid";
+import { decryptConfigTokens } from "@/lib/utils/config-encryption";
+import { createGitHubClient } from "@/lib/github";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -44,32 +46,71 @@ export const POST: APIRoute = async ({ request }) => {
     const [config] = await db
       .select()
       .from(configs)
-      .where(eq(configs.userId, userId))
+      .where(and(eq(configs.userId, userId), eq(configs.isActive, true)))
       .limit(1);
 
     if (!config) {
       return jsonResponse({
-        data: { error: "No configuration found for this user" },
+        data: { error: "No active configuration found for this user" },
         status: 404,
       });
     }
 
     const configId = config.id;
-
-    const octokit = new Octokit();
+    
+    // Decrypt the config to get tokens
+    const decryptedConfig = decryptConfigTokens(config);
+    
+    // Check if we have a GitHub token
+    if (!decryptedConfig.githubConfig?.token) {
+      return jsonResponse({
+        data: { error: "GitHub token not configured" },
+        status: 401,
+      });
+    }
+    
+    // Create authenticated Octokit instance
+    const octokit = createGitHubClient(decryptedConfig.githubConfig.token);
 
     // Fetch org metadata
     const { data: orgData } = await octokit.orgs.get({ org });
 
-    // Fetch public repos using Octokit paginator
+    // Fetch repos based on config settings
+    const allRepos = [];
+    
+    // Always fetch public repos
     const publicRepos = await octokit.paginate(octokit.repos.listForOrg, {
       org,
       type: "public",
       per_page: 100,
     });
+    allRepos.push(...publicRepos);
+    
+    // Fetch private repos if enabled in config
+    if (decryptedConfig.githubConfig?.includePrivate) {
+      const privateRepos = await octokit.paginate(octokit.repos.listForOrg, {
+        org,
+        type: "private",
+        per_page: 100,
+      });
+      allRepos.push(...privateRepos);
+    }
+    
+    // Also fetch member repos (includes private repos the user has access to)
+    if (decryptedConfig.githubConfig?.includePrivate) {
+      const memberRepos = await octokit.paginate(octokit.repos.listForOrg, {
+        org,
+        type: "member",
+        per_page: 100,
+      });
+      // Filter out duplicates
+      const existingIds = new Set(allRepos.map(r => r.id));
+      const uniqueMemberRepos = memberRepos.filter(r => !existingIds.has(r.id));
+      allRepos.push(...uniqueMemberRepos);
+    }
 
     // Insert repositories
-    const repoRecords = publicRepos.map((repo) => ({
+    const repoRecords = allRepos.map((repo) => ({
       id: uuidv4(),
       userId,
       configId,
@@ -110,7 +151,7 @@ export const POST: APIRoute = async ({ request }) => {
       membershipRole: role,
       isIncluded: false,
       status: "imported" as RepoStatus,
-      repositoryCount: publicRepos.length,
+      repositoryCount: allRepos.length,
       createdAt: orgData.created_at ? new Date(orgData.created_at) : new Date(),
       updatedAt: orgData.updated_at ? new Date(orgData.updated_at) : new Date(),
     };

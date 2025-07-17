@@ -9,35 +9,14 @@ import type {
   AdvancedOptions,
   SaveConfigApiRequest 
 } from "@/types/config";
+import { z } from "zod";
+import { githubConfigSchema, giteaConfigSchema, scheduleConfigSchema, cleanupConfigSchema } from "@/lib/db/schema";
 
-interface DbGitHubConfig {
-  username: string;
-  token?: string;
-  skipForks: boolean;
-  privateRepositories: boolean;
-  mirrorIssues: boolean;
-  mirrorWiki: boolean;
-  mirrorStarred: boolean;
-  useSpecificUser: boolean;
-  singleRepo?: string;
-  includeOrgs: string[];
-  excludeOrgs: string[];
-  mirrorPublicOrgs: boolean;
-  publicOrgs: string[];
-  skipStarredIssues: boolean;
-}
-
-interface DbGiteaConfig {
-  username: string;
-  url: string;
-  token: string;
-  organization?: string;
-  visibility: "public" | "private" | "limited";
-  starredReposOrg: string;
-  preserveOrgStructure: boolean;
-  mirrorStrategy?: "preserve" | "single-org" | "flat-user" | "mixed";
-  personalReposOrg?: string;
-}
+// Use the actual database schema types
+type DbGitHubConfig = z.infer<typeof githubConfigSchema>;
+type DbGiteaConfig = z.infer<typeof giteaConfigSchema>;
+type DbScheduleConfig = z.infer<typeof scheduleConfigSchema>;
+type DbCleanupConfig = z.infer<typeof cleanupConfigSchema>;
 
 /**
  * Maps UI config structure to database schema structure
@@ -48,32 +27,67 @@ export function mapUiToDbConfig(
   mirrorOptions: MirrorOptions,
   advancedOptions: AdvancedOptions
 ): { githubConfig: DbGitHubConfig; giteaConfig: DbGiteaConfig } {
-  // Map GitHub config with fields from mirrorOptions and advancedOptions
+  // Map GitHub config to match database schema fields
   const dbGithubConfig: DbGitHubConfig = {
-    username: githubConfig.username,
-    token: githubConfig.token,
-    privateRepositories: githubConfig.privateRepositories,
-    mirrorStarred: githubConfig.mirrorStarred,
+    // Map username to owner field
+    owner: githubConfig.username,
+    type: "personal", // Default to personal, could be made configurable
+    token: githubConfig.token || "",
     
-    // From mirrorOptions
-    mirrorIssues: mirrorOptions.mirrorMetadata && mirrorOptions.metadataComponents.issues,
-    mirrorWiki: mirrorOptions.mirrorMetadata && mirrorOptions.metadataComponents.wiki,
+    // Map checkbox fields with proper names
+    includeStarred: githubConfig.mirrorStarred,
+    includePrivate: githubConfig.privateRepositories,
+    includeForks: !advancedOptions.skipForks, // Note: UI has skipForks, DB has includeForks
+    includeArchived: false, // Not in UI yet, default to false
+    includePublic: true, // Not in UI yet, default to true
     
-    // From advancedOptions
-    skipForks: advancedOptions.skipForks,
-    skipStarredIssues: advancedOptions.skipStarredIssues,
+    // Organization related fields
+    includeOrganizations: [], // Not in UI yet
     
-    // Default values for fields not in UI
-    useSpecificUser: false,
-    includeOrgs: [],
-    excludeOrgs: [],
-    mirrorPublicOrgs: false,
-    publicOrgs: [],
+    // Starred repos organization
+    starredReposOrg: giteaConfig.starredReposOrg,
+    
+    // Mirror strategy
+    mirrorStrategy: giteaConfig.mirrorStrategy || "preserve",
+    defaultOrg: giteaConfig.organization,
   };
 
-  // Gitea config remains mostly the same
+  // Map Gitea config to match database schema
   const dbGiteaConfig: DbGiteaConfig = {
-    ...giteaConfig,
+    url: giteaConfig.url,
+    token: giteaConfig.token,
+    defaultOwner: giteaConfig.username, // Map username to defaultOwner
+    
+    // Mirror interval and options
+    mirrorInterval: "8h", // Default value, could be made configurable
+    lfs: false, // Not in UI yet
+    wiki: mirrorOptions.mirrorMetadata && mirrorOptions.metadataComponents.wiki,
+    
+    // Visibility settings
+    visibility: giteaConfig.visibility || "default",
+    preserveVisibility: giteaConfig.preserveOrgStructure,
+    
+    // Organization creation
+    createOrg: true, // Default to true
+    
+    // Template settings (not in UI yet)
+    templateOwner: undefined,
+    templateRepo: undefined,
+    
+    // Topics
+    addTopics: true, // Default to true
+    topicPrefix: undefined,
+    
+    // Fork strategy
+    forkStrategy: advancedOptions.skipForks ? "skip" : "reference",
+    
+    // Mirror options from UI
+    mirrorReleases: mirrorOptions.mirrorReleases,
+    mirrorMetadata: mirrorOptions.mirrorMetadata,
+    mirrorIssues: mirrorOptions.mirrorMetadata && mirrorOptions.metadataComponents.issues,
+    mirrorPullRequests: mirrorOptions.mirrorMetadata && mirrorOptions.metadataComponents.pullRequests,
+    mirrorLabels: mirrorOptions.mirrorMetadata && mirrorOptions.metadataComponents.labels,
+    mirrorMilestones: mirrorOptions.mirrorMetadata && mirrorOptions.metadataComponents.milestones,
   };
 
   return {
@@ -91,40 +105,44 @@ export function mapDbToUiConfig(dbConfig: any): {
   mirrorOptions: MirrorOptions;
   advancedOptions: AdvancedOptions;
 } {
+  // Map from database GitHub config to UI fields
   const githubConfig: GitHubConfig = {
-    username: dbConfig.githubConfig?.username || "",
+    username: dbConfig.githubConfig?.owner || "", // Map owner to username
     token: dbConfig.githubConfig?.token || "",
-    privateRepositories: dbConfig.githubConfig?.privateRepositories || false,
-    mirrorStarred: dbConfig.githubConfig?.mirrorStarred || false,
+    privateRepositories: dbConfig.githubConfig?.includePrivate || false, // Map includePrivate to privateRepositories
+    mirrorStarred: dbConfig.githubConfig?.includeStarred || false, // Map includeStarred to mirrorStarred
   };
 
+  // Map from database Gitea config to UI fields
   const giteaConfig: GiteaConfig = {
     url: dbConfig.giteaConfig?.url || "",
-    username: dbConfig.giteaConfig?.username || "",
+    username: dbConfig.giteaConfig?.defaultOwner || "", // Map defaultOwner to username
     token: dbConfig.giteaConfig?.token || "",
-    organization: dbConfig.giteaConfig?.organization || "github-mirrors",
-    visibility: dbConfig.giteaConfig?.visibility || "public",
-    starredReposOrg: dbConfig.giteaConfig?.starredReposOrg || "github",
-    preserveOrgStructure: dbConfig.giteaConfig?.preserveOrgStructure || false,
-    mirrorStrategy: dbConfig.giteaConfig?.mirrorStrategy,
-    personalReposOrg: dbConfig.giteaConfig?.personalReposOrg,
+    organization: dbConfig.githubConfig?.defaultOrg || "github-mirrors", // Get from GitHub config
+    visibility: dbConfig.giteaConfig?.visibility === "default" ? "public" : dbConfig.giteaConfig?.visibility || "public",
+    starredReposOrg: dbConfig.githubConfig?.starredReposOrg || "github", // Get from GitHub config
+    preserveOrgStructure: dbConfig.giteaConfig?.preserveVisibility || false, // Map preserveVisibility
+    mirrorStrategy: dbConfig.githubConfig?.mirrorStrategy || "preserve", // Get from GitHub config
+    personalReposOrg: undefined, // Not stored in current schema
   };
 
+  // Map mirror options from various database fields
   const mirrorOptions: MirrorOptions = {
-    mirrorReleases: false, // Not stored in DB yet
-    mirrorMetadata: dbConfig.githubConfig?.mirrorIssues || dbConfig.githubConfig?.mirrorWiki || false,
+    mirrorReleases: dbConfig.giteaConfig?.mirrorReleases || false,
+    mirrorMetadata: dbConfig.giteaConfig?.mirrorMetadata || false,
     metadataComponents: {
-      issues: dbConfig.githubConfig?.mirrorIssues || false,
-      pullRequests: false, // Not stored in DB yet
-      labels: false, // Not stored in DB yet
-      milestones: false, // Not stored in DB yet
-      wiki: dbConfig.githubConfig?.mirrorWiki || false,
+      issues: dbConfig.giteaConfig?.mirrorIssues || false,
+      pullRequests: dbConfig.giteaConfig?.mirrorPullRequests || false,
+      labels: dbConfig.giteaConfig?.mirrorLabels || false,
+      milestones: dbConfig.giteaConfig?.mirrorMilestones || false,
+      wiki: dbConfig.giteaConfig?.wiki || false,
     },
   };
 
+  // Map advanced options
   const advancedOptions: AdvancedOptions = {
-    skipForks: dbConfig.githubConfig?.skipForks || false,
-    skipStarredIssues: dbConfig.githubConfig?.skipStarredIssues || false,
+    skipForks: !(dbConfig.githubConfig?.includeForks ?? true), // Invert includeForks to get skipForks
+    skipStarredIssues: false, // Not stored in current schema
   };
 
   return {
@@ -132,5 +150,74 @@ export function mapDbToUiConfig(dbConfig: any): {
     giteaConfig,
     mirrorOptions,
     advancedOptions,
+  };
+}
+
+/**
+ * Maps UI schedule config to database schema
+ */
+export function mapUiScheduleToDb(uiSchedule: any): DbScheduleConfig {
+  return {
+    enabled: uiSchedule.enabled || false,
+    interval: uiSchedule.interval ? `0 */${Math.floor(uiSchedule.interval / 3600)} * * *` : "0 2 * * *", // Convert seconds to cron expression
+    concurrent: false,
+    batchSize: 10,
+    pauseBetweenBatches: 5000,
+    retryAttempts: 3,
+    retryDelay: 60000,
+    timeout: 3600000,
+    autoRetry: true,
+    cleanupBeforeMirror: false,
+    notifyOnFailure: true,
+    notifyOnSuccess: false,
+    logLevel: "info",
+    timezone: "UTC",
+    onlyMirrorUpdated: false,
+    updateInterval: 86400000,
+    skipRecentlyMirrored: true,
+    recentThreshold: 3600000,
+  };
+}
+
+/**
+ * Maps database schedule config to UI format
+ */
+export function mapDbScheduleToUi(dbSchedule: DbScheduleConfig): any {
+  // Extract hours from cron expression if possible
+  let intervalSeconds = 3600; // Default 1 hour
+  const cronMatch = dbSchedule.interval.match(/0 \*\/(\d+) \* \* \*/);
+  if (cronMatch) {
+    intervalSeconds = parseInt(cronMatch[1]) * 3600;
+  }
+
+  return {
+    enabled: dbSchedule.enabled,
+    interval: intervalSeconds,
+  };
+}
+
+/**
+ * Maps UI cleanup config to database schema
+ */
+export function mapUiCleanupToDb(uiCleanup: any): DbCleanupConfig {
+  return {
+    enabled: uiCleanup.enabled || false,
+    deleteFromGitea: false,
+    deleteIfNotInGitHub: true,
+    protectedRepos: [],
+    dryRun: true,
+    orphanedRepoAction: "archive",
+    batchSize: 10,
+    pauseBetweenDeletes: 2000,
+  };
+}
+
+/**
+ * Maps database cleanup config to UI format
+ */
+export function mapDbCleanupToUi(dbCleanup: DbCleanupConfig): any {
+  return {
+    enabled: dbCleanup.enabled,
+    retentionDays: 604800, // 7 days in seconds (kept for compatibility)
   };
 }

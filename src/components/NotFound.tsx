@@ -1,4 +1,3 @@
-import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Home, ArrowLeft, GitBranch, BookOpen, Settings, FileQuestion } from "lucide-react";

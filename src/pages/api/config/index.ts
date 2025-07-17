@@ -4,7 +4,14 @@ import { v4 as uuidv4 } from "uuid";
 import { eq } from "drizzle-orm";
 import { calculateCleanupInterval } from "@/lib/cleanup-service";
 import { createSecureErrorResponse } from "@/lib/utils";
-import { mapUiToDbConfig, mapDbToUiConfig } from "@/lib/utils/config-mapper";
+import { 
+  mapUiToDbConfig, 
+  mapDbToUiConfig, 
+  mapUiScheduleToDb, 
+  mapUiCleanupToDb,
+  mapDbScheduleToUi,
+  mapDbCleanupToUi 
+} from "@/lib/utils/config-mapper";
 import { encrypt, decrypt, migrateToken } from "@/lib/utils/encryption";
 
 export const POST: APIRoute = async ({ request }) => {
@@ -78,62 +85,9 @@ export const POST: APIRoute = async ({ request }) => {
       mappedGiteaConfig.token = encrypt(mappedGiteaConfig.token);
     }
 
-    // Process schedule config - set/update nextRun if enabled, clear if disabled
-    const processedScheduleConfig = { ...scheduleConfig };
-    if (scheduleConfig.enabled) {
-      const now = new Date();
-      const interval = scheduleConfig.interval || 3600; // Default to 1 hour
-
-      // Check if we need to recalculate nextRun
-      // Recalculate if: no nextRun exists, or interval changed from existing config
-      let shouldRecalculate = !scheduleConfig.nextRun;
-
-      if (existingConfig && existingConfig.scheduleConfig) {
-        const existingScheduleConfig = existingConfig.scheduleConfig;
-        const existingInterval = existingScheduleConfig.interval || 3600;
-
-        // If interval changed, recalculate nextRun
-        if (interval !== existingInterval) {
-          shouldRecalculate = true;
-        }
-      }
-
-      if (shouldRecalculate) {
-        processedScheduleConfig.nextRun = new Date(now.getTime() + interval * 1000);
-      }
-    } else {
-      // Clear nextRun when disabled
-      processedScheduleConfig.nextRun = null;
-    }
-
-    // Process cleanup config - set/update nextRun if enabled, clear if disabled
-    const processedCleanupConfig = { ...cleanupConfig };
-    if (cleanupConfig.enabled) {
-      const now = new Date();
-      const retentionSeconds = cleanupConfig.retentionDays || 604800; // Default 7 days in seconds
-      const cleanupIntervalHours = calculateCleanupInterval(retentionSeconds);
-
-      // Check if we need to recalculate nextRun
-      // Recalculate if: no nextRun exists, or retention period changed from existing config
-      let shouldRecalculate = !cleanupConfig.nextRun;
-
-      if (existingConfig && existingConfig.cleanupConfig) {
-        const existingCleanupConfig = existingConfig.cleanupConfig;
-        const existingRetentionSeconds = existingCleanupConfig.retentionDays || 604800;
-
-        // If retention period changed, recalculate nextRun
-        if (retentionSeconds !== existingRetentionSeconds) {
-          shouldRecalculate = true;
-        }
-      }
-
-      if (shouldRecalculate) {
-        processedCleanupConfig.nextRun = new Date(now.getTime() + cleanupIntervalHours * 60 * 60 * 1000);
-      }
-    } else {
-      // Clear nextRun when disabled
-      processedCleanupConfig.nextRun = null;
-    }
+    // Map schedule and cleanup configs to database schema
+    const processedScheduleConfig = mapUiScheduleToDb(scheduleConfig);
+    const processedCleanupConfig = mapUiCleanupToDb(cleanupConfig);
 
     if (existingConfig) {
       // Update path
@@ -234,28 +188,34 @@ export const GET: APIRoute = async ({ request }) => {
       .limit(1);
 
     if (config.length === 0) {
-      // Return a default empty configuration with UI structure
+      // Return a default empty configuration with database structure
       const defaultDbConfig = {
         githubConfig: {
-          username: "",
+          owner: "",
+          type: "personal",
           token: "",
-          skipForks: false,
-          privateRepositories: false,
-          mirrorIssues: false,
-          mirrorWiki: false,
-          mirrorStarred: false,
-          useSpecificUser: false,
-          preserveOrgStructure: false,
-          skipStarredIssues: false,
+          includeStarred: false,
+          includeForks: true,
+          includeArchived: false,
+          includePrivate: false,
+          includePublic: true,
+          includeOrganizations: [],
+          starredReposOrg: "github",
+          mirrorStrategy: "preserve",
+          defaultOrg: "github-mirrors",
         },
         giteaConfig: {
           url: "",
           token: "",
-          username: "",
-          organization: "github-mirrors",
+          defaultOwner: "",
+          mirrorInterval: "8h",
+          lfs: false,
+          wiki: false,
           visibility: "public",
-          starredReposOrg: "github",
-          preserveOrgStructure: false,
+          createOrg: true,
+          addTopics: true,
+          preserveVisibility: false,
+          forkStrategy: "reference",
         },
       };
       
@@ -319,9 +279,23 @@ export const GET: APIRoute = async ({ request }) => {
       
       const uiConfig = mapDbToUiConfig(decryptedConfig);
       
+      // Map schedule and cleanup configs to UI format
+      const uiScheduleConfig = mapDbScheduleToUi(dbConfig.scheduleConfig);
+      const uiCleanupConfig = mapDbCleanupToUi(dbConfig.cleanupConfig);
+      
       return new Response(JSON.stringify({
         ...dbConfig,
         ...uiConfig,
+        scheduleConfig: {
+          ...uiScheduleConfig,
+          lastRun: dbConfig.scheduleConfig.lastRun,
+          nextRun: dbConfig.scheduleConfig.nextRun,
+        },
+        cleanupConfig: {
+          ...uiCleanupConfig,
+          lastRun: dbConfig.cleanupConfig.lastRun,
+          nextRun: dbConfig.cleanupConfig.nextRun,
+        },
       }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -330,9 +304,22 @@ export const GET: APIRoute = async ({ request }) => {
       console.error("Failed to decrypt tokens:", error);
       // Return config without decrypting tokens if there's an error
       const uiConfig = mapDbToUiConfig(dbConfig);
+      const uiScheduleConfig = mapDbScheduleToUi(dbConfig.scheduleConfig);
+      const uiCleanupConfig = mapDbCleanupToUi(dbConfig.cleanupConfig);
+      
       return new Response(JSON.stringify({
         ...dbConfig,
         ...uiConfig,
+        scheduleConfig: {
+          ...uiScheduleConfig,
+          lastRun: dbConfig.scheduleConfig.lastRun,
+          nextRun: dbConfig.scheduleConfig.nextRun,
+        },
+        cleanupConfig: {
+          ...uiCleanupConfig,
+          lastRun: dbConfig.cleanupConfig.lastRun,
+          nextRun: dbConfig.cleanupConfig.nextRun,
+        },
       }), {
         status: 200,
         headers: { "Content-Type": "application/json" },

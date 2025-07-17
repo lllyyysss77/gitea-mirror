@@ -45,17 +45,10 @@ export const GET: APIRoute = async ({ request }) => {
     // Build query conditions based on config
     const conditions = [eq(repositories.userId, userId)];
 
-    if (!githubConfig.mirrorStarred) {
-      conditions.push(eq(repositories.isStarred, false));
-    }
-
-    if (githubConfig.skipForks) {
-      conditions.push(eq(repositories.isForked, false));
-    }
-
-    if (!githubConfig.privateRepositories) {
-      conditions.push(eq(repositories.isPrivate, false));
-    }
+    // Note: We show ALL repositories in the list
+    // The mirrorStarred and privateRepositories flags only control what gets mirrored,
+    // not what's displayed in the repository list
+    // Only skipForks is used for filtering the display since forked repos are often noise
 
     const rawRepositories = await db
       .select()
