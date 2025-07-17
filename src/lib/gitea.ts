@@ -480,6 +480,9 @@ export async function getOrCreateGiteaOrg({
   try {
     console.log(`Attempting to get or create Gitea organization: ${orgName}`);
 
+    // Decrypt config tokens for API usage
+    const decryptedConfig = decryptConfigTokens(config as Config);
+
     const orgRes = await fetch(
       `${config.giteaConfig.url}/api/v1/orgs/${orgName}`,
       {
