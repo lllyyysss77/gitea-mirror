@@ -27,9 +27,13 @@ export const GET: APIRoute = async ({ request }) => {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
+    // Log full error details server-side for debugging
+    console.error("Debug endpoint error:", error);
+    
+    // Only return safe error information to the client
     return new Response(JSON.stringify({
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: error instanceof Error ? error.message : "An unexpected error occurred"
     }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
@@ -60,10 +64,13 @@ export const POST: APIRoute = async ({ request }) => {
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
+    // Log full error details server-side for debugging
+    console.error("Debug endpoint error:", error);
+    
+    // Only return safe error information to the client
     return new Response(JSON.stringify({
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-      details: error
+      error: error instanceof Error ? error.message : "An unexpected error occurred"
     }), {
       status: 500,
       headers: { "Content-Type": "application/json" },

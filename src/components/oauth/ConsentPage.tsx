@@ -11,6 +11,7 @@ import { authClient } from '@/lib/auth-client';
 import { apiRequest, showErrorToast } from '@/lib/utils';
 import { toast, Toaster } from 'sonner';
 import { Shield, User, Mail, ChevronRight, AlertTriangle, Loader2 } from 'lucide-react';
+import { isValidRedirectUri, parseRedirectUris } from '@/lib/utils/oauth-validation';
 
 interface OAuthApplication {
   id: string;
@@ -44,6 +45,7 @@ export default function ConsentPage() {
       const params = new URLSearchParams(window.location.search);
       const clientId = params.get('client_id');
       const scope = params.get('scope');
+      const redirectUri = params.get('redirect_uri');
 
       if (!clientId) {
         setError('Invalid authorization request: missing client ID');
@@ -57,6 +59,16 @@ export default function ConsentPage() {
       if (!app) {
         setError('Invalid authorization request: unknown application');
         return;
+      }
+
+      // Validate redirect URI if provided
+      if (redirectUri) {
+        const authorizedUris = parseRedirectUris(app.redirectURLs);
+        
+        if (!isValidRedirectUri(redirectUri, authorizedUris)) {
+          setError('Invalid authorization request: unauthorized redirect URI');
+          return;
+        }
       }
 
       setApplication(app);
@@ -91,8 +103,27 @@ export default function ConsentPage() {
         // If denied, redirect back to the application with error
         const params = new URLSearchParams(window.location.search);
         const redirectUri = params.get('redirect_uri');
-        if (redirectUri) {
-          window.location.href = `${redirectUri}?error=access_denied`;
+        
+        if (redirectUri && application) {
+          // Validate redirect URI against authorized URIs
+          const authorizedUris = parseRedirectUris(application.redirectURLs);
+          
+          if (isValidRedirectUri(redirectUri, authorizedUris)) {
+            try {
+              // Parse and reconstruct the URL to ensure it's safe
+              const url = new URL(redirectUri);
+              url.searchParams.set('error', 'access_denied');
+              
+              // Safe to redirect - URI has been validated and sanitized
+              window.location.href = url.toString();
+            } catch (e) {
+              console.error('Failed to parse redirect URI:', e);
+              setError('Invalid redirect URI');
+            }
+          } else {
+            console.error('Unauthorized redirect URI:', redirectUri);
+            setError('Invalid redirect URI');
+          }
         }
       }
     } catch (error) {
