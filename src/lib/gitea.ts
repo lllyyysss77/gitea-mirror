@@ -64,7 +64,7 @@ export const getGiteaRepoOwnerAsync = async ({
     throw new Error("GitHub or Gitea config is required.");
   }
 
-  if (!config.giteaConfig.username) {
+  if (!config.giteaConfig.defaultOwner) {
     throw new Error("Gitea username is required.");
   }
 
@@ -96,11 +96,7 @@ export const getGiteaRepoOwnerAsync = async ({
     }
   }
 
-  // Check for personal repos override (when it's user's repo, not an organization)
-  if (!repository.organization && config.giteaConfig.personalReposOrg) {
-    console.log(`Using personal repos override: ${config.giteaConfig.personalReposOrg}`);
-    return config.giteaConfig.personalReposOrg;
-  }
+  // For personal repos (not organization repos), fall back to the default strategy
 
   // Fall back to existing strategy logic
   return getGiteaRepoOwner({ config, repository });
@@ -117,7 +113,7 @@ export const getGiteaRepoOwner = ({
     throw new Error("GitHub or Gitea config is required.");
   }
 
-  if (!config.giteaConfig.username) {
+  if (!config.giteaConfig.defaultOwner) {
     throw new Error("Gitea username is required.");
   }
 
@@ -137,7 +133,7 @@ export const getGiteaRepoOwner = ({
         return repository.organization;
       }
       // Use personal repos override if configured, otherwise use username
-      return config.giteaConfig.personalReposOrg || config.giteaConfig.username;
+      return config.giteaConfig.defaultOwner;
 
     case "single-org":
       // All non-starred repos go to the destination organization
@@ -145,11 +141,11 @@ export const getGiteaRepoOwner = ({
         return config.giteaConfig.organization;
       }
       // Fallback to username if no organization specified
-      return config.giteaConfig.username;
+      return config.giteaConfig.defaultOwner;
 
     case "flat-user":
       // All non-starred repos go under the user account
-      return config.giteaConfig.username;
+      return config.giteaConfig.defaultOwner;
 
     case "mixed":
       // Mixed mode: personal repos to single org, organization repos preserve structure
@@ -162,11 +158,11 @@ export const getGiteaRepoOwner = ({
         return config.giteaConfig.organization;
       }
       // Fallback to username if no organization specified
-      return config.giteaConfig.username;
+      return config.giteaConfig.defaultOwner;
 
     default:
       // Default fallback
-      return config.giteaConfig.username;
+      return config.giteaConfig.defaultOwner;
   }
 };
 
@@ -268,7 +264,7 @@ export const mirrorGithubRepoToGitea = async ({
       throw new Error("github config and gitea config are required.");
     }
 
-    if (!config.giteaConfig.username) {
+    if (!config.giteaConfig.defaultOwner) {
       throw new Error("Gitea username is required.");
     }
 
@@ -357,7 +353,7 @@ export const mirrorGithubRepoToGitea = async ({
     const apiUrl = `${config.giteaConfig.url}/api/v1/repos/migrate`;
 
     // Handle organization creation if needed for single-org or preserve strategies
-    if (repoOwner !== config.giteaConfig.username && !repository.isStarred) {
+    if (repoOwner !== config.giteaConfig.defaultOwner && !repository.isStarred) {
       // Need to create the organization if it doesn't exist
       await getOrCreateGiteaOrg({
         orgName: repoOwner,
@@ -383,11 +379,13 @@ export const mirrorGithubRepoToGitea = async ({
     );
 
     //mirror releases
-    await mirrorGitHubReleasesToGitea({
-      config,
-      octokit,
-      repository,
-    });
+    if (config.githubConfig?.mirrorReleases) {
+      await mirrorGitHubReleasesToGitea({
+        config,
+        octokit,
+        repository,
+      });
+    }
 
     // clone issues
     // Skip issues for starred repos if skipStarredIssues is enabled
@@ -738,11 +736,13 @@ export async function mirrorGitHubRepoToGiteaOrg({
     );
 
     //mirror releases
-    await mirrorGitHubReleasesToGitea({
-      config,
-      octokit,
-      repository,
-    });
+    if (config.githubConfig?.mirrorReleases) {
+      await mirrorGitHubReleasesToGitea({
+        config,
+        octokit,
+        repository,
+      });
+    }
 
     // Clone issues
     // Skip issues for starred repos if skipStarredIssues is enabled
@@ -906,7 +906,7 @@ export async function mirrorGitHubOrgToGitea({
     // Determine the target organization based on strategy
     if (mirrorStrategy === "single-org" && config.giteaConfig?.organization) {
       // For single-org strategy, use the configured destination organization
-      targetOrgName = config.giteaConfig.organization;
+      targetOrgName = config.giteaConfig.defaultOrg || config.giteaConfig.defaultOwner;
       giteaOrgId = await getOrCreateGiteaOrg({
         orgId: organization.id,
         orgName: targetOrgName,
@@ -925,7 +925,7 @@ export async function mirrorGitHubOrgToGitea({
       // For flat-user strategy, we shouldn't create organizations at all
       // Skip organization creation and let individual repos be handled by getGiteaRepoOwner
       console.log(`Using flat-user strategy: repos will be placed under user account`);
-      targetOrgName = config.giteaConfig?.username || "";
+      targetOrgName = config.giteaConfig?.defaultOwner || "";
     }
 
     //query the db with the org name and get the repos
@@ -1082,7 +1082,7 @@ export const syncGiteaRepo = async ({
       !config.userId ||
       !config.giteaConfig?.url ||
       !config.giteaConfig?.token ||
-      !config.giteaConfig?.username
+      !config.giteaConfig?.defaultOwner
     ) {
       throw new Error("Gitea config is required.");
     }
@@ -1405,7 +1405,7 @@ export async function mirrorGitHubReleasesToGitea({
   config: Partial<Config>;
 }) {
   if (
-    !config.giteaConfig?.username ||
+    !config.giteaConfig?.defaultOwner ||
     !config.giteaConfig?.token ||
     !config.giteaConfig?.url
   ) {

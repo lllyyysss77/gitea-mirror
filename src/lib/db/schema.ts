@@ -24,7 +24,7 @@ export const githubConfigSchema = z.object({
   includePublic: z.boolean().default(true),
   includeOrganizations: z.array(z.string()).default([]),
   starredReposOrg: z.string().optional(),
-  mirrorStrategy: z.enum(["preserve", "single-org", "flat-user"]).default("preserve"),
+  mirrorStrategy: z.enum(["preserve", "single-org", "flat-user", "mixed"]).default("preserve"),
   defaultOrg: z.string().optional(),
 });
 

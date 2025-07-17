@@ -147,7 +147,7 @@ export const POST: APIRoute = async ({ request }) => {
               (config.githubConfig?.preserveOrgStructure ? "preserve" : "flat-user");
             
             const shouldUseOrgMirror = 
-              owner !== config.giteaConfig?.username || // Different owner means org
+              owner !== config.giteaConfig?.defaultOwner || // Different owner means org
               mirrorStrategy === "single-org" || // Single-org strategy always uses org
               repoData.isStarred; // Starred repos always go to org
 

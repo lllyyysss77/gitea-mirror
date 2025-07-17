@@ -66,30 +66,17 @@ export const GET: APIRoute = async ({ request }) => {
           baseConditions.push(eq(repositories.isStarred, false));
         }
 
-        // Get total count with all user config filters applied
-        const totalConditions = [...baseConditions];
-        if (githubConfig.skipForks) {
-          totalConditions.push(eq(repositories.isForked, false));
-        }
-        if (!githubConfig.privateRepositories) {
-          totalConditions.push(eq(repositories.isPrivate, false));
-        }
-
+        // Get actual total count (without user config filters)
         const [totalCount] = await db
           .select({ count: count() })
           .from(repositories)
-          .where(and(...totalConditions));
+          .where(and(...baseConditions));
 
-        // Get public count
-        const publicConditions = [...baseConditions, eq(repositories.isPrivate, false)];
-        if (githubConfig.skipForks) {
-          publicConditions.push(eq(repositories.isForked, false));
-        }
-
+        // Get public count (actual count, not filtered)
         const [publicCount] = await db
           .select({ count: count() })
           .from(repositories)
-          .where(and(...publicConditions));
+          .where(and(...baseConditions, eq(repositories.isPrivate, false)));
 
         // Get private count (always show actual count regardless of config)
         const [privateCount] = await db

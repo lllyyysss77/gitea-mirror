@@ -7,7 +7,7 @@
   },
   "scripts": {
     "setup": "bun install && bun run manage-db init",
-    "dev": "bunx --bun astro dev --port 4567",
+    "dev": "bunx --bun astro dev --port 9876",
     "dev:clean": "bun run cleanup-db && bun run manage-db init && bunx --bun astro dev",
     "build": "bunx --bun astro build",
     "cleanup-db": "rm -f gitea-mirror.db data/gitea-mirror.db",

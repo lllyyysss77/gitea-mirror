@@ -312,13 +312,13 @@ describe("getGiteaRepoOwner - Organization Override Tests", () => {
       skipStarredIssues: false
     },
     giteaConfig: {
-      username: "giteauser",
+      defaultOwner: "giteauser",
       url: "https://gitea.example.com",
       token: "gitea-token",
-      organization: "github-mirrors",
+      defaultOrg: "github-mirrors",
       visibility: "public",
       starredReposOrg: "starred",
-      preserveOrgStructure: false,
+      preserveVisibility: false,
       mirrorStrategy: "preserve"
     }
   };
@@ -354,18 +354,7 @@ describe("getGiteaRepoOwner - Organization Override Tests", () => {
     expect(result).toBe("starred");
   });
 
-  test("preserve strategy: personal repos use personalReposOrg override", () => {
-    const configWithOverride = {
-      ...baseConfig,
-      giteaConfig: {
-        ...baseConfig.giteaConfig!,
-        personalReposOrg: "my-personal-mirrors"
-      }
-    };
-    const repo = { ...baseRepo, organization: undefined };
-    const result = getGiteaRepoOwner({ config: configWithOverride, repository: repo });
-    expect(result).toBe("my-personal-mirrors");
-  });
+  // Removed test for personalReposOrg as this field no longer exists
 
   test("preserve strategy: personal repos fallback to username when no override", () => {
     const repo = { ...baseRepo, organization: undefined };
@@ -379,7 +368,7 @@ describe("getGiteaRepoOwner - Organization Override Tests", () => {
     expect(result).toBe("myorg");
   });
 
-  test("mixed strategy: personal repos go to organization", () => {
+  test("single-org strategy: personal repos go to defaultOrg", () => {
     const configWithMixed = {
       ...baseConfig,
       giteaConfig: {
@@ -393,7 +382,7 @@ describe("getGiteaRepoOwner - Organization Override Tests", () => {
     expect(result).toBe("github-mirrors");
   });
 
-  test("mixed strategy: org repos preserve their structure", () => {
+  test("single-org strategy: org repos also go to defaultOrg", () => {
     const configWithMixed = {
       ...baseConfig,
       giteaConfig: {
@@ -407,18 +396,16 @@ describe("getGiteaRepoOwner - Organization Override Tests", () => {
     expect(result).toBe("myorg");
   });
 
-  test("mixed strategy: fallback to username if no org configs", () => {
-    const configWithMixed = {
+  test("flat-user strategy: all repos go to defaultOwner", () => {
+    const configWithFlatUser = {
       ...baseConfig,
       giteaConfig: {
         ...baseConfig.giteaConfig!,
-        mirrorStrategy: "mixed" as const,
-        organization: undefined,
-        personalReposOrg: undefined
+        mirrorStrategy: "flat-user" as const
       }
     };
-    const repo = { ...baseRepo, organization: undefined };
-    const result = getGiteaRepoOwner({ config: configWithMixed, repository: repo });
+    const repo = { ...baseRepo, organization: "myorg" };
+    const result = getGiteaRepoOwner({ config: configWithFlatUser, repository: repo });
     expect(result).toBe("giteauser");
   });
 });
