@@ -354,6 +354,19 @@ describe("getGiteaRepoOwner - Organization Override Tests", () => {
     expect(result).toBe("starred");
   });
 
+  test("starred repos default to 'starred' org when starredReposOrg is not configured", () => {
+    const repo = { ...baseRepo, isStarred: true };
+    const configWithoutStarredOrg = {
+      ...baseConfig,
+      giteaConfig: {
+        ...baseConfig.giteaConfig,
+        starredReposOrg: undefined
+      }
+    };
+    const result = getGiteaRepoOwner({ config: configWithoutStarredOrg, repository: repo });
+    expect(result).toBe("starred");
+  });
+
   // Removed test for personalReposOrg as this field no longer exists
 
   test("preserve strategy: personal repos fallback to username when no override", () => {

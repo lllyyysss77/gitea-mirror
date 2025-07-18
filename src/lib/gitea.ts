@@ -73,8 +73,8 @@ export const getGiteaRepoOwnerAsync = async ({
   }
 
   // Check if repository is starred - starred repos always go to starredReposOrg (highest priority)
-  if (repository.isStarred && config.giteaConfig.starredReposOrg) {
-    return config.giteaConfig.starredReposOrg;
+  if (repository.isStarred) {
+    return config.giteaConfig.starredReposOrg || "starred";
   }
 
   // Check for repository-specific override (second highest priority)
@@ -118,8 +118,8 @@ export const getGiteaRepoOwner = ({
   }
 
   // Check if repository is starred - starred repos always go to starredReposOrg
-  if (repository.isStarred && config.giteaConfig.starredReposOrg) {
-    return config.giteaConfig.starredReposOrg;
+  if (repository.isStarred) {
+    return config.giteaConfig.starredReposOrg || "starred";
   }
 
   // Get the mirror strategy - use preserveOrgStructure for backward compatibility
@@ -352,8 +352,8 @@ export const mirrorGithubRepoToGitea = async ({
 
     const apiUrl = `${config.giteaConfig.url}/api/v1/repos/migrate`;
 
-    // Handle organization creation if needed for single-org or preserve strategies
-    if (repoOwner !== config.giteaConfig.defaultOwner && !repository.isStarred) {
+    // Handle organization creation if needed for single-org, preserve strategies, or starred repos
+    if (repoOwner !== config.giteaConfig.defaultOwner) {
       // Need to create the organization if it doesn't exist
       await getOrCreateGiteaOrg({
         orgName: repoOwner,

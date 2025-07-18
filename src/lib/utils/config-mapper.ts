@@ -120,7 +120,7 @@ export function mapDbToUiConfig(dbConfig: any): {
     token: dbConfig.giteaConfig?.token || "",
     organization: dbConfig.githubConfig?.defaultOrg || "github-mirrors", // Get from GitHub config
     visibility: dbConfig.giteaConfig?.visibility === "default" ? "public" : dbConfig.giteaConfig?.visibility || "public",
-    starredReposOrg: dbConfig.githubConfig?.starredReposOrg || "github", // Get from GitHub config
+    starredReposOrg: dbConfig.githubConfig?.starredReposOrg || "starred", // Get from GitHub config
     preserveOrgStructure: dbConfig.giteaConfig?.preserveVisibility || false, // Map preserveVisibility
     mirrorStrategy: dbConfig.githubConfig?.mirrorStrategy || "preserve", // Get from GitHub config
     personalReposOrg: undefined, // Not stored in current schema

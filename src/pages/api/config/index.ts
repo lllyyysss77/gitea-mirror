@@ -200,7 +200,7 @@ export const GET: APIRoute = async ({ request }) => {
           includePrivate: false,
           includePublic: true,
           includeOrganizations: [],
-          starredReposOrg: "github",
+          starredReposOrg: "starred",
           mirrorStrategy: "preserve",
           defaultOrg: "github-mirrors",
         },
