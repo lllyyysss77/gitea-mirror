@@ -172,8 +172,23 @@ export async function getGithubOrganizations({
       per_page: 100,
     });
 
+    // Get excluded organizations from environment variable
+    const excludedOrgsEnv = process.env.GITHUB_EXCLUDED_ORGS;
+    const excludedOrgs = excludedOrgsEnv
+      ? excludedOrgsEnv.split(',').map(org => org.trim().toLowerCase())
+      : [];
+
+    // Filter out excluded organizations
+    const filteredOrgs = orgs.filter(org => {
+      if (excludedOrgs.includes(org.login.toLowerCase())) {
+        console.log(`Skipping organization ${org.login} - excluded via GITHUB_EXCLUDED_ORGS environment variable`);
+        return false;
+      }
+      return true;
+    });
+
     const organizations = await Promise.all(
-      orgs.map(async (org) => {
+      filteredOrgs.map(async (org) => {
         const [{ data: orgDetails }, { data: membership }] = await Promise.all([
           octokit.orgs.get({ org: org.login }),
           octokit.orgs.getMembershipForAuthenticatedUser({ org: org.login }),

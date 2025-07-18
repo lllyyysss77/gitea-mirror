@@ -70,6 +70,7 @@ services:
       # GitHub/Gitea Mirror Config
       - GITHUB_USERNAME=${GITHUB_USERNAME:-your-github-username}
       - GITHUB_TOKEN=${GITHUB_TOKEN:-your-github-token}
+      - GITHUB_EXCLUDED_ORGS=${GITHUB_EXCLUDED_ORGS:-}
       - SKIP_FORKS=${SKIP_FORKS:-false}
       - PRIVATE_REPOSITORIES=${PRIVATE_REPOSITORIES:-false}
       - MIRROR_ISSUES=${MIRROR_ISSUES:-false}
