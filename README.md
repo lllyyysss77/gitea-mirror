@@ -11,7 +11,7 @@
 </p>
 
 > [!IMPORTANT]
-> **Upgrading to v3?** Please read the [Migration Guide](MIGRATION_GUIDE.md) for breaking changes and upgrade instructions.
+> **Upgrading to v3?** v3 requires a fresh start with a new data volume. Please read the [Upgrade Guide](UPGRADE.md) for instructions.
 
 
 ## 🚀 Quick Start
@@ -35,7 +35,7 @@ First user signup becomes admin. Configure GitHub and Gitea through the web inte
 - 🔁 Mirror public, private, and starred GitHub repos to Gitea
 - 🏢 Mirror entire organizations with flexible strategies
 - 🎯 Custom destination control for repos and organizations
-- 🔐 Secure authentication with JWT tokens
+- 🔐 Secure authentication with Better Auth (email/password, SSO, OIDC)
 - 📊 Real-time dashboard with activity logs
 - ⏱️ Scheduled automatic mirroring
 - 🐳 Dockerized with multi-arch support (AMD64/ARM64)
