@@ -197,17 +197,17 @@ export async function apiRequest<T>(
 export const getStatusColor = (status: string): string => {
   switch (status) {
     case "imported":
-      return "bg-blue-500"; // Info/primary-like
+      return "bg-yellow-500"; // Ready to mirror
     case "mirroring":
-      return "bg-yellow-400"; // In progress
+      return "bg-amber-500"; // In progress
     case "mirrored":
-      return "bg-emerald-500"; // Success
+      return "bg-green-500"; // Successfully mirrored
     case "failed":
-      return "bg-rose-500"; // Error
+      return "bg-red-500"; // Error
     case "syncing":
-      return "bg-indigo-500"; // Sync in progress
+      return "bg-blue-500"; // Sync in progress
     case "synced":
-      return "bg-teal-500"; // Sync complete
+      return "bg-emerald-500"; // Successfully synced
     case "skipped":
       return "bg-gray-500"; // Skipped
     case "deleting":

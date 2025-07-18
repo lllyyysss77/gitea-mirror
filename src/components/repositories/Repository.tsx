@@ -9,7 +9,7 @@ import {
   type RepositoryApiResponse,
   type RepoStatus,
 } from "@/types/Repository";
-import { apiRequest, showErrorToast } from "@/lib/utils";
+import { apiRequest, showErrorToast, getStatusColor } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -707,12 +707,7 @@ export default function Repository() {
                         <SelectItem key={status} value={status}>
                           <span className="flex items-center gap-2">
                             {status !== "all" && (
-                              <span className={`h-2 w-2 rounded-full ${
-                                status === "synced" ? "bg-green-500" :
-                                status === "failed" ? "bg-red-500" :
-                                status === "syncing" ? "bg-blue-500" :
-                                "bg-yellow-500"
-                              }`} />
+                              <span className={`h-2 w-2 rounded-full ${getStatusColor(status)}`} />
                             )}
                             {status === "all"
                               ? "All statuses"
@@ -814,12 +809,7 @@ export default function Repository() {
                   <SelectItem key={status} value={status}>
                     <span className="flex items-center gap-2">
                       {status !== "all" && (
-                        <span className={`h-2 w-2 rounded-full ${
-                          status === "synced" ? "bg-green-500" :
-                          status === "failed" ? "bg-red-500" :
-                          status === "syncing" ? "bg-blue-500" :
-                          "bg-yellow-500"
-                        }`} />
+                        <span className={`h-2 w-2 rounded-full ${getStatusColor(status)}`} />
                       )}
                       {status === "all"
                         ? "All statuses"
