@@ -104,7 +104,7 @@ export const OrganizationConfiguration: React.FC<OrganizationConfigurationProps>
               id="destinationOrg"
               value={destinationOrg || ""}
               onChange={(e) => onDestinationOrgChange(e.target.value)}
-              placeholder="github-mirrors"
+              placeholder={strategy === "mixed" ? "github-personal" : "github-mirrors"}
               className=""
             />
             <p className="text-xs text-muted-foreground mt-1">
@@ -112,32 +112,6 @@ export const OrganizationConfiguration: React.FC<OrganizationConfigurationProps>
                 ? "All personal repos will go to this organization"
                 : "Organization for consolidated repositories"
               }
-            </p>
-          </div>
-        ) : strategy === "preserve" ? (
-          <div className="space-y-1">
-            <Label htmlFor="personalReposOrg" className="text-sm font-normal flex items-center gap-2">
-              Personal Repos Organization
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Override where your personal repositories are mirrored (leave empty to use your username)</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </Label>
-            <Input
-              id="personalReposOrg"
-              value={personalReposOrg || ""}
-              onChange={(e) => onPersonalReposOrgChange(e.target.value)}
-              placeholder="my-personal-mirrors"
-              className=""
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Override destination for your personal repos
             </p>
           </div>
         ) : (

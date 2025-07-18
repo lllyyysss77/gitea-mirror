@@ -44,11 +44,13 @@ export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving, g
       case "preserve":
         newConfig.preserveOrgStructure = true;
         newConfig.mirrorStrategy = "preserve";
+        newConfig.personalReposOrg = undefined; // Clear personal repos org in preserve mode
         break;
       case "single-org":
         newConfig.preserveOrgStructure = false;
         newConfig.mirrorStrategy = "single-org";
-        if (!newConfig.organization) {
+        // Reset to default if coming from mixed mode where it was personal repos org
+        if (config.mirrorStrategy === "mixed" || !newConfig.organization || newConfig.organization === "github-personal") {
           newConfig.organization = "github-mirrors";
         }
         break;
@@ -60,8 +62,10 @@ export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving, g
       case "mixed":
         newConfig.preserveOrgStructure = false;
         newConfig.mirrorStrategy = "mixed";
-        if (!newConfig.organization) {
-          newConfig.organization = "github-mirrors";
+        // In mixed mode, organization field represents personal repos org
+        // Reset it to default if coming from single-org mode
+        if (config.mirrorStrategy === "single-org" || !newConfig.organization || newConfig.organization === "github-mirrors") {
+          newConfig.organization = "github-personal";
         }
         if (!newConfig.personalReposOrg) {
           newConfig.personalReposOrg = "github-personal";

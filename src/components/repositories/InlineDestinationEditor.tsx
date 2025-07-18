@@ -48,8 +48,8 @@ export function InlineDestinationEditor({
       if (repository.organization) {
         return repository.organization;
       }
-      // For personal repos, check if personalReposOrg is configured
-      if (!repository.organization && giteaConfig?.personalReposOrg) {
+      // For personal repos, check if personalReposOrg is configured (but not in preserve mode)
+      if (!repository.organization && giteaConfig?.personalReposOrg && strategy !== 'preserve') {
         return giteaConfig.personalReposOrg;
       }
       // Default to the gitea username or owner
