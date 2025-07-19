@@ -92,6 +92,7 @@ JWT_SECRET=your-secret-here
 # GitHub Configuration
 GITHUB_TOKEN=ghp_...
 GITHUB_WEBHOOK_SECRET=...
+GITHUB_EXCLUDED_ORGS=org1,org2,org3  # Optional: Comma-separated list of organizations to exclude from sync
 
 # Gitea Configuration
 GITEA_URL=https://your-gitea.com
