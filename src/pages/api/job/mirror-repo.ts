@@ -109,7 +109,7 @@ export const POST: APIRoute = async ({ request }) => {
 
           // For single-org and starred repos strategies, or when mirroring to an org,
           // always use the org mirroring function to ensure proper organization handling
-          const mirrorStrategy = config.giteaConfig?.mirrorStrategy || 
+          const mirrorStrategy = config.githubConfig?.mirrorStrategy || 
             (config.githubConfig?.preserveOrgStructure ? "preserve" : "flat-user");
           
           const shouldUseOrgMirror = 

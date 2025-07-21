@@ -74,7 +74,7 @@ export const getGiteaRepoOwnerAsync = async ({
 
   // Check if repository is starred - starred repos always go to starredReposOrg (highest priority)
   if (repository.isStarred) {
-    return config.giteaConfig.starredReposOrg || "starred";
+    return config.githubConfig.starredReposOrg || "starred";
   }
 
   // Check for repository-specific override (second highest priority)
@@ -119,11 +119,11 @@ export const getGiteaRepoOwner = ({
 
   // Check if repository is starred - starred repos always go to starredReposOrg
   if (repository.isStarred) {
-    return config.giteaConfig.starredReposOrg || "starred";
+    return config.githubConfig.starredReposOrg || "starred";
   }
 
   // Get the mirror strategy - use preserveOrgStructure for backward compatibility
-  const mirrorStrategy = config.giteaConfig.mirrorStrategy || 
+  const mirrorStrategy = config.githubConfig.mirrorStrategy || 
     (config.giteaConfig.preserveOrgStructure ? "preserve" : "flat-user");
 
   switch (mirrorStrategy) {
@@ -897,7 +897,7 @@ export async function mirrorGitHubOrgToGitea({
     });
 
     // Get the mirror strategy - use preserveOrgStructure for backward compatibility
-    const mirrorStrategy = config.giteaConfig?.mirrorStrategy ||
+    const mirrorStrategy = config.githubConfig?.mirrorStrategy ||
       (config.giteaConfig?.preserveOrgStructure ? "preserve" : "flat-user");
 
     let giteaOrgId: number;
@@ -906,7 +906,7 @@ export async function mirrorGitHubOrgToGitea({
     // Determine the target organization based on strategy
     if (mirrorStrategy === "single-org" && config.giteaConfig?.organization) {
       // For single-org strategy, use the configured destination organization
-      targetOrgName = config.giteaConfig.defaultOrg || config.giteaConfig.defaultOwner;
+      targetOrgName = config.giteaConfig.organization || config.giteaConfig.defaultOwner;
       giteaOrgId = await getOrCreateGiteaOrg({
         orgId: organization.id,
         orgName: targetOrgName,

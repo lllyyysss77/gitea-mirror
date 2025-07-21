@@ -202,6 +202,7 @@ export function mapDbScheduleToUi(dbSchedule: DbScheduleConfig): any {
 export function mapUiCleanupToDb(uiCleanup: any): DbCleanupConfig {
   return {
     enabled: uiCleanup.enabled || false,
+    retentionDays: uiCleanup.retentionDays || 604800, // Default to 7 days
     deleteFromGitea: false,
     deleteIfNotInGitHub: true,
     protectedRepos: [],
@@ -218,6 +219,6 @@ export function mapUiCleanupToDb(uiCleanup: any): DbCleanupConfig {
 export function mapDbCleanupToUi(dbCleanup: DbCleanupConfig): any {
   return {
     enabled: dbCleanup.enabled,
-    retentionDays: 604800, // 7 days in seconds (kept for compatibility)
+    retentionDays: dbCleanup.retentionDays || 604800, // Use actual value from DB or default to 7 days
   };
 }

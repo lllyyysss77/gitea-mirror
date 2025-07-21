@@ -7,7 +7,7 @@ export const userSchema = z.object({
   id: z.string(),
   username: z.string(),
   password: z.string(),
-  email: z.string().email(),
+  email: z.email(),
   emailVerified: z.boolean().default(false),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
@@ -29,7 +29,7 @@ export const githubConfigSchema = z.object({
 });
 
 export const giteaConfigSchema = z.object({
-  url: z.string().url(),
+  url: z.url(),
   token: z.string(),
   defaultOwner: z.string(),
   mirrorInterval: z.string().default("8h"),
@@ -79,6 +79,7 @@ export const scheduleConfigSchema = z.object({
 
 export const cleanupConfigSchema = z.object({
   enabled: z.boolean().default(false),
+  retentionDays: z.number().default(604800), // 7 days in seconds
   deleteFromGitea: z.boolean().default(false),
   deleteIfNotInGitHub: z.boolean().default(true),
   protectedRepos: z.array(z.string()).default([]),
@@ -111,8 +112,8 @@ export const repositorySchema = z.object({
   configId: z.string(),
   name: z.string(),
   fullName: z.string(),
-  url: z.string().url(),
-  cloneUrl: z.string().url(),
+  url: z.url(),
+  cloneUrl: z.url(),
   owner: z.string(),
   organization: z.string().optional().nullable(),
   mirroredLocation: z.string().default(""),
