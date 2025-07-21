@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.0] - 2025-07-21
+
+### Added
+- Support for GITHUB_EXCLUDED_ORGS environment variable to filter out specific organizations during discovery
+- New textarea UI component for improved form inputs in configuration
+
+### Fixed
+- Fixed test failures related to mirror strategy configuration location
+- Corrected organization repository routing logic for different mirror strategies
+- Fixed starred repositories organization routing bug
+- Resolved SSO and OIDC authentication issues
+
+### Improved
+- Enhanced organization configuration for better repository routing control
+- Better handling of mirror strategies in test suite
+- Improved error handling in authentication flows
+
 ## [3.0.0] - 2025-07-17
 
 ### 🔴 Breaking Changes
