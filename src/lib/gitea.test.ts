@@ -309,17 +309,17 @@ describe("getGiteaRepoOwner - Organization Override Tests", () => {
       excludeOrgs: [],
       mirrorPublicOrgs: false,
       publicOrgs: [],
-      skipStarredIssues: false
+      skipStarredIssues: false,
+      mirrorStrategy: "preserve"
     },
     giteaConfig: {
       defaultOwner: "giteauser",
       url: "https://gitea.example.com",
       token: "gitea-token",
-      defaultOrg: "github-mirrors",
+      organization: "github-mirrors",
       visibility: "public",
       starredReposOrg: "starred",
-      preserveVisibility: false,
-      mirrorStrategy: "preserve"
+      preserveVisibility: false
     }
   };
 
@@ -381,12 +381,15 @@ describe("getGiteaRepoOwner - Organization Override Tests", () => {
     expect(result).toBe("myorg");
   });
 
-  test("single-org strategy: personal repos go to defaultOrg", () => {
+  test("mixed strategy: personal repos go to organization", () => {
     const configWithMixed = {
       ...baseConfig,
+      githubConfig: {
+        ...baseConfig.githubConfig!,
+        mirrorStrategy: "mixed" as const
+      },
       giteaConfig: {
         ...baseConfig.giteaConfig!,
-        mirrorStrategy: "mixed" as const,
         organization: "github-mirrors"
       }
     };
@@ -395,12 +398,15 @@ describe("getGiteaRepoOwner - Organization Override Tests", () => {
     expect(result).toBe("github-mirrors");
   });
 
-  test("single-org strategy: org repos also go to defaultOrg", () => {
+  test("mixed strategy: org repos preserve their structure", () => {
     const configWithMixed = {
       ...baseConfig,
+      githubConfig: {
+        ...baseConfig.githubConfig!,
+        mirrorStrategy: "mixed" as const
+      },
       giteaConfig: {
         ...baseConfig.giteaConfig!,
-        mirrorStrategy: "mixed" as const,
         organization: "github-mirrors"
       }
     };
@@ -412,8 +418,8 @@ describe("getGiteaRepoOwner - Organization Override Tests", () => {
   test("flat-user strategy: all repos go to defaultOwner", () => {
     const configWithFlatUser = {
       ...baseConfig,
-      giteaConfig: {
-        ...baseConfig.giteaConfig!,
+      githubConfig: {
+        ...baseConfig.githubConfig!,
         mirrorStrategy: "flat-user" as const
       }
     };
