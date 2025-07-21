@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { apiRequest, showErrorToast } from '@/lib/utils';
 import { toast } from 'sonner';
-import { Plus, Trash2, ExternalLink, Loader2, AlertCircle, Copy, Shield, Info } from 'lucide-react';
+import { Plus, Trash2, ExternalLink, Loader2, AlertCircle, Shield, Info } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
