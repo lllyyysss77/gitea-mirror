@@ -1,6 +1,6 @@
 import { createAuthClient } from "better-auth/react";
 import { oidcClient } from "better-auth/client/plugins";
-import { ssoClient } from "better-auth/client/plugins";
+import { ssoClient } from "@better-auth/sso/client";
 import type { Session as BetterAuthSession, User as BetterAuthUser } from "better-auth";
 
 export const authClient = createAuthClient({

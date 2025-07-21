@@ -13,6 +13,8 @@ import { Plus, Trash2, ExternalLink, Loader2, AlertCircle, Copy, Shield, Info } 
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 
 interface SSOProvider {
   id: string;
@@ -20,20 +22,35 @@ interface SSOProvider {
   domain: string;
   providerId: string;
   organizationId?: string;
-  oidcConfig: {
+  oidcConfig?: {
     clientId: string;
     clientSecret: string;
     authorizationEndpoint: string;
     tokenEndpoint: string;
-    jwksEndpoint: string;
-    userInfoEndpoint: string;
-    mapping: {
-      id: string;
-      email: string;
-      emailVerified: string;
-      name: string;
-      image: string;
-    };
+    jwksEndpoint?: string;
+    userInfoEndpoint?: string;
+    discoveryEndpoint?: string;
+    scopes?: string[];
+    pkce?: boolean;
+  };
+  samlConfig?: {
+    entryPoint: string;
+    cert: string;
+    callbackUrl?: string;
+    audience?: string;
+    wantAssertionsSigned?: boolean;
+    signatureAlgorithm?: string;
+    digestAlgorithm?: string;
+    identifierFormat?: string;
+  };
+  mapping?: {
+    id: string;
+    email: string;
+    emailVerified?: string;
+    name?: string;
+    image?: string;
+    firstName?: string;
+    lastName?: string;
   };
   createdAt: string;
   updatedAt: string;
@@ -47,16 +64,32 @@ export function SSOSettings() {
   const [headerAuthEnabled, setHeaderAuthEnabled] = useState(false);
 
   // Form states for new provider
+  const [providerType, setProviderType] = useState<'oidc' | 'saml'>('oidc');
   const [providerForm, setProviderForm] = useState({
+    // Common fields
     issuer: '',
     domain: '',
     providerId: '',
+    organizationId: '',
+    // OIDC fields
     clientId: '',
     clientSecret: '',
     authorizationEndpoint: '',
     tokenEndpoint: '',
     jwksEndpoint: '',
     userInfoEndpoint: '',
+    discoveryEndpoint: '',
+    scopes: ['openid', 'email', 'profile'],
+    pkce: true,
+    // SAML fields
+    entryPoint: '',
+    cert: '',
+    callbackUrl: '',
+    audience: '',
+    wantAssertionsSigned: true,
+    signatureAlgorithm: 'sha256',
+    digestAlgorithm: 'sha256',
+    identifierFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
   });
 
 
@@ -69,7 +102,7 @@ export function SSOSettings() {
     setIsLoading(true);
     try {
       const [providersRes, headerAuthStatus] = await Promise.all([
-        apiRequest<SSOProvider[]>('/sso/providers'),
+        apiRequest<SSOProvider[]>('/auth/sso/register'),
         apiRequest<{ enabled: boolean }>('/auth/header-status').catch(() => ({ enabled: false }))
       ]);
       
@@ -101,6 +134,7 @@ export function SSOSettings() {
         tokenEndpoint: discovered.tokenEndpoint || '',
         jwksEndpoint: discovered.jwksEndpoint || '',
         userInfoEndpoint: discovered.userInfoEndpoint || '',
+        discoveryEndpoint: discovered.discoveryEndpoint || `${providerForm.issuer}/.well-known/openid-configuration`,
         domain: discovered.suggestedDomain || prev.domain,
       }));
 
@@ -114,18 +148,38 @@ export function SSOSettings() {
 
   const createProvider = async () => {
     try {
-      const newProvider = await apiRequest<SSOProvider>('/sso/providers', {
+      const requestData: any = {
+        providerId: providerForm.providerId,
+        issuer: providerForm.issuer,
+        domain: providerForm.domain,
+        organizationId: providerForm.organizationId || undefined,
+        providerType,
+      };
+
+      if (providerType === 'oidc') {
+        requestData.clientId = providerForm.clientId;
+        requestData.clientSecret = providerForm.clientSecret;
+        requestData.authorizationEndpoint = providerForm.authorizationEndpoint;
+        requestData.tokenEndpoint = providerForm.tokenEndpoint;
+        requestData.jwksEndpoint = providerForm.jwksEndpoint;
+        requestData.userInfoEndpoint = providerForm.userInfoEndpoint;
+        requestData.discoveryEndpoint = providerForm.discoveryEndpoint;
+        requestData.scopes = providerForm.scopes;
+        requestData.pkce = providerForm.pkce;
+      } else {
+        requestData.entryPoint = providerForm.entryPoint;
+        requestData.cert = providerForm.cert;
+        requestData.callbackUrl = providerForm.callbackUrl || `${window.location.origin}/api/auth/sso/saml2/callback/${providerForm.providerId}`;
+        requestData.audience = providerForm.audience || window.location.origin;
+        requestData.wantAssertionsSigned = providerForm.wantAssertionsSigned;
+        requestData.signatureAlgorithm = providerForm.signatureAlgorithm;
+        requestData.digestAlgorithm = providerForm.digestAlgorithm;
+        requestData.identifierFormat = providerForm.identifierFormat;
+      }
+
+      const newProvider = await apiRequest<SSOProvider>('/auth/sso/register', {
         method: 'POST',
-        data: {
-          ...providerForm,
-          mapping: {
-            id: 'sub',
-            email: 'email',
-            emailVerified: 'email_verified',
-            name: 'name',
-            image: 'picture',
-          },
-        },
+        data: requestData,
       });
 
       setProviders([...providers, newProvider]);
@@ -134,12 +188,24 @@ export function SSOSettings() {
         issuer: '',
         domain: '',
         providerId: '',
+        organizationId: '',
         clientId: '',
         clientSecret: '',
         authorizationEndpoint: '',
         tokenEndpoint: '',
         jwksEndpoint: '',
         userInfoEndpoint: '',
+        discoveryEndpoint: '',
+        scopes: ['openid', 'email', 'profile'],
+        pkce: true,
+        entryPoint: '',
+        cert: '',
+        callbackUrl: '',
+        audience: '',
+        wantAssertionsSigned: true,
+        signatureAlgorithm: 'sha256',
+        digestAlgorithm: 'sha256',
+        identifierFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
       });
       toast.success('SSO provider created successfully');
     } catch (error) {
@@ -264,97 +330,171 @@ export function SSOSettings() {
                     <DialogHeader>
                       <DialogTitle>Add SSO Provider</DialogTitle>
                       <DialogDescription>
-                        Configure an external OIDC provider for user authentication
+                        Configure an external identity provider for user authentication
                       </DialogDescription>
                     </DialogHeader>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="issuer">Issuer URL</Label>
-                        <div className="flex gap-2">
-                          <Input
-                            id="issuer"
-                            value={providerForm.issuer}
-                            onChange={e => setProviderForm(prev => ({ ...prev, issuer: e.target.value }))}
-                            placeholder="https://accounts.google.com"
-                          />
-                          <Button
-                            variant="outline"
-                            onClick={discoverOIDC}
-                            disabled={isDiscovering}
-                          >
-                            {isDiscovering ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Discover'}
-                          </Button>
+                    <Tabs value={providerType} onValueChange={(value) => setProviderType(value as 'oidc' | 'saml')}>
+                      <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="oidc">OIDC / OAuth2</TabsTrigger>
+                        <TabsTrigger value="saml">SAML 2.0</TabsTrigger>
+                      </TabsList>
+                      
+                      {/* Common Fields */}
+                      <div className="space-y-4 mt-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="providerId">Provider ID</Label>
+                            <Input
+                              id="providerId"
+                              value={providerForm.providerId}
+                              onChange={e => setProviderForm(prev => ({ ...prev, providerId: e.target.value }))}
+                              placeholder="google-sso"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="domain">Email Domain</Label>
+                            <Input
+                              id="domain"
+                              value={providerForm.domain}
+                              onChange={e => setProviderForm(prev => ({ ...prev, domain: e.target.value }))}
+                              placeholder="example.com"
+                            />
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="domain">Domain</Label>
-                          <Input
-                            id="domain"
-                            value={providerForm.domain}
-                            onChange={e => setProviderForm(prev => ({ ...prev, domain: e.target.value }))}
-                            placeholder="example.com"
-                          />
+                          <Label htmlFor="issuer">Issuer URL</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id="issuer"
+                              value={providerForm.issuer}
+                              onChange={e => setProviderForm(prev => ({ ...prev, issuer: e.target.value }))}
+                              placeholder={providerType === 'oidc' ? "https://accounts.google.com" : "https://idp.example.com"}
+                            />
+                            {providerType === 'oidc' && (
+                              <Button
+                                variant="outline"
+                                onClick={discoverOIDC}
+                                disabled={isDiscovering}
+                              >
+                                {isDiscovering ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Discover'}
+                              </Button>
+                            )}
+                          </div>
                         </div>
+
                         <div className="space-y-2">
-                          <Label htmlFor="providerId">Provider ID</Label>
+                          <Label htmlFor="organizationId">Organization ID (Optional)</Label>
                           <Input
-                            id="providerId"
-                            value={providerForm.providerId}
-                            onChange={e => setProviderForm(prev => ({ ...prev, providerId: e.target.value }))}
-                            placeholder="google-sso"
+                            id="organizationId"
+                            value={providerForm.organizationId}
+                            onChange={e => setProviderForm(prev => ({ ...prev, organizationId: e.target.value }))}
+                            placeholder="org_123"
                           />
+                          <p className="text-xs text-muted-foreground">Link this provider to an organization for automatic user provisioning</p>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <TabsContent value="oidc" className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="clientId">Client ID</Label>
+                            <Input
+                              id="clientId"
+                              value={providerForm.clientId}
+                              onChange={e => setProviderForm(prev => ({ ...prev, clientId: e.target.value }))}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="clientSecret">Client Secret</Label>
+                            <Input
+                              id="clientSecret"
+                              type="password"
+                              value={providerForm.clientSecret}
+                              onChange={e => setProviderForm(prev => ({ ...prev, clientSecret: e.target.value }))}
+                            />
+                          </div>
+                        </div>
+
                         <div className="space-y-2">
-                          <Label htmlFor="clientId">Client ID</Label>
+                          <Label htmlFor="authEndpoint">Authorization Endpoint</Label>
                           <Input
-                            id="clientId"
-                            value={providerForm.clientId}
-                            onChange={e => setProviderForm(prev => ({ ...prev, clientId: e.target.value }))}
+                            id="authEndpoint"
+                            value={providerForm.authorizationEndpoint}
+                            onChange={e => setProviderForm(prev => ({ ...prev, authorizationEndpoint: e.target.value }))}
+                            placeholder="https://accounts.google.com/o/oauth2/auth"
                           />
                         </div>
+
                         <div className="space-y-2">
-                          <Label htmlFor="clientSecret">Client Secret</Label>
+                          <Label htmlFor="tokenEndpoint">Token Endpoint</Label>
                           <Input
-                            id="clientSecret"
-                            type="password"
-                            value={providerForm.clientSecret}
-                            onChange={e => setProviderForm(prev => ({ ...prev, clientSecret: e.target.value }))}
+                            id="tokenEndpoint"
+                            value={providerForm.tokenEndpoint}
+                            onChange={e => setProviderForm(prev => ({ ...prev, tokenEndpoint: e.target.value }))}
+                            placeholder="https://oauth2.googleapis.com/token"
                           />
                         </div>
-                      </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="authEndpoint">Authorization Endpoint</Label>
-                        <Input
-                          id="authEndpoint"
-                          value={providerForm.authorizationEndpoint}
-                          onChange={e => setProviderForm(prev => ({ ...prev, authorizationEndpoint: e.target.value }))}
-                          placeholder="https://accounts.google.com/o/oauth2/auth"
-                        />
-                      </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="pkce"
+                            checked={providerForm.pkce}
+                            onCheckedChange={(checked) => setProviderForm(prev => ({ ...prev, pkce: checked }))}
+                          />
+                          <Label htmlFor="pkce">Enable PKCE</Label>
+                        </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="tokenEndpoint">Token Endpoint</Label>
-                        <Input
-                          id="tokenEndpoint"
-                          value={providerForm.tokenEndpoint}
-                          onChange={e => setProviderForm(prev => ({ ...prev, tokenEndpoint: e.target.value }))}
-                          placeholder="https://oauth2.googleapis.com/token"
-                        />
-                      </div>
+                        <Alert>
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>
+                            Redirect URL: {window.location.origin}/api/auth/sso/callback/{providerForm.providerId || '{provider-id}'}
+                          </AlertDescription>
+                        </Alert>
+                      </TabsContent>
 
-                      <Alert>
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>
-                          Redirect URL: {window.location.origin}/api/auth/sso/callback/{providerForm.providerId || '{provider-id}'}
-                        </AlertDescription>
-                      </Alert>
-                    </div>
+                      <TabsContent value="saml" className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="entryPoint">SAML Entry Point</Label>
+                          <Input
+                            id="entryPoint"
+                            value={providerForm.entryPoint}
+                            onChange={e => setProviderForm(prev => ({ ...prev, entryPoint: e.target.value }))}
+                            placeholder="https://idp.example.com/sso"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="cert">X.509 Certificate</Label>
+                          <Textarea
+                            id="cert"
+                            value={providerForm.cert}
+                            onChange={e => setProviderForm(prev => ({ ...prev, cert: e.target.value }))}
+                            placeholder="-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+                            rows={6}
+                          />
+                        </div>
+
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="wantAssertionsSigned"
+                            checked={providerForm.wantAssertionsSigned}
+                            onCheckedChange={(checked) => setProviderForm(prev => ({ ...prev, wantAssertionsSigned: checked }))}
+                          />
+                          <Label htmlFor="wantAssertionsSigned">Require Signed Assertions</Label>
+                        </div>
+
+                        <Alert>
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>
+                            <div className="space-y-1">
+                              <p>Callback URL: {window.location.origin}/api/auth/sso/saml2/callback/{providerForm.providerId || '{provider-id}'}</p>
+                              <p>SP Metadata: {window.location.origin}/api/auth/sso/saml2/sp/metadata?providerId={providerForm.providerId || '{provider-id}'}</p>
+                            </div>
+                          </AlertDescription>
+                        </Alert>
+                      </TabsContent>
+                    </Tabs>
                     <DialogFooter>
                       <Button variant="outline" onClick={() => setShowProviderDialog(false)}>
                         Cancel
@@ -391,7 +531,12 @@ export function SSOSettings() {
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <div>
-                            <h4 className="font-semibold">{provider.providerId}</h4>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-semibold">{provider.providerId}</h4>
+                              <Badge variant="outline" className="text-xs">
+                                {provider.samlConfig ? 'SAML' : 'OIDC'}
+                              </Badge>
+                            </div>
                             <p className="text-sm text-muted-foreground">{provider.domain}</p>
                           </div>
                           <Button
@@ -407,12 +552,26 @@ export function SSOSettings() {
                         <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
                             <p className="font-medium">Issuer</p>
-                            <p className="text-muted-foreground">{provider.issuer}</p>
+                            <p className="text-muted-foreground break-all">{provider.issuer}</p>
                           </div>
-                          <div>
-                            <p className="font-medium">Client ID</p>
-                            <p className="text-muted-foreground font-mono">{provider.oidcConfig.clientId}</p>
-                          </div>
+                          {provider.oidcConfig && (
+                            <div>
+                              <p className="font-medium">Client ID</p>
+                              <p className="text-muted-foreground font-mono break-all">{provider.oidcConfig.clientId}</p>
+                            </div>
+                          )}
+                          {provider.samlConfig && (
+                            <div>
+                              <p className="font-medium">Entry Point</p>
+                              <p className="text-muted-foreground break-all">{provider.samlConfig.entryPoint}</p>
+                            </div>
+                          )}
+                          {provider.organizationId && (
+                            <div className="col-span-2">
+                              <p className="font-medium">Organization</p>
+                              <p className="text-muted-foreground">{provider.organizationId}</p>
+                            </div>
+                          )}
                         </div>
                       </CardContent>
                     </Card>

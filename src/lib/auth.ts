@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { oidcProvider } from "better-auth/plugins";
-import { sso } from "better-auth/plugins/sso";
+import { sso } from "@better-auth/sso";
 import { db, users } from "./db";
 import * as schema from "./db/schema";
 import { eq } from "drizzle-orm";
@@ -25,7 +25,7 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false, // We'll enable this later
-    sendResetPassword: async ({ user, url, token }, request) => {
+    sendResetPassword: async ({ user, url }) => {
       // TODO: Implement email sending for password reset
       console.log("Password reset requested for:", user.email);
       console.log("Reset URL:", url);
@@ -60,6 +60,8 @@ export const auth = betterAuth({
       consentPage: "/oauth/consent",
       // Allow dynamic client registration for flexibility
       allowDynamicClientRegistration: true,
+      // Note: trustedClients would be configured here if Better Auth supports it
+      // For now, we'll use dynamic registration
       // Customize user info claims based on scopes
       getAdditionalUserInfoClaim: (user, scopes) => {
         const claims: Record<string, any> = {};
@@ -73,19 +75,32 @@ export const auth = betterAuth({
     // SSO plugin - allows users to authenticate with external OIDC providers
     sso({
       // Provision new users when they sign in with SSO
-      provisionUser: async (user) => {
+      provisionUser: async ({ user }: { user: any, userInfo: any }) => {
         // Derive username from email if not provided
         const username = user.name || user.email?.split('@')[0] || 'user';
-        return {
-          ...user,
-          username,
-        };
+        
+        // Update user in database if needed
+        await db.update(users)
+          .set({ username })
+          .where(eq(users.id, user.id))
+          .catch(() => {}); // Ignore errors if user doesn't exist yet
       },
       // Organization provisioning settings
       organizationProvisioning: {
         disabled: false,
         defaultRole: "member",
+        getRole: async ({ user, userInfo }: { user: any, userInfo: any }) => {
+          // Check if user has admin attribute from SSO provider
+          const isAdmin = userInfo.attributes?.role === 'admin' ||
+                         userInfo.attributes?.groups?.includes('admins');
+          
+          return isAdmin ? "admin" : "member";
+        },
       },
+      // Override user info with provider data by default
+      defaultOverrideUserInfo: true,
+      // Allow implicit sign up for new users
+      disableImplicitSignUp: false,
     }),
   ],
 
