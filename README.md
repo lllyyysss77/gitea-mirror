@@ -109,7 +109,7 @@ docker compose up -d
 #### Using Pre-built Image Directly
 
 ```bash
-docker pull ghcr.io/raylabshq/gitea-mirror:v3.0.0
+docker pull ghcr.io/raylabshq/gitea-mirror:v3.1.1
 ```
 
 ### Configuration Options
@@ -126,8 +126,8 @@ PORT=4321
 PUID=1000
 PGID=1000
 
-# JWT secret (auto-generated if not set)
-JWT_SECRET=your-secret-key-change-this-in-production
+# Session secret (auto-generated if not set)
+BETTER_AUTH_SECRET=your-secret-key-change-this-in-production
 ```
 
 All other settings are configured through the web interface after starting.
@@ -201,7 +201,7 @@ bun run build
 - **Frontend**: Astro, React, Shadcn UI, Tailwind CSS v4
 - **Backend**: Bun runtime, SQLite, Drizzle ORM
 - **APIs**: GitHub (Octokit), Gitea REST API
-- **Auth**: JWT tokens with bcryptjs password hashing
+- **Auth**: Better Auth with session-based authentication
 
 ## Security
 
@@ -209,21 +209,12 @@ bun run build
 - All GitHub and Gitea API tokens are encrypted at rest using AES-256-GCM
 - Encryption is automatic and transparent to users
 - Set `ENCRYPTION_SECRET` environment variable for production deployments
-- Falls back to `BETTER_AUTH_SECRET` or `JWT_SECRET` if not set
+- Falls back to `BETTER_AUTH_SECRET` if not set
 
 ### Password Security
-- User passwords are hashed using bcrypt (via Better Auth)
+- User passwords are securely hashed by Better Auth
 - Never stored in plaintext
-- Secure session management with JWT tokens
-
-### Upgrading to v3
-
-**Important**: If upgrading from v2.x to v3.0, please read the [Migration Guide](MIGRATION_GUIDE.md) for breaking changes and upgrade instructions.
-
-For quick token encryption migration:
-```bash
-bun run migrate:encrypt-tokens
-```
+- Secure cookie-based session management
 
 ## Authentication
 
