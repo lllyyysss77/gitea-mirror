@@ -55,7 +55,7 @@ export function LoginForm() {
     }
   }
 
-  async function handleSSOLogin(domain?: string) {
+  async function handleSSOLogin(domain?: string, providerId?: string) {
     setIsLoading(true);
     try {
       if (!domain && !ssoEmail) {
@@ -66,6 +66,7 @@ export function LoginForm() {
       await authClient.signIn.sso({
         email: ssoEmail || undefined,
         domain: domain,
+        providerId: providerId,
         callbackURL: '/',
       });
     } catch (error) {
@@ -175,7 +176,7 @@ export function LoginForm() {
                                 key={provider.id}
                                 variant="outline"
                                 className="w-full"
-                                onClick={() => handleSSOLogin(provider.domain)}
+                                onClick={() => handleSSOLogin(provider.domain, provider.providerId)}
                                 disabled={isLoading}
                               >
                                 <Globe className="h-4 w-4 mr-2" />
@@ -217,7 +218,7 @@ export function LoginForm() {
                   <CardFooter>
                     <Button 
                       className="w-full" 
-                      onClick={() => handleSSOLogin()}
+                      onClick={() => handleSSOLogin(undefined, undefined)}
                       disabled={isLoading || !ssoEmail}
                     >
                       {isLoading ? 'Redirecting...' : 'Continue with SSO'}

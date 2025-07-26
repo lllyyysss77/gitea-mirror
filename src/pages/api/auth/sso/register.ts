@@ -88,22 +88,8 @@ export async function POST(context: APIContext) {
         }
       } = body;
 
-      // Handle provider-specific scope defaults
-      let finalScopes = scopes;
-      if (!finalScopes) {
-        // Check if this is a Google provider
-        const isGoogle = issuer.includes('google.com') || 
-                        issuer.includes('googleapis.com') ||
-                        domain.includes('google.com');
-        
-        if (isGoogle) {
-          // Google doesn't support offline_access scope
-          finalScopes = ["openid", "email", "profile"];
-        } else {
-          // Default scopes for other providers
-          finalScopes = ["openid", "email", "profile", "offline_access"];
-        }
-      }
+      // Use provided scopes or default if not specified
+      const finalScopes = scopes || ["openid", "email", "profile"];
 
       registrationBody.oidcConfig = {
         clientId,
