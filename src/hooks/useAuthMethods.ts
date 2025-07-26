@@ -36,7 +36,7 @@ export function useAuthMethods() {
   const loadAuthMethods = async () => {
     try {
       // Check SSO providers
-      const providers = await apiRequest<any[]>('/auth/sso/register').catch(() => []);
+      const providers = await apiRequest<any[]>('/sso/providers').catch(() => []);
       const applications = await apiRequest<any[]>('/sso/applications').catch(() => []);
 
       setAuthMethods({

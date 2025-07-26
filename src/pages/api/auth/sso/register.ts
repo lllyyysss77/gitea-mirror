@@ -147,11 +147,9 @@ export async function GET(context: APIContext) {
     // doesn't provide a built-in API to list SSO providers
     // This will be implemented once we update the database schema
     
+    // Return empty array for now - frontend expects array not object
     return new Response(
-      JSON.stringify({ 
-        message: "SSO provider listing not yet implemented",
-        providers: [] 
-      }),
+      JSON.stringify([]),
       {
         status: 200,
         headers: { "Content-Type": "application/json" },

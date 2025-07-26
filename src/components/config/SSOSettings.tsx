@@ -102,7 +102,7 @@ export function SSOSettings() {
     setIsLoading(true);
     try {
       const [providersRes, headerAuthStatus] = await Promise.all([
-        apiRequest<SSOProvider[]>('/auth/sso/register'),
+        apiRequest<SSOProvider[]>('/sso/providers'),
         apiRequest<{ enabled: boolean }>('/auth/header-status').catch(() => ({ enabled: false }))
       ]);
       
@@ -177,7 +177,7 @@ export function SSOSettings() {
         requestData.identifierFormat = providerForm.identifierFormat;
       }
 
-      const newProvider = await apiRequest<SSOProvider>('/auth/sso/register', {
+      const newProvider = await apiRequest<SSOProvider>('/sso/providers', {
         method: 'POST',
         data: requestData,
       });
