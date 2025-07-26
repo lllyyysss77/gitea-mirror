@@ -13,7 +13,14 @@ export async function GET(context: APIContext) {
 
     const providers = await db.select().from(ssoProviders);
 
-    return new Response(JSON.stringify(providers), {
+    // Parse JSON fields before sending
+    const formattedProviders = providers.map(provider => ({
+      ...provider,
+      oidcConfig: provider.oidcConfig ? JSON.parse(provider.oidcConfig) : undefined,
+      samlConfig: provider.samlConfig ? JSON.parse(provider.samlConfig) : undefined,
+    }));
+
+    return new Response(JSON.stringify(formattedProviders), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
@@ -102,7 +109,14 @@ export async function POST(context: APIContext) {
       })
       .returning();
 
-    return new Response(JSON.stringify(newProvider), {
+    // Parse JSON fields before sending
+    const formattedProvider = {
+      ...newProvider,
+      oidcConfig: newProvider.oidcConfig ? JSON.parse(newProvider.oidcConfig) : undefined,
+      samlConfig: newProvider.samlConfig ? JSON.parse(newProvider.samlConfig) : undefined,
+    };
+
+    return new Response(JSON.stringify(formattedProvider), {
       status: 201,
       headers: { "Content-Type": "application/json" },
     });

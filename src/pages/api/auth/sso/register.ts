@@ -77,7 +77,7 @@ export async function POST(context: APIContext) {
         jwksEndpoint,
         discoveryEndpoint,
         userInfoEndpoint,
-        scopes = ["openid", "email", "profile"],
+        scopes,
         pkce = true,
         mapping = {
           id: "sub",
@@ -88,6 +88,23 @@ export async function POST(context: APIContext) {
         }
       } = body;
 
+      // Handle provider-specific scope defaults
+      let finalScopes = scopes;
+      if (!finalScopes) {
+        // Check if this is a Google provider
+        const isGoogle = issuer.includes('google.com') || 
+                        issuer.includes('googleapis.com') ||
+                        domain.includes('google.com');
+        
+        if (isGoogle) {
+          // Google doesn't support offline_access scope
+          finalScopes = ["openid", "email", "profile"];
+        } else {
+          // Default scopes for other providers
+          finalScopes = ["openid", "email", "profile", "offline_access"];
+        }
+      }
+
       registrationBody.oidcConfig = {
         clientId,
         clientSecret,
@@ -96,7 +113,7 @@ export async function POST(context: APIContext) {
         jwksEndpoint,
         discoveryEndpoint,
         userInfoEndpoint,
-        scopes,
+        scopes: finalScopes,
         pkce,
       };
       registrationBody.mapping = mapping;

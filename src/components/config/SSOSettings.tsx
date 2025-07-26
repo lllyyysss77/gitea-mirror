@@ -6,11 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { apiRequest, showErrorToast } from '@/lib/utils';
 import { toast } from 'sonner';
-import { Plus, Trash2, ExternalLink, Loader2, AlertCircle, Shield, Info } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
+import { Plus, Trash2, Loader2, AlertCircle, Shield } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -102,7 +100,7 @@ export function SSOSettings() {
     setIsLoading(true);
     try {
       const [providersRes, headerAuthStatus] = await Promise.all([
-        apiRequest<SSOProvider[]>('/sso/providers'),
+        apiRequest<SSOProvider[] | { providers: SSOProvider[] }>('/sso/providers'),
         apiRequest<{ enabled: boolean }>('/auth/header-status').catch(() => ({ enabled: false }))
       ]);
       
@@ -164,7 +162,7 @@ export function SSOSettings() {
         requestData.jwksEndpoint = providerForm.jwksEndpoint;
         requestData.userInfoEndpoint = providerForm.userInfoEndpoint;
         requestData.discoveryEndpoint = providerForm.discoveryEndpoint;
-        requestData.scopes = providerForm.scopes;
+        // Don't send scopes - let the backend handle provider-specific defaults
         requestData.pkce = providerForm.pkce;
       } else {
         requestData.entryPoint = providerForm.entryPoint;
@@ -224,10 +222,6 @@ export function SSOSettings() {
   };
 
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success('Copied to clipboard');
-  };
 
   if (isLoading) {
     return (
@@ -448,7 +442,14 @@ export function SSOSettings() {
                         <Alert>
                           <AlertCircle className="h-4 w-4" />
                           <AlertDescription>
-                            Redirect URL: {window.location.origin}/api/auth/sso/callback/{providerForm.providerId || '{provider-id}'}
+                            <div className="space-y-2">
+                              <p>Redirect URL: {window.location.origin}/api/auth/sso/callback/{providerForm.providerId || '{provider-id}'}</p>
+                              {providerForm.issuer.includes('google.com') && (
+                                <p className="text-xs text-muted-foreground">
+                                  Note: Google doesn't support the "offline_access" scope. The system will automatically use appropriate scopes.
+                                </p>
+                              )}
+                            </div>
                           </AlertDescription>
                         </Alert>
                       </TabsContent>
