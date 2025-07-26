@@ -106,7 +106,7 @@ export function SSOSettings() {
         apiRequest<{ enabled: boolean }>('/auth/header-status').catch(() => ({ enabled: false }))
       ]);
       
-      setProviders(providersRes);
+      setProviders(Array.isArray(providersRes) ? providersRes : providersRes?.providers || []);
       setHeaderAuthEnabled(headerAuthStatus.enabled);
     } catch (error) {
       showErrorToast(error, toast);
