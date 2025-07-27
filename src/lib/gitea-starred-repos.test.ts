@@ -1,5 +1,4 @@
 import { describe, test, expect, mock, beforeEach, afterEach } from "bun:test";
-import { getOrCreateGiteaOrg, mirrorGitHubOrgRepoToGiteaOrg, isRepoPresentInGitea } from "./gitea";
 import type { Config, Repository } from "./db/schema";
 import { repoStatusEnum } from "@/types/Repository";
 import { createMockResponse, mockFetch } from "@/tests/mock-fetch";
@@ -38,6 +37,26 @@ mock.module("@/lib/utils/config-encryption", () => ({
   getDecryptedGitHubToken: (config: any) => config.githubConfig?.token || "",
   getDecryptedGiteaToken: (config: any) => config.giteaConfig?.token || ""
 }));
+
+// Mock additional functions from gitea module that are used in tests
+const mockGetOrCreateGiteaOrg = mock(async ({ orgName }: any) => {
+  if (orgName === "starred") {
+    return 999;
+  }
+  return 123;
+});
+
+const mockMirrorGitHubOrgRepoToGiteaOrg = mock(async () => {});
+const mockIsRepoPresentInGitea = mock(async () => false);
+
+mock.module("./gitea", () => ({
+  getOrCreateGiteaOrg: mockGetOrCreateGiteaOrg,
+  mirrorGitHubOrgRepoToGiteaOrg: mockMirrorGitHubOrgRepoToGiteaOrg,
+  isRepoPresentInGitea: mockIsRepoPresentInGitea
+}));
+
+// Import the mocked functions
+const { getOrCreateGiteaOrg, mirrorGitHubOrgRepoToGiteaOrg, isRepoPresentInGitea } = await import("./gitea");
 
 describe("Starred Repository Error Handling", () => {
   let originalFetch: typeof global.fetch;

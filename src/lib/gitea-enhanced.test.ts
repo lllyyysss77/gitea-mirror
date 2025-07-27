@@ -33,6 +33,107 @@ mock.module("@/lib/utils/config-encryption", () => ({
   getDecryptedGiteaToken: (config: any) => config.giteaConfig?.token || ""
 }));
 
+// Mock http-client
+class MockHttpError extends Error {
+  constructor(message: string, public status: number, public statusText: string, public response?: string) {
+    super(message);
+    this.name = 'HttpError';
+  }
+}
+
+// Track call counts for org tests
+let orgCheckCount = 0;
+let orgTestContext = "";
+
+const mockHttpGet = mock(async (url: string, headers?: any) => {
+  // Return different responses based on URL patterns
+  if (url.includes("/api/v1/repos/starred/test-repo")) {
+    return { 
+      data: { 
+        id: 123, 
+        name: "test-repo", 
+        mirror: true, 
+        owner: { login: "starred" },
+        mirror_interval: "8h",
+        clone_url: "https://github.com/user/test-repo.git",
+        private: false
+      },
+      status: 200,
+      statusText: "OK",
+      headers: new Headers()
+    };
+  }
+  if (url.includes("/api/v1/repos/starred/regular-repo")) {
+    return { 
+      data: { 
+        id: 124, 
+        name: "regular-repo", 
+        mirror: false, 
+        owner: { login: "starred" } 
+      },
+      status: 200,
+      statusText: "OK",
+      headers: new Headers()
+    };
+  }
+  if (url.includes("/api/v1/repos/")) {
+    throw new MockHttpError("Not Found", 404, "Not Found");
+  }
+  
+  // Handle org GET requests based on test context
+  if (url.includes("/api/v1/orgs/starred")) {
+    orgCheckCount++;
+    if (orgTestContext === "duplicate-retry" && orgCheckCount > 2) {
+      // After retries, org exists
+      return {
+        data: { id: 999, username: "starred" },
+        status: 200,
+        statusText: "OK",
+        headers: new Headers()
+      };
+    }
+    // Otherwise, org doesn't exist
+    throw new MockHttpError("Not Found", 404, "Not Found");
+  }
+  
+  if (url.includes("/api/v1/orgs/neworg")) {
+    // Org doesn't exist
+    throw new MockHttpError("Not Found", 404, "Not Found");
+  }
+  
+  return { data: {}, status: 200, statusText: "OK", headers: new Headers() };
+});
+
+const mockHttpPost = mock(async (url: string, body?: any, headers?: any) => {
+  if (url.includes("/api/v1/orgs") && body?.username === "starred") {
+    // Simulate duplicate org error
+    throw new MockHttpError(
+      'insert organization: pq: duplicate key value violates unique constraint "UQE_user_lower_name"',
+      400,
+      "Bad Request",
+      JSON.stringify({ message: 'insert organization: pq: duplicate key value violates unique constraint "UQE_user_lower_name"', url: "https://gitea.example.com/api/swagger" })
+    );
+  }
+  if (url.includes("/api/v1/orgs") && body?.username === "neworg") {
+    return {
+      data: { id: 777, username: "neworg" },
+      status: 201,
+      statusText: "Created",
+      headers: new Headers()
+    };
+  }
+  return { data: {}, status: 200, statusText: "OK", headers: new Headers() };
+});
+
+const mockHttpDelete = mock(async () => ({ data: {}, status: 200, statusText: "OK", headers: new Headers() }));
+
+mock.module("@/lib/http-client", () => ({
+  httpGet: mockHttpGet,
+  httpPost: mockHttpPost,
+  httpDelete: mockHttpDelete,
+  HttpError: MockHttpError
+}));
+
 // Now import the modules we're testing
 import { 
   getGiteaRepoInfo, 
@@ -40,9 +141,11 @@ import {
   syncGiteaRepoEnhanced,
   handleExistingNonMirrorRepo 
 } from "./gitea-enhanced";
-import { HttpError } from "./http-client";
 import type { Config, Repository } from "./db/schema";
 import { repoStatusEnum } from "@/types/Repository";
+
+// Get HttpError from the mocked module
+const { HttpError } = await import("@/lib/http-client");
 
 describe("Enhanced Gitea Operations", () => {
   let originalFetch: typeof global.fetch;
@@ -148,7 +251,13 @@ describe("Enhanced Gitea Operations", () => {
   });
 
   describe("getOrCreateGiteaOrgEnhanced", () => {
+    beforeEach(() => {
+      orgCheckCount = 0;
+      orgTestContext = "";
+    });
+    
     test("should handle duplicate organization constraint error with retry", async () => {
+      orgTestContext = "duplicate-retry";
       let attemptCount = 0;
       
       global.fetch = mockFetch(async (url: string, options?: RequestInit) => {

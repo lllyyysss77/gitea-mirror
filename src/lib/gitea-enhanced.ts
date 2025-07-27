@@ -21,7 +21,7 @@ import { repoStatusEnum } from "@/types/Repository";
 interface GiteaRepoInfo {
   id: number;
   name: string;
-  owner: string;
+  owner: { login: string } | string;
   mirror: boolean;
   mirror_interval?: string;
   clone_url?: string;
@@ -452,7 +452,7 @@ export async function handleExistingNonMirrorRepo({
   repoInfo: GiteaRepoInfo;
   strategy?: "skip" | "delete" | "rename";
 }): Promise<void> {
-  const owner = repoInfo.owner;
+  const owner = typeof repoInfo.owner === 'string' ? repoInfo.owner : repoInfo.owner.login;
   const repoName = repoInfo.name;
 
   switch (strategy) {
