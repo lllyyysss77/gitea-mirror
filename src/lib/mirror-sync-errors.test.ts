@@ -6,10 +6,18 @@ import type { Config, Repository } from "./db/schema";
 
 describe("Mirror Sync Error Handling", () => {
   let originalFetch: typeof global.fetch;
+  let originalSetTimeout: typeof global.setTimeout;
   let mockDbUpdate: any;
 
   beforeEach(() => {
     originalFetch = global.fetch;
+    originalSetTimeout = global.setTimeout;
+    
+    // Mock setTimeout to avoid delays in tests
+    global.setTimeout = ((fn: Function) => {
+      Promise.resolve().then(() => fn());
+      return 0;
+    }) as any;
     
     // Mock database update operations
     mockDbUpdate = mock(() => ({
@@ -24,6 +32,7 @@ describe("Mirror Sync Error Handling", () => {
 
   afterEach(() => {
     global.fetch = originalFetch;
+    global.setTimeout = originalSetTimeout;
   });
 
   describe("Mirror sync API errors", () => {

@@ -1,0 +1,6 @@
+[test]
+# Set test timeout to 5 seconds (5000ms) to prevent hanging tests
+timeout = 5000
+
+# Preload the setup file
+preload = ["./src/tests/setup.bun.ts"]

@@ -8,6 +8,23 @@ import { mock } from "bun:test";
 // Set NODE_ENV to test
 process.env.NODE_ENV = "test";
 
+// Mock setTimeout globally to prevent hanging tests
+const originalSetTimeout = global.setTimeout;
+global.setTimeout = ((fn: Function, delay?: number) => {
+  // In tests, execute immediately or with minimal delay
+  if (delay && delay > 100) {
+    // For long delays, execute immediately
+    Promise.resolve().then(() => fn());
+  } else {
+    // For short delays, use setImmediate-like behavior
+    Promise.resolve().then(() => fn());
+  }
+  return 0;
+}) as any;
+
+// Restore setTimeout for any code that needs real timing
+(global as any).__originalSetTimeout = originalSetTimeout;
+
 // Mock the database module to prevent real database access during tests
 mock.module("@/lib/db", () => {
   const mockDb = {
@@ -66,6 +83,14 @@ mock.module("@/lib/utils/config-encryption", () => {
     encryptConfigTokens: (config: any) => {
       // Return the config as-is for tests
       return config;
+    },
+    getDecryptedGitHubToken: (config: any) => {
+      // Return the token as-is for tests
+      return config.githubConfig?.token || "";
+    },
+    getDecryptedGiteaToken: (config: any) => {
+      // Return the token as-is for tests
+      return config.giteaConfig?.token || "";
     }
   };
 });

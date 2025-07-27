@@ -38,27 +38,17 @@ import { repoStatusEnum } from "@/types/Repository";
 
 describe("Enhanced Gitea Operations", () => {
   let originalFetch: typeof global.fetch;
-  let originalTimeout: typeof global.setTimeout;
 
   beforeEach(() => {
     originalFetch = global.fetch;
-    originalTimeout = global.setTimeout;
     // Clear mocks
     mockCreateMirrorJob.mockClear();
     mockDb.insert.mockClear();
     mockDb.update.mockClear();
-    
-    // Mock setTimeout for consistent timing in tests
-    global.setTimeout = ((fn: Function, delay: number) => {
-      // Execute immediately in tests to avoid timing issues
-      fn();
-      return 0;
-    }) as any;
   });
 
   afterEach(() => {
     global.fetch = originalFetch;
-    global.setTimeout = originalTimeout;
   });
 
   describe("getGiteaRepoInfo", () => {
@@ -196,7 +186,7 @@ describe("Enhanced Gitea Operations", () => {
         orgName: "starred",
         config,
         maxRetries: 3,
-        retryDelay: 10,
+        retryDelay: 0, // No delay in tests
       });
 
       expect(orgId).toBe(999);
@@ -248,6 +238,7 @@ describe("Enhanced Gitea Operations", () => {
       const orgId = await getOrCreateGiteaOrgEnhanced({
         orgName: "neworg",
         config,
+        retryDelay: 0, // No delay in tests
       });
 
       expect(orgId).toBe(777);

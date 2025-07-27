@@ -157,9 +157,11 @@ export async function getOrCreateGiteaOrgEnhanced({
             console.log(`[Org Creation] Organization creation failed due to duplicate. Will retry check.`);
             
             // Wait before retry with exponential backoff
-            const delay = retryDelay * Math.pow(2, attempt);
+            const delay = process.env.NODE_ENV === 'test' ? 0 : retryDelay * Math.pow(2, attempt);
             console.log(`[Org Creation] Waiting ${delay}ms before retry...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
+            if (delay > 0) {
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
             continue; // Retry the loop
           }
         }
