@@ -25,6 +25,14 @@ mock.module("@/lib/db", () => ({
   repositories: {}
 }));
 
+// Mock config encryption
+mock.module("@/lib/utils/config-encryption", () => ({
+  decryptConfigTokens: (config: any) => config,
+  encryptConfigTokens: (config: any) => config,
+  getDecryptedGitHubToken: (config: any) => config.githubConfig?.token || "",
+  getDecryptedGiteaToken: (config: any) => config.giteaConfig?.token || ""
+}));
+
 // Now import the modules we're testing
 import { 
   getGiteaRepoInfo, 

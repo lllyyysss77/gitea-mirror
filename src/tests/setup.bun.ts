@@ -97,8 +97,12 @@ mock.module("@/lib/utils/config-encryption", () => {
 
 // Mock the helpers module to prevent database operations
 mock.module("@/lib/helpers", () => {
+  const mockCreateMirrorJob = mock(() => Promise.resolve("mock-job-id"));
+  const mockCreateEvent = mock(() => Promise.resolve());
+  
   return {
-    createMirrorJob: mock(() => Promise.resolve("mock-job-id")),
+    createMirrorJob: mockCreateMirrorJob,
+    createEvent: mockCreateEvent,
     // Add other helpers as needed
   };
 });

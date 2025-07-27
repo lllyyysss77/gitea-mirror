@@ -31,6 +31,14 @@ mock.module("@/lib/db", () => {
   };
 });
 
+// Mock config encryption
+mock.module("@/lib/utils/config-encryption", () => ({
+  decryptConfigTokens: (config: any) => config,
+  encryptConfigTokens: (config: any) => config,
+  getDecryptedGitHubToken: (config: any) => config.githubConfig?.token || "",
+  getDecryptedGiteaToken: (config: any) => config.giteaConfig?.token || ""
+}));
+
 describe("Starred Repository Error Handling", () => {
   let originalFetch: typeof global.fetch;
   let consoleLogs: string[] = [];
