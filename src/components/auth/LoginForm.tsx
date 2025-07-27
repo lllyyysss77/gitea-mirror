@@ -63,11 +63,12 @@ export function LoginForm() {
         return;
       }
 
+      const baseURL = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4321';
       await authClient.signIn.sso({
         email: ssoEmail || undefined,
         domain: domain,
         providerId: providerId,
-        callbackURL: '/',
+        callbackURL: `${baseURL}/`,
         scopes: ['openid', 'email', 'profile'], // TODO: This is not being respected by the SSO plugin.
       });
     } catch (error) {

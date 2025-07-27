@@ -1,4 +1,31 @@
 import { describe, test, expect, mock, beforeEach, afterEach } from "bun:test";
+import { createMockResponse, mockFetch } from "@/tests/mock-fetch";
+
+// Mock the helpers module before importing gitea-enhanced
+const mockCreateMirrorJob = mock(() => Promise.resolve("mock-job-id"));
+mock.module("@/lib/helpers", () => ({
+  createMirrorJob: mockCreateMirrorJob
+}));
+
+// Mock the database module
+const mockDb = {
+  insert: mock((table: any) => ({
+    values: mock((data: any) => Promise.resolve({ insertedId: "mock-id" }))
+  })),
+  update: mock(() => ({
+    set: mock(() => ({
+      where: mock(() => Promise.resolve())
+    }))
+  }))
+};
+
+mock.module("@/lib/db", () => ({
+  db: mockDb,
+  mirrorJobs: {},
+  repositories: {}
+}));
+
+// Now import the modules we're testing
 import { 
   getGiteaRepoInfo, 
   getOrCreateGiteaOrgEnhanced, 
@@ -11,18 +38,13 @@ import { repoStatusEnum } from "@/types/Repository";
 
 describe("Enhanced Gitea Operations", () => {
   let originalFetch: typeof global.fetch;
-  let mockDb: any;
 
   beforeEach(() => {
     originalFetch = global.fetch;
-    // Mock database operations
-    mockDb = {
-      update: mock(() => ({
-        set: mock(() => ({
-          where: mock(() => Promise.resolve()),
-        })),
-      })),
-    };
+    // Clear mocks
+    mockCreateMirrorJob.mockClear();
+    mockDb.insert.mockClear();
+    mockDb.update.mockClear();
   });
 
   afterEach(() => {
@@ -31,11 +53,8 @@ describe("Enhanced Gitea Operations", () => {
 
   describe("getGiteaRepoInfo", () => {
     test("should return repo info for existing mirror repository", async () => {
-      global.fetch = mock(async (url: string) => ({
-        ok: true,
-        status: 200,
-        headers: new Headers({ "content-type": "application/json" }),
-        json: async () => ({
+      global.fetch = mockFetch(() => 
+        createMockResponse({
           id: 123,
           name: "test-repo",
           owner: "starred",
@@ -43,8 +62,8 @@ describe("Enhanced Gitea Operations", () => {
           mirror_interval: "8h",
           clone_url: "https://github.com/user/test-repo.git",
           private: false,
-        }),
-      }));
+        })
+      );
 
       const config: Partial<Config> = {
         giteaConfig: {
@@ -66,18 +85,15 @@ describe("Enhanced Gitea Operations", () => {
     });
 
     test("should return repo info for existing non-mirror repository", async () => {
-      global.fetch = mock(async (url: string) => ({
-        ok: true,
-        status: 200,
-        headers: new Headers({ "content-type": "application/json" }),
-        json: async () => ({
+      global.fetch = mockFetch(() => 
+        createMockResponse({
           id: 124,
           name: "regular-repo",
           owner: "starred",
           mirror: false,
           private: false,
-        }),
-      }));
+        })
+      );
 
       const config: Partial<Config> = {
         giteaConfig: {
@@ -98,13 +114,12 @@ describe("Enhanced Gitea Operations", () => {
     });
 
     test("should return null for non-existent repository", async () => {
-      global.fetch = mock(async (url: string) => ({
-        ok: false,
-        status: 404,
-        statusText: "Not Found",
-        headers: new Headers({ "content-type": "application/json" }),
-        text: async () => "Not Found",
-      }));
+      global.fetch = mockFetch(() => 
+        createMockResponse(
+          "Not Found",
+          { ok: false, status: 404, statusText: "Not Found" }
+        )
+      );
 
       const config: Partial<Config> = {
         giteaConfig: {
@@ -128,42 +143,33 @@ describe("Enhanced Gitea Operations", () => {
     test("should handle duplicate organization constraint error with retry", async () => {
       let attemptCount = 0;
       
-      global.fetch = mock(async (url: string, options?: RequestInit) => {
+      global.fetch = mockFetch(async (url: string, options?: RequestInit) => {
         attemptCount++;
         
         if (url.includes("/api/v1/orgs/starred") && options?.method !== "POST") {
           // First two attempts: org doesn't exist
           if (attemptCount <= 2) {
-            return {
-              ok: false,
-              status: 404,
-              statusText: "Not Found",
-            };
+            return createMockResponse(
+              "Not Found",
+              { ok: false, status: 404, statusText: "Not Found" }
+            );
           }
           // Third attempt: org now exists (created by another process)
-          return {
-            ok: true,
-            status: 200,
-            headers: new Headers({ "content-type": "application/json" }),
-            json: async () => ({ id: 999, username: "starred" }),
-          };
+          return createMockResponse({ id: 999, username: "starred" });
         }
 
         if (url.includes("/api/v1/orgs") && options?.method === "POST") {
           // Simulate duplicate constraint error
-          return {
-            ok: false,
-            status: 422,
-            statusText: "Unprocessable Entity",
-            headers: new Headers({ "content-type": "application/json" }),
-            json: async () => ({ 
-              message: "pq: duplicate key value violates unique constraint \"UQE_user_lower_name\"" 
-            }),
-            text: async () => "duplicate key value violates unique constraint",
-          };
+          return createMockResponse(
+            { message: "pq: duplicate key value violates unique constraint \"UQE_user_lower_name\"" },
+            { ok: false, status: 422, statusText: "Unprocessable Entity" }
+          );
         }
 
-        return { ok: false, status: 500 };
+        return createMockResponse(
+          "Internal Server Error",
+          { ok: false, status: 500 }
+        );
       });
 
       const config: Partial<Config> = {
@@ -191,31 +197,37 @@ describe("Enhanced Gitea Operations", () => {
       let getOrgCalled = false;
       let createOrgCalled = false;
 
-      global.fetch = mock(async (url: string, options?: RequestInit) => {
+      global.fetch = mockFetch(async (url: string, options?: RequestInit) => {
         if (url.includes("/api/v1/orgs/neworg") && options?.method !== "POST") {
           getOrgCalled = true;
-          return {
-            ok: false,
-            status: 404,
-            statusText: "Not Found",
-          };
+          return createMockResponse(
+            "Not Found",
+            { ok: false, status: 404, statusText: "Not Found" }
+          );
         }
 
         if (url.includes("/api/v1/orgs") && options?.method === "POST") {
           createOrgCalled = true;
-          return {
-            ok: true,
-            status: 201,
-            headers: new Headers({ "content-type": "application/json" }),
-            json: async () => ({ id: 777, username: "neworg" }),
-          };
+          return createMockResponse(
+            { id: 777, username: "neworg" },
+            { ok: true, status: 201 }
+          );
         }
 
-        return { ok: false, status: 500 };
+        return createMockResponse(
+          "Internal Server Error",
+          { ok: false, status: 500 }
+        );
       });
 
       const config: Partial<Config> = {
         userId: "user123",
+        githubConfig: {
+          username: "testuser",
+          token: "github-token",
+          privateRepositories: false,
+          mirrorStarred: true,
+        },
         giteaConfig: {
           url: "https://gitea.example.com",
           token: "encrypted-token",
@@ -236,26 +248,30 @@ describe("Enhanced Gitea Operations", () => {
 
   describe("syncGiteaRepoEnhanced", () => {
     test("should fail gracefully when repository is not a mirror", async () => {
-      global.fetch = mock(async (url: string) => {
+      global.fetch = mockFetch(async (url: string) => {
         if (url.includes("/api/v1/repos/starred/non-mirror-repo") && !url.includes("mirror-sync")) {
-          return {
-            ok: true,
-            status: 200,
-            headers: new Headers({ "content-type": "application/json" }),
-            json: async () => ({
-              id: 456,
-              name: "non-mirror-repo",
-              owner: "starred",
-              mirror: false, // Not a mirror
-              private: false,
-            }),
-          };
+          return createMockResponse({
+            id: 456,
+            name: "non-mirror-repo",
+            owner: "starred",
+            mirror: false, // Not a mirror
+            private: false,
+          });
         }
-        return { ok: false, status: 404 };
+        return createMockResponse(
+          "Not Found",
+          { ok: false, status: 404 }
+        );
       });
 
       const config: Partial<Config> = {
         userId: "user123",
+        githubConfig: {
+          username: "testuser",
+          token: "github-token",
+          privateRepositories: false,
+          mirrorStarred: true,
+        },
         giteaConfig: {
           url: "https://gitea.example.com",
           token: "encrypted-token",
@@ -295,38 +311,37 @@ describe("Enhanced Gitea Operations", () => {
     test("should successfully sync a mirror repository", async () => {
       let syncCalled = false;
 
-      global.fetch = mock(async (url: string, options?: RequestInit) => {
+      global.fetch = mockFetch(async (url: string, options?: RequestInit) => {
         if (url.includes("/api/v1/repos/starred/mirror-repo") && !url.includes("mirror-sync")) {
-          return {
-            ok: true,
-            status: 200,
-            headers: new Headers({ "content-type": "application/json" }),
-            json: async () => ({
-              id: 789,
-              name: "mirror-repo",
-              owner: "starred",
-              mirror: true,
-              mirror_interval: "8h",
-              private: false,
-            }),
-          };
+          return createMockResponse({
+            id: 789,
+            name: "mirror-repo",
+            owner: "starred",
+            mirror: true,
+            mirror_interval: "8h",
+            private: false,
+          });
         }
 
         if (url.includes("/mirror-sync") && options?.method === "POST") {
           syncCalled = true;
-          return {
-            ok: true,
-            status: 200,
-            headers: new Headers({ "content-type": "application/json" }),
-            json: async () => ({ success: true }),
-          };
+          return createMockResponse({ success: true });
         }
 
-        return { ok: false, status: 404 };
+        return createMockResponse(
+          "Not Found",
+          { ok: false, status: 404 }
+        );
       });
 
       const config: Partial<Config> = {
         userId: "user123",
+        githubConfig: {
+          username: "testuser",
+          token: "github-token",
+          privateRepositories: false,
+          mirrorStarred: true,
+        },
         giteaConfig: {
           url: "https://gitea.example.com",
           token: "encrypted-token",
@@ -383,7 +398,7 @@ describe("Enhanced Gitea Operations", () => {
         cloneUrl: "https://github.com/user/test-repo.git",
         isPrivate: false,
         isStarred: true,
-        status: repoStatusEnum.parse("pending"),
+        status: repoStatusEnum.parse("imported"),
         visibility: "public",
         userId: "user123",
         createdAt: new Date(),
@@ -412,7 +427,7 @@ describe("Enhanced Gitea Operations", () => {
     test("should delete non-mirror repository with delete strategy", async () => {
       let deleteCalled = false;
 
-      global.fetch = mock(async (url: string, options?: RequestInit) => {
+      global.fetch = mockFetch(async (url: string, options?: RequestInit) => {
         if (url.includes("/api/v1/repos/starred/test-repo") && options?.method === "DELETE") {
           deleteCalled = true;
           return {
@@ -439,7 +454,7 @@ describe("Enhanced Gitea Operations", () => {
         cloneUrl: "https://github.com/user/test-repo.git",
         isPrivate: false,
         isStarred: true,
-        status: repoStatusEnum.parse("pending"),
+        status: repoStatusEnum.parse("imported"),
         visibility: "public",
         userId: "user123",
         createdAt: new Date(),

@@ -18,8 +18,8 @@ mock.module("@/lib/db", () => {
         })
       })
     }),
-    insert: () => ({
-      values: () => Promise.resolve()
+    insert: (table: any) => ({
+      values: (data: any) => Promise.resolve({ insertedId: "mock-id" })
     }),
     update: () => ({
       set: () => ({
@@ -67,6 +67,14 @@ mock.module("@/lib/utils/config-encryption", () => {
       // Return the config as-is for tests
       return config;
     }
+  };
+});
+
+// Mock the helpers module to prevent database operations
+mock.module("@/lib/helpers", () => {
+  return {
+    createMirrorJob: mock(() => Promise.resolve("mock-job-id")),
+    // Add other helpers as needed
   };
 });
 
