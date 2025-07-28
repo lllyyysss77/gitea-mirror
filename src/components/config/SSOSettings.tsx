@@ -15,6 +15,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { MultiSelect } from '@/components/ui/multi-select';
 
+function isTrustedIssuer(issuer: string, allowedHosts: string[]): boolean {
+  try {
+    const url = new URL(issuer);
+    return allowedHosts.some(host => url.hostname === host || url.hostname.endsWith(`.${host}`));
+  } catch {
+    return false; // Return false if the URL is invalid
+  }
+}
 interface SSOProvider {
   id: string;
   issuer: string;
@@ -509,7 +517,7 @@ export function SSOSettings() {
                           <AlertDescription>
                             <div className="space-y-2">
                               <p>Redirect URL: {window.location.origin}/api/auth/sso/callback/{providerForm.providerId || '{provider-id}'}</p>
-                              {providerForm.issuer.includes('google.com') && (
+                              {isTrustedIssuer(providerForm.issuer, ['google.com']) && (
                                 <p className="text-xs text-muted-foreground">
                                   Note: Google doesn't support the "offline_access" scope. Make sure to exclude it from the selected scopes.
                                 </p>
