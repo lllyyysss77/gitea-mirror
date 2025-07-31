@@ -6,6 +6,8 @@ import type { Session as BetterAuthSession, User as BetterAuthUser } from "bette
 export const authClient = createAuthClient({
   // The base URL is optional when running on the same domain
   // Better Auth will use the current domain by default
+  baseURL: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4321',
+  basePath: '/api/auth', // Explicitly set the base path
   plugins: [
     oidcClient(),
     ssoClient(),

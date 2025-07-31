@@ -20,6 +20,13 @@ export const auth = betterAuth({
   // Base URL configuration
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:4321",
   basePath: "/api/auth", // Specify the base path for auth endpoints
+  
+  // Trusted origins for OAuth flows
+  trustedOrigins: [
+    "http://localhost:4321",
+    "http://localhost:8080", // Keycloak
+    process.env.BETTER_AUTH_URL || "http://localhost:4321"
+  ].filter(Boolean),
 
   // Authentication methods
   emailAndPassword: {
@@ -89,7 +96,7 @@ export const auth = betterAuth({
       organizationProvisioning: {
         disabled: false,
         defaultRole: "member",
-        getRole: async ({ user, userInfo }: { user: any, userInfo: any }) => {
+        getRole: async ({ userInfo }: { user: any, userInfo: any }) => {
           // Check if user has admin attribute from SSO provider
           const isAdmin = userInfo.attributes?.role === 'admin' ||
                          userInfo.attributes?.groups?.includes('admins');
@@ -102,11 +109,6 @@ export const auth = betterAuth({
       // Allow implicit sign up for new users
       disableImplicitSignUp: false,
     }),
-  ],
-
-  // Trusted origins for CORS
-  trustedOrigins: [
-    process.env.BETTER_AUTH_URL || "http://localhost:4321",
   ],
 });
 

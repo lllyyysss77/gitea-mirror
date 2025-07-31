@@ -72,14 +72,16 @@ export async function httpRequest<T = any>(
         const responseText = await responseClone.text();
 
         // Enhanced JSON parsing error logging
-        console.error("=== JSON PARSING ERROR ===");
-        console.error("URL:", url);
-        console.error("Status:", response.status, response.statusText);
-        console.error("Content-Type:", contentType);
-        console.error("Response length:", responseText.length);
-        console.error("Response preview (first 500 chars):", responseText.substring(0, 500));
-        console.error("JSON Error:", jsonError instanceof Error ? jsonError.message : String(jsonError));
-        console.error("========================");
+        if (process.env.NODE_ENV !== 'test') {
+          console.error("=== JSON PARSING ERROR ===");
+          console.error("URL:", url);
+          console.error("Status:", response.status, response.statusText);
+          console.error("Content-Type:", contentType);
+          console.error("Response length:", responseText.length);
+          console.error("Response preview (first 500 chars):", responseText.substring(0, 500));
+          console.error("JSON Error:", jsonError instanceof Error ? jsonError.message : String(jsonError));
+          console.error("========================");
+        }
 
         throw new HttpError(
           `Failed to parse JSON response from ${url}: ${jsonError instanceof Error ? jsonError.message : String(jsonError)}. Response: ${responseText.substring(0, 200)}${responseText.length > 200 ? '...' : ''}`,

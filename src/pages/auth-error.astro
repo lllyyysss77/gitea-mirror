@@ -1,0 +1,47 @@
+---
+import Layout from '@/layouts/main.astro';
+import { Button } from '@/components/ui/button';
+
+const error = Astro.url.searchParams.get('error');
+const errorDescription = Astro.url.searchParams.get('error_description');
+---
+
+<Layout title="Authentication Error">
+  <div class="container mx-auto px-4 py-8">
+    <div class="max-w-md mx-auto">
+      <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+        <h1 class="text-xl font-semibold text-red-800 mb-2">Authentication Error</h1>
+        
+        <p class="text-red-700 mb-4">
+          {errorDescription || error || 'An error occurred during authentication. This might be due to a temporary issue with the SSO provider.'}
+        </p>
+
+        <div class="space-y-2">
+          <p class="text-sm text-red-600">
+            If you're experiencing issues with SSO login, please try:
+          </p>
+          <ul class="list-disc list-inside text-sm text-red-600 space-y-1">
+            <li>Clearing your browser cookies and cache</li>
+            <li>Using a different browser</li>
+            <li>Logging in with email/password instead</li>
+          </ul>
+        </div>
+
+        <div class="mt-6 flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => window.location.href = '/login'}
+          >
+            Back to Login
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => window.location.href = '/'}
+          >
+            Go Home
+          </Button>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
