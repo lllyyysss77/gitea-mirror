@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.2.0] - 2025-07-31
+
+### Fixed
+- Fixed Zod validation error in activity logs by correcting invalid "success" status values to "synced"
+- Resolved activity fetch API errors that occurred after mirroring operations
+
+### Changed
+- Improved error handling and validation for mirror job status tracking
+- Enhanced reliability of organization creation and mirroring processes
+
+### Internal
+- Consolidated Gitea integration modules for better maintainability
+- Improved test coverage for mirror operations
+
+## [3.1.1] - 2025-07-30
+
+### Fixed
+- Various bug fixes and stability improvements
+
 ## [3.1.0] - 2025-07-21
 
 ### Added
