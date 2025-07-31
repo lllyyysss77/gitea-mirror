@@ -61,7 +61,7 @@ export async function getOrCreateGiteaOrgWithRetry({
           organizationId: orgId,
           organizationName: orgName,
           message: `Found existing Gitea organization: ${orgName}`,
-          status: "success",
+          status: "synced",
           details: `Organization ${orgName} already exists in Gitea with ID ${org.id}.`,
         });
 
@@ -113,7 +113,7 @@ export async function getOrCreateGiteaOrgWithRetry({
           organizationId: orgId,
           organizationName: orgName,
           message: `Successfully created Gitea organization: ${orgName}`,
-          status: "success",
+          status: "synced",
           details: `Organization ${orgName} was created in Gitea with ID ${newOrg.id}.`,
         });
 

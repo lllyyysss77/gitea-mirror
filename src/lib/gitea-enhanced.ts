@@ -138,7 +138,7 @@ export async function getOrCreateGiteaOrgEnhanced({
           organizationId: orgId,
           organizationName: orgName,
           message: `Successfully created Gitea organization: ${orgName}`,
-          status: "success",
+          status: "synced",
           details: `Organization ${orgName} was created in Gitea with ID ${createResponse.data.id}.`,
         });
 
