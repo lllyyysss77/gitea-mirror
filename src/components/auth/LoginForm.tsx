@@ -84,14 +84,9 @@ export function LoginForm() {
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <img
-              src="/logo-light.svg"
+              src="/logo.png"
               alt="Gitea Mirror Logo"
-              className="h-10 w-10 dark:hidden"
-            />
-            <img
-              src="/logo-dark.svg"
-              alt="Gitea Mirror Logo"
-              className="h-10 w-10 hidden dark:block"
+              className="h-8 w-10"
             />
           </div>
           <CardTitle className="text-2xl">Gitea Mirror</CardTitle>

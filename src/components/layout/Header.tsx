@@ -85,14 +85,9 @@ export function Header({ currentPage, onNavigate, onMenuClick }: HeaderProps) {
             className="flex items-center gap-2 py-1 hover:opacity-80 transition-opacity"
           >
             <img
-              src="/logo-light.svg"
+              src="/logo.png"
               alt="Gitea Mirror Logo"
-              className="h-6 w-6 dark:hidden"
-            />
-            <img
-              src="/logo-dark.svg"
-              alt="Gitea Mirror Logo"
-              className="h-6 w-6 hidden dark:block"
+              className="h-5 w-6"
             />
             <span className="text-xl font-bold hidden sm:inline">Gitea Mirror</span>
           </button>

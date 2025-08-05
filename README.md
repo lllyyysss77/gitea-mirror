@@ -1,5 +1,5 @@
 <p align="center">
-  <img src=".github/assets/logo-no-bg.png" alt="Gitea Mirror Logo" width="120" />
+  <img src=".github/assets/logo.png" alt="Gitea Mirror Logo" width="120" />
   <h1>Gitea Mirror</h1>
   <p><i>Automatically mirror repositories from GitHub to your self-hosted Gitea instance.</i></p>
   <p align="center">
