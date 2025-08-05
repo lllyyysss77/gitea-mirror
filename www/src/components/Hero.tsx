@@ -1,62 +1,10 @@
-import React, { useRef, useEffect } from "react";
 import { Button } from "./ui/button";
 import { ArrowRight, Shield, RefreshCw } from "lucide-react";
 import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import Spline from "@splinetool/react-spline";
 
 export function Hero() {
-  const splineRef = useRef<any>(null);
 
-  function onLoad(spline: any) {
-    splineRef.current = spline;
-
-    // - try multiple selectors
-    const remove = () => {
-      // Try the spline-viewer element
-      const viewer = document.querySelector("spline-viewer");
-      if (viewer && (viewer as any).shadowRoot) {
-        // Try different selectors 
-        const selectors = [
-          "#logo",
-          ".logo",
-          '[id*="logo"]',
-          '[class*="logo"]',
-          'a[href*="spline"]',
-        ];
-
-        selectors.forEach((selector) => {
-          const element = (viewer as any).shadowRoot.querySelector(selector);
-        });
-
-        // Also check for any links containing "Built with Spline"
-        const allElements = (viewer as any).shadowRoot.querySelectorAll("*");
-        allElements.forEach((el: any) => {
-          if (el.textContent && el.textContent.includes("Built with Spline")) {
-            el.remove();
-            console.log('Removed element containing "Built with Spline"');
-          }
-        });
-      }
-    };
-
-    // Try removing at different intervals to catch dynamically added elements
-    setTimeout(remove, 100);
-    setTimeout(remove, 500);
-    setTimeout(remove, 1000);
-    setTimeout(remove, 2000);
-  }
-
-
-  useEffect(() => {
-    // Ensure the Spline scene is loaded before trying to remove
-    const interval = setInterval(() => {
-      if (splineRef.current && splineRef.current.spline) {
-        onLoad(Spline);
-        clearInterval(interval);
-      }
-    }, 100);
-    return () => clearInterval(interval);
-  }, []);
   return (
     <section className="relative min-h-[100vh] pt-20 pb-10 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden">
       {/* Elegant gradient background */}
