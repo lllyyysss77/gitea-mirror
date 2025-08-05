@@ -29,14 +29,9 @@ export function Header() {
           {/* Logo */}
           <a href="#" className="flex items-center gap-2 group">
             <img
-              src="/logo-light.svg"
+              src="/assets/logo.png"
               alt="Gitea Mirror Logo"
-              className="h-6 w-6 dark:hidden"
-            />
-            <img
-              src="/logo-dark.svg"
-              alt="Gitea Mirror Logo"
-              className="h-6 w-6 hidden dark:block"
+              className="w-7 h-6 md:w-10 md:h-8"
             />
             <span className="text-lg sm:text-xl font-bold">Gitea Mirror</span>
           </a>
