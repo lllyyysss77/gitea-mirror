@@ -19,7 +19,15 @@ export function Hero() {
       {/* spline object */}
       <div className="spline-object absolute inset-0 max-lg:-z-10 max-h-[40rem] -translate-y-16 md:max-h-[50rem] lg:max-h-[60%] xl:max-h-[70%] 2xl:max-h-[80%] md:-translate-y-24 lg:-translate-y-28 flex items-center justify-center">
         <div className="absolute right-2 bottom-4 h-20 w-40 bg-[#f8fbfb] dark:bg-[#010708]"/>
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={
+          <div className="w-full h-full flex items-center justify-center">
+            <img
+              src="/assets/logo.png"
+              alt="Gitea Mirror Logo"
+              className="w-[200px] h-[160px] md:w-[280px] md:h-[240px] lg:w-[360px] lg:h-[320px] xl:w-[420px] xl:h-[380px] 2xl:w-[480px] 2xl:h-[420px] object-contain"
+            />
+          </div>
+        }>
           <Spline
             scene="https://prod.spline.design/jl0aKWbdH9vHQnYV/scene.splinecode"
           />  
