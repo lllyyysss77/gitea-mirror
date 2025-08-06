@@ -1,7 +1,9 @@
 import { Button } from "./ui/button";
 import { ArrowRight, Shield, RefreshCw } from "lucide-react";
 import { GitHubLogoIcon } from "@radix-ui/react-icons";
-import Spline from "@splinetool/react-spline";
+import React, { Suspense } from 'react';
+
+const Spline = React.lazy(() => import('@splinetool/react-spline'));
 
 export function Hero() {
 
@@ -17,9 +19,11 @@ export function Hero() {
       {/* spline object */}
       <div className="spline-object absolute inset-0 max-lg:-z-10 max-h-[40rem] -translate-y-16 md:max-h-[50rem] lg:max-h-[60%] xl:max-h-[70%] 2xl:max-h-[80%] md:-translate-y-24 lg:-translate-y-28 flex items-center justify-center">
         <div className="absolute right-2 bottom-4 h-20 w-40 bg-[#f8fbfb] dark:bg-[#010708]"/>
-        <Spline
-          scene="https://prod.spline.design/jl0aKWbdH9vHQnYV/scene.splinecode"
-        />  
+        <Suspense fallback={<div>Loading...</div>}>
+          <Spline
+            scene="https://prod.spline.design/jl0aKWbdH9vHQnYV/scene.splinecode"
+          />  
+        </Suspense>
       </div>
       {/* div to avoid clipping in lower screen heights */}
       <div className="clip-avoid w-full h-[16rem] md:h-[20rem] lg:h-[12rem] 2xl:h-[16rem]" aria-hidden="true"></div>
