@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import { Header } from '../components/Header';
 import { Hero } from '../components/Hero';
+import ShaderBackground from '../components/ShaderBackground.astro';
 import Features from '../components/Features.astro';
 import Screenshots from '../components/Screenshots.astro';
 import { Installation } from '../components/Installation';
@@ -117,7 +118,10 @@ const structuredData = {
     <Header client:load />
     
     <main>
-      <Hero client:load />
+      <div class="relative">
+        <ShaderBackground />
+        <Hero client:load />
+      </div>
       <Features />
       <Screenshots />
       <Installation client:load />
