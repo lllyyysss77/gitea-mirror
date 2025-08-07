@@ -11,18 +11,27 @@ export function Hero() {
     <section className="relative min-h-[100vh] pt-20 pb-10 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden">
       {/* spline object */}
       <div className="spline-object absolute inset-0 max-lg:-z-10 max-h-[40rem] -translate-y-16 md:max-h-[50rem] lg:max-h-[60%] xl:max-h-[70%] 2xl:max-h-[80%] md:-translate-y-24 lg:-translate-y-28 flex items-center justify-center">
-        <div className="absolute right-2 bottom-4 h-20 w-40 bg-background"/>
+
+        <div className="block md:hidden w-[80%]">
+          <img
+            src="/assets/hero_logo.webp"
+            alt="Gitea Mirror hero image"
+            className="w-full h-full object-contain"
+          />
+          </div>
+        <div className="absolute right-2 bottom-4 h-20 w-40 bg-background hidden md:block"/>
         <Suspense fallback={
-          <div className="w-full h-full flex items-center justify-center">
+          <div className="w-full h-full md:flex items-center justify-center hidden">
             <img
-              src="/assets/logo.png"
-              alt="Gitea Mirror Logo"
+              src="/assets/hero_logo.webp"
+              alt="Gitea Mirror hero logo"
               className="w-[200px] h-[160px] md:w-[280px] md:h-[240px] lg:w-[360px] lg:h-[320px] xl:w-[420px] xl:h-[380px] 2xl:w-[480px] 2xl:h-[420px] object-contain"
             />
           </div>
         }>
           <Spline
             scene="https://prod.spline.design/jl0aKWbdH9vHQnYV/scene.splinecode"
+            className="hidden md:block"
           />  
         </Suspense>
       </div>
