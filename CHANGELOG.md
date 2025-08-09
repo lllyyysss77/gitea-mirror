@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.2.6] - 2025-08-09
+
+### Fixed
+- Added missing release asset mirroring functionality (APK, ZIP, Binary files)
+- Release assets (attachments) are now properly downloaded from GitHub and uploaded to Gitea
+- Fixed missing metadata component configuration checks
+
+### Added
+- Full support for mirroring release assets/attachments
+- Debug logging for metadata component configuration to help troubleshoot mirroring issues
+- Download and upload progress logging for release assets
+
+### Improved
+- Enhanced release mirroring to include all associated binary files and attachments
+- Better visibility into which metadata components are enabled/disabled
+- More detailed logging during the release asset transfer process
+
+### Notes
+This patch adds the missing functionality to mirror release assets (APK, ZIP, Binary files, etc.) that was reported in Issue #68. Previously only release metadata was being mirrored, now all attachments are properly transferred to Gitea.
+
 ## [3.2.5] - 2025-08-09
 
 ### Fixed

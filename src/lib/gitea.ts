@@ -429,6 +429,7 @@ export const mirrorGithubRepoToGitea = async ({
     );
 
     //mirror releases
+    console.log(`[Metadata] Release mirroring check: mirrorReleases=${config.giteaConfig?.mirrorReleases}`);
     if (config.giteaConfig?.mirrorReleases) {
       await mirrorGitHubReleasesToGitea({
         config,
@@ -442,6 +443,8 @@ export const mirrorGithubRepoToGitea = async ({
     const shouldMirrorIssues = config.giteaConfig?.mirrorIssues && 
       !(repository.isStarred && config.githubConfig?.skipStarredIssues);
     
+    console.log(`[Metadata] Issue mirroring check: mirrorIssues=${config.giteaConfig?.mirrorIssues}, isStarred=${repository.isStarred}, skipStarredIssues=${config.githubConfig?.skipStarredIssues}, shouldMirrorIssues=${shouldMirrorIssues}`);
+    
     if (shouldMirrorIssues) {
       await mirrorGitRepoIssuesToGitea({
         config,
@@ -452,6 +455,7 @@ export const mirrorGithubRepoToGitea = async ({
     }
 
     // Mirror pull requests if enabled
+    console.log(`[Metadata] Pull request mirroring check: mirrorPullRequests=${config.giteaConfig?.mirrorPullRequests}`);
     if (config.giteaConfig?.mirrorPullRequests) {
       await mirrorGitRepoPullRequestsToGitea({
         config,
@@ -462,6 +466,7 @@ export const mirrorGithubRepoToGitea = async ({
     }
 
     // Mirror labels if enabled (and not already done via issues)
+    console.log(`[Metadata] Label mirroring check: mirrorLabels=${config.giteaConfig?.mirrorLabels}, shouldMirrorIssues=${shouldMirrorIssues}`);
     if (config.giteaConfig?.mirrorLabels && !shouldMirrorIssues) {
       await mirrorGitRepoLabelsToGitea({
         config,
@@ -472,6 +477,7 @@ export const mirrorGithubRepoToGitea = async ({
     }
 
     // Mirror milestones if enabled
+    console.log(`[Metadata] Milestone mirroring check: mirrorMilestones=${config.giteaConfig?.mirrorMilestones}`);
     if (config.giteaConfig?.mirrorMilestones) {
       await mirrorGitRepoMilestonesToGitea({
         config,
@@ -683,6 +689,7 @@ export async function mirrorGitHubRepoToGiteaOrg({
     );
 
     //mirror releases
+    console.log(`[Metadata] Release mirroring check: mirrorReleases=${config.giteaConfig?.mirrorReleases}`);
     if (config.giteaConfig?.mirrorReleases) {
       await mirrorGitHubReleasesToGitea({
         config,
@@ -706,6 +713,7 @@ export async function mirrorGitHubRepoToGiteaOrg({
     }
 
     // Mirror pull requests if enabled
+    console.log(`[Metadata] Pull request mirroring check: mirrorPullRequests=${config.giteaConfig?.mirrorPullRequests}`);
     if (config.giteaConfig?.mirrorPullRequests) {
       await mirrorGitRepoPullRequestsToGitea({
         config,
@@ -716,6 +724,7 @@ export async function mirrorGitHubRepoToGiteaOrg({
     }
 
     // Mirror labels if enabled (and not already done via issues)
+    console.log(`[Metadata] Label mirroring check: mirrorLabels=${config.giteaConfig?.mirrorLabels}, shouldMirrorIssues=${shouldMirrorIssues}`);
     if (config.giteaConfig?.mirrorLabels && !shouldMirrorIssues) {
       await mirrorGitRepoLabelsToGitea({
         config,
@@ -726,6 +735,7 @@ export async function mirrorGitHubRepoToGiteaOrg({
     }
 
     // Mirror milestones if enabled
+    console.log(`[Metadata] Milestone mirroring check: mirrorMilestones=${config.giteaConfig?.mirrorMilestones}`);
     if (config.giteaConfig?.mirrorMilestones) {
       await mirrorGitRepoMilestonesToGitea({
         config,
@@ -1350,7 +1360,8 @@ export async function mirrorGitHubReleasesToGitea({
         continue;
       }
 
-      await httpPost(
+      // Create the release
+      const createReleaseResponse = await httpPost(
         `${config.giteaConfig.url}/api/v1/repos/${repoOwner}/${repository.name}/releases`,
         {
           tag_name: release.tag_name,
@@ -1364,6 +1375,56 @@ export async function mirrorGitHubReleasesToGitea({
           Authorization: `token ${decryptedConfig.giteaConfig.token}`,
         }
       );
+      
+      // Mirror release assets if they exist
+      if (release.assets && release.assets.length > 0) {
+        console.log(`[Releases] Mirroring ${release.assets.length} assets for release ${release.tag_name}`);
+        
+        for (const asset of release.assets) {
+          try {
+            // Download the asset from GitHub
+            console.log(`[Releases] Downloading asset: ${asset.name} (${asset.size} bytes)`);
+            const assetResponse = await fetch(asset.browser_download_url, {
+              headers: {
+                'Accept': 'application/octet-stream',
+                'Authorization': `token ${decryptedConfig.githubConfig.token}`,
+              },
+            });
+            
+            if (!assetResponse.ok) {
+              console.error(`[Releases] Failed to download asset ${asset.name}: ${assetResponse.statusText}`);
+              continue;
+            }
+            
+            const assetData = await assetResponse.arrayBuffer();
+            
+            // Upload the asset to Gitea release
+            const formData = new FormData();
+            formData.append('attachment', new Blob([assetData]), asset.name);
+            
+            const uploadResponse = await fetch(
+              `${config.giteaConfig.url}/api/v1/repos/${repoOwner}/${repository.name}/releases/${createReleaseResponse.data.id}/assets?name=${encodeURIComponent(asset.name)}`,
+              {
+                method: 'POST',
+                headers: {
+                  'Authorization': `token ${decryptedConfig.giteaConfig.token}`,
+                },
+                body: formData,
+              }
+            );
+            
+            if (uploadResponse.ok) {
+              console.log(`[Releases] Successfully uploaded asset: ${asset.name}`);
+            } else {
+              const errorText = await uploadResponse.text();
+              console.error(`[Releases] Failed to upload asset ${asset.name}: ${errorText}`);
+            }
+          } catch (assetError) {
+            console.error(`[Releases] Error processing asset ${asset.name}: ${assetError instanceof Error ? assetError.message : String(assetError)}`);
+          }
+        }
+      }
+      
       mirroredCount++;
       console.log(`[Releases] Successfully mirrored release: ${release.tag_name}`);
     } catch (error) {
