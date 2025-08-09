@@ -11,6 +11,8 @@ services:
     volumes:
       - ./data:/app/data
     environment:
+      # For a complete list of all supported environment variables, see:
+      # docs/ENVIRONMENT_VARIABLES.md or .env.example
       - NODE_ENV=production
       - DATABASE_URL=file:data/gitea-mirror.db
       - HOST=0.0.0.0

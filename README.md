@@ -136,6 +136,8 @@ All other settings are configured through the web interface after starting.
 
 Supports extensive environment variables for automated deployment. See the full [docker-compose.yml](docker-compose.yml) for all available options including GitHub tokens, Gitea URLs, mirror settings, and more.
 
+📚 **For a complete list of all supported environment variables, see the [Environment Variables Documentation](docs/ENVIRONMENT_VARIABLES.md).**
+
 ### LXC Container (Proxmox)
 
 ```bash
