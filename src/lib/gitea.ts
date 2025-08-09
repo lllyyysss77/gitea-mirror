@@ -390,7 +390,7 @@ export const mirrorGithubRepoToGitea = async ({
         clone_addr: cloneAddress,
         repo_name: repository.name,
         mirror: true,
-        wiki: config.githubConfig.mirrorWiki || false, // will mirror wiki if it exists
+        wiki: config.giteaConfig?.wiki || false, // will mirror wiki if it exists
         private: repository.isPrivate,
         repo_owner: repoOwner,
         description: "",
@@ -402,7 +402,7 @@ export const mirrorGithubRepoToGitea = async ({
     );
 
     //mirror releases
-    if (config.githubConfig?.mirrorReleases) {
+    if (config.giteaConfig?.mirrorReleases) {
       await mirrorGitHubReleasesToGitea({
         config,
         octokit,
@@ -412,11 +412,41 @@ export const mirrorGithubRepoToGitea = async ({
 
     // clone issues
     // Skip issues for starred repos if skipStarredIssues is enabled
-    const shouldMirrorIssues = config.githubConfig.mirrorIssues && 
-      !(repository.isStarred && config.githubConfig.skipStarredIssues);
+    const shouldMirrorIssues = config.giteaConfig?.mirrorIssues && 
+      !(repository.isStarred && config.githubConfig?.skipStarredIssues);
     
     if (shouldMirrorIssues) {
       await mirrorGitRepoIssuesToGitea({
+        config,
+        octokit,
+        repository,
+        giteaOwner: repoOwner,
+      });
+    }
+
+    // Mirror pull requests if enabled
+    if (config.giteaConfig?.mirrorPullRequests) {
+      await mirrorGitRepoPullRequestsToGitea({
+        config,
+        octokit,
+        repository,
+        giteaOwner: repoOwner,
+      });
+    }
+
+    // Mirror labels if enabled (and not already done via issues)
+    if (config.giteaConfig?.mirrorLabels && !shouldMirrorIssues) {
+      await mirrorGitRepoLabelsToGitea({
+        config,
+        octokit,
+        repository,
+        giteaOwner: repoOwner,
+      });
+    }
+
+    // Mirror milestones if enabled
+    if (config.giteaConfig?.mirrorMilestones) {
+      await mirrorGitRepoMilestonesToGitea({
         config,
         octokit,
         repository,
@@ -617,7 +647,7 @@ export async function mirrorGitHubRepoToGiteaOrg({
         uid: giteaOrgId,
         repo_name: repository.name,
         mirror: true,
-        wiki: config.githubConfig?.mirrorWiki || false, // will mirror wiki if it exists
+        wiki: config.giteaConfig?.wiki || false, // will mirror wiki if it exists
         private: repository.isPrivate,
       },
       {
@@ -626,7 +656,7 @@ export async function mirrorGitHubRepoToGiteaOrg({
     );
 
     //mirror releases
-    if (config.githubConfig?.mirrorReleases) {
+    if (config.giteaConfig?.mirrorReleases) {
       await mirrorGitHubReleasesToGitea({
         config,
         octokit,
@@ -636,11 +666,41 @@ export async function mirrorGitHubRepoToGiteaOrg({
 
     // Clone issues
     // Skip issues for starred repos if skipStarredIssues is enabled
-    const shouldMirrorIssues = config.githubConfig?.mirrorIssues && 
+    const shouldMirrorIssues = config.giteaConfig?.mirrorIssues && 
       !(repository.isStarred && config.githubConfig?.skipStarredIssues);
     
     if (shouldMirrorIssues) {
       await mirrorGitRepoIssuesToGitea({
+        config,
+        octokit,
+        repository,
+        giteaOwner: orgName,
+      });
+    }
+
+    // Mirror pull requests if enabled
+    if (config.giteaConfig?.mirrorPullRequests) {
+      await mirrorGitRepoPullRequestsToGitea({
+        config,
+        octokit,
+        repository,
+        giteaOwner: orgName,
+      });
+    }
+
+    // Mirror labels if enabled (and not already done via issues)
+    if (config.giteaConfig?.mirrorLabels && !shouldMirrorIssues) {
+      await mirrorGitRepoLabelsToGitea({
+        config,
+        octokit,
+        repository,
+        giteaOwner: orgName,
+      });
+    }
+
+    // Mirror milestones if enabled
+    if (config.giteaConfig?.mirrorMilestones) {
+      await mirrorGitRepoMilestonesToGitea({
         config,
         octokit,
         repository,
@@ -1228,4 +1288,271 @@ export async function mirrorGitHubReleasesToGitea({
   }
 
   console.log(`✅ Mirrored ${releases.data.length} GitHub releases to Gitea`);
+}
+
+export async function mirrorGitRepoPullRequestsToGitea({
+  config,
+  octokit,
+  repository,
+  giteaOwner,
+}: {
+  config: Partial<Config>;
+  octokit: Octokit;
+  repository: Repository;
+  giteaOwner: string;
+}) {
+  if (
+    !config.githubConfig?.token ||
+    !config.giteaConfig?.token ||
+    !config.giteaConfig?.url ||
+    !config.giteaConfig?.username
+  ) {
+    throw new Error("Missing GitHub or Gitea configuration.");
+  }
+
+  // Decrypt config tokens for API usage
+  const decryptedConfig = decryptConfigTokens(config as Config);
+
+  const [owner, repo] = repository.fullName.split("/");
+
+  // Fetch GitHub pull requests
+  const pullRequests = await octokit.paginate(
+    octokit.rest.pulls.list,
+    {
+      owner,
+      repo,
+      state: "all",
+      per_page: 100,
+    },
+    (res) => res.data
+  );
+
+  console.log(
+    `Mirroring ${pullRequests.length} pull requests from ${repository.fullName}`
+  );
+
+  if (pullRequests.length === 0) {
+    console.log(`No pull requests to mirror for ${repository.fullName}`);
+    return;
+  }
+
+  // Note: Gitea doesn't have a direct API to create pull requests from external sources
+  // Pull requests are typically created through Git operations
+  // For now, we'll create them as issues with a special label
+  
+  // Get or create a PR label
+  try {
+    await httpPost(
+      `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repository.name}/labels`,
+      { 
+        name: "pull-request",
+        color: "#0366d6",
+        description: "Mirrored from GitHub Pull Request"
+      },
+      {
+        Authorization: `token ${decryptedConfig.giteaConfig.token}`,
+      }
+    );
+  } catch (error) {
+    // Label might already exist, continue
+  }
+
+  const { processWithRetry } = await import("@/lib/utils/concurrency");
+
+  await processWithRetry(
+    pullRequests,
+    async (pr) => {
+      const issueData = {
+        title: `[PR #${pr.number}] ${pr.title}`,
+        body: `**Original Pull Request:** ${pr.html_url}\n\n**State:** ${pr.state}\n**Merged:** ${pr.merged_at ? 'Yes' : 'No'}\n\n---\n\n${pr.body || 'No description provided'}`,
+        labels: [{ name: "pull-request" }],
+        state: pr.state === "closed" ? "closed" : "open",
+      };
+
+      try {
+        await httpPost(
+          `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repository.name}/issues`,
+          issueData,
+          {
+            Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
+          }
+        );
+      } catch (error) {
+        console.error(
+          `Failed to mirror PR #${pr.number}: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    },
+    {
+      maxConcurrency: 5,
+      retryAttempts: 3,
+      retryDelay: 1000,
+    }
+  );
+
+  console.log(`✅ Mirrored ${pullRequests.length} pull requests to Gitea`);
+}
+
+export async function mirrorGitRepoLabelsToGitea({
+  config,
+  octokit,
+  repository,
+  giteaOwner,
+}: {
+  config: Partial<Config>;
+  octokit: Octokit;
+  repository: Repository;
+  giteaOwner: string;
+}) {
+  if (
+    !config.githubConfig?.token ||
+    !config.giteaConfig?.token ||
+    !config.giteaConfig?.url
+  ) {
+    throw new Error("Missing GitHub or Gitea configuration.");
+  }
+
+  // Decrypt config tokens for API usage
+  const decryptedConfig = decryptConfigTokens(config as Config);
+
+  const [owner, repo] = repository.fullName.split("/");
+
+  // Fetch GitHub labels
+  const labels = await octokit.paginate(
+    octokit.rest.issues.listLabelsForRepo,
+    {
+      owner,
+      repo,
+      per_page: 100,
+    },
+    (res) => res.data
+  );
+
+  console.log(`Mirroring ${labels.length} labels from ${repository.fullName}`);
+
+  if (labels.length === 0) {
+    console.log(`No labels to mirror for ${repository.fullName}`);
+    return;
+  }
+
+  // Get existing labels from Gitea
+  const giteaLabelsRes = await httpGet(
+    `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repository.name}/labels`,
+    {
+      Authorization: `token ${decryptedConfig.giteaConfig.token}`,
+    }
+  );
+
+  const existingLabels = new Set(
+    giteaLabelsRes.data.map((label: any) => label.name)
+  );
+
+  let mirroredCount = 0;
+  for (const label of labels) {
+    if (!existingLabels.has(label.name)) {
+      try {
+        await httpPost(
+          `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repository.name}/labels`,
+          {
+            name: label.name,
+            color: `#${label.color}`,
+            description: label.description || "",
+          },
+          {
+            Authorization: `token ${decryptedConfig.giteaConfig.token}`,
+          }
+        );
+        mirroredCount++;
+      } catch (error) {
+        console.error(
+          `Failed to mirror label "${label.name}": ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    }
+  }
+
+  console.log(`✅ Mirrored ${mirroredCount} new labels to Gitea`);
+}
+
+export async function mirrorGitRepoMilestonesToGitea({
+  config,
+  octokit,
+  repository,
+  giteaOwner,
+}: {
+  config: Partial<Config>;
+  octokit: Octokit;
+  repository: Repository;
+  giteaOwner: string;
+}) {
+  if (
+    !config.githubConfig?.token ||
+    !config.giteaConfig?.token ||
+    !config.giteaConfig?.url
+  ) {
+    throw new Error("Missing GitHub or Gitea configuration.");
+  }
+
+  // Decrypt config tokens for API usage
+  const decryptedConfig = decryptConfigTokens(config as Config);
+
+  const [owner, repo] = repository.fullName.split("/");
+
+  // Fetch GitHub milestones
+  const milestones = await octokit.paginate(
+    octokit.rest.issues.listMilestones,
+    {
+      owner,
+      repo,
+      state: "all",
+      per_page: 100,
+    },
+    (res) => res.data
+  );
+
+  console.log(`Mirroring ${milestones.length} milestones from ${repository.fullName}`);
+
+  if (milestones.length === 0) {
+    console.log(`No milestones to mirror for ${repository.fullName}`);
+    return;
+  }
+
+  // Get existing milestones from Gitea
+  const giteaMilestonesRes = await httpGet(
+    `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repository.name}/milestones`,
+    {
+      Authorization: `token ${decryptedConfig.giteaConfig.token}`,
+    }
+  );
+
+  const existingMilestones = new Set(
+    giteaMilestonesRes.data.map((milestone: any) => milestone.title)
+  );
+
+  let mirroredCount = 0;
+  for (const milestone of milestones) {
+    if (!existingMilestones.has(milestone.title)) {
+      try {
+        await httpPost(
+          `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repository.name}/milestones`,
+          {
+            title: milestone.title,
+            description: milestone.description || "",
+            due_on: milestone.due_on,
+            state: milestone.state,
+          },
+          {
+            Authorization: `token ${decryptedConfig.giteaConfig.token}`,
+          }
+        );
+        mirroredCount++;
+      } catch (error) {
+        console.error(
+          `Failed to mirror milestone "${milestone.title}": ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    }
+  }
+
+  console.log(`✅ Mirrored ${mirroredCount} new milestones to Gitea`);
 }

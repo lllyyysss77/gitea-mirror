@@ -50,6 +50,9 @@ export function mapUiToDbConfig(
     // Mirror strategy
     mirrorStrategy: giteaConfig.mirrorStrategy || "preserve",
     defaultOrg: giteaConfig.organization,
+    
+    // Advanced options
+    skipStarredIssues: advancedOptions.skipStarredIssues,
   };
 
   // Map Gitea config to match database schema
@@ -142,7 +145,7 @@ export function mapDbToUiConfig(dbConfig: any): {
   // Map advanced options
   const advancedOptions: AdvancedOptions = {
     skipForks: !(dbConfig.githubConfig?.includeForks ?? true), // Invert includeForks to get skipForks
-    skipStarredIssues: false, // Not stored in current schema
+    skipStarredIssues: dbConfig.githubConfig?.skipStarredIssues || false,
   };
 
   return {

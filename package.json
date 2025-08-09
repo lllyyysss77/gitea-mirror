@@ -24,6 +24,7 @@
     "db:studio": "bun drizzle-kit studio",
     "startup-recovery": "bun scripts/startup-recovery.ts",
     "startup-recovery-force": "bun scripts/startup-recovery.ts --force",
+    "startup-env-config": "bun scripts/startup-env-config.ts",
     "test-recovery": "bun scripts/test-recovery.ts",
     "test-recovery-cleanup": "bun scripts/test-recovery.ts --cleanup",
     "test-shutdown": "bun scripts/test-graceful-shutdown.ts",

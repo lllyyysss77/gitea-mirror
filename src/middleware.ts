@@ -5,12 +5,14 @@ import { initializeShutdownManager, registerShutdownCallback } from './lib/shutd
 import { setupSignalHandlers } from './lib/signal-handlers';
 import { auth } from './lib/auth';
 import { isHeaderAuthEnabled, authenticateWithHeaders } from './lib/auth-header';
+import { initializeConfigFromEnv } from './lib/env-config-loader';
 
 // Flag to track if recovery has been initialized
 let recoveryInitialized = false;
 let recoveryAttempted = false;
 let cleanupServiceStarted = false;
 let shutdownManagerInitialized = false;
+let envConfigInitialized = false;
 
 export const onRequest = defineMiddleware(async (context, next) => {
   // First, try Better Auth session (cookie-based)
@@ -70,6 +72,17 @@ export const onRequest = defineMiddleware(async (context, next) => {
     } catch (error) {
       console.error('❌ Failed to initialize shutdown manager:', error);
       // Continue anyway - this shouldn't block the application
+    }
+  }
+
+  // Initialize configuration from environment variables (only once)
+  if (!envConfigInitialized) {
+    envConfigInitialized = true;
+    try {
+      await initializeConfigFromEnv();
+    } catch (error) {
+      console.error('⚠️  Failed to initialize configuration from environment:', error);
+      // Continue anyway - environment config is optional
     }
   }
 

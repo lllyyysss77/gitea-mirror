@@ -26,6 +26,7 @@ export const githubConfigSchema = z.object({
   starredReposOrg: z.string().optional(),
   mirrorStrategy: z.enum(["preserve", "single-org", "flat-user", "mixed"]).default("preserve"),
   defaultOrg: z.string().optional(),
+  skipStarredIssues: z.boolean().default(false),
 });
 
 export const giteaConfigSchema = z.object({
