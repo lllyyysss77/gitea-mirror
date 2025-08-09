@@ -280,6 +280,28 @@ fi
 
 
 
+# Initialize configuration from environment variables if provided
+echo "Checking for environment configuration..."
+if [ -f "dist/scripts/startup-env-config.js" ]; then
+  echo "Loading configuration from environment variables..."
+  bun dist/scripts/startup-env-config.js
+  ENV_CONFIG_EXIT_CODE=$?
+elif [ -f "scripts/startup-env-config.ts" ]; then
+  echo "Loading configuration from environment variables..."
+  bun scripts/startup-env-config.ts
+  ENV_CONFIG_EXIT_CODE=$?
+else
+  echo "Environment configuration script not found. Skipping."
+  ENV_CONFIG_EXIT_CODE=0
+fi
+
+# Log environment config result
+if [ $ENV_CONFIG_EXIT_CODE -eq 0 ]; then
+  echo "✅ Environment configuration loaded successfully"
+else
+  echo "⚠️  Environment configuration loading completed with warnings"
+fi
+
 # Run startup recovery to handle any interrupted jobs
 echo "Running startup recovery..."
 if [ -f "dist/scripts/startup-recovery.js" ]; then
