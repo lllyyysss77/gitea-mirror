@@ -47,10 +47,30 @@ export async function httpRequest<T = any>(
       try {
         responseText = await responseClone.text();
         if (responseText) {
-          errorMessage += ` - ${responseText}`;
+          // Try to parse as JSON for better error messages
+          try {
+            const errorData = JSON.parse(responseText);
+            if (errorData.message) {
+              errorMessage = `HTTP ${response.status}: ${errorData.message}`;
+            } else {
+              errorMessage += ` - ${responseText}`;
+            }
+          } catch {
+            // Not JSON, use as-is
+            errorMessage += ` - ${responseText}`;
+          }
         }
       } catch {
         // Ignore text parsing errors
+      }
+      
+      // Log authentication-specific errors for debugging
+      if (response.status === 401) {
+        console.error(`[HTTP Client] Authentication failed for ${url}`);
+        console.error(`[HTTP Client] Response: ${responseText}`);
+        if (responseText.includes('user does not exist') && responseText.includes('uid: 0')) {
+          console.error(`[HTTP Client] Token appears to be invalid or the user account is not properly configured in Gitea`);
+        }
       }
 
       throw new HttpError(

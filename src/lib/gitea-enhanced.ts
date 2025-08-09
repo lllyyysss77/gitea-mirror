@@ -85,6 +85,25 @@ export async function getOrCreateGiteaOrgEnhanced({
 
   const decryptedConfig = decryptConfigTokens(config as Config);
   
+  // First, validate the user's authentication by getting their information
+  console.log(`[Org Creation] Validating user authentication before organization operations`);
+  try {
+    const userResponse = await httpGet(
+      `${config.giteaConfig.url}/api/v1/user`,
+      {
+        Authorization: `token ${decryptedConfig.giteaConfig.token}`,
+      }
+    );
+    console.log(`[Org Creation] Authenticated as user: ${userResponse.data.username || userResponse.data.login} (ID: ${userResponse.data.id})`);
+  } catch (authError) {
+    if (authError instanceof HttpError && authError.status === 401) {
+      console.error(`[Org Creation] Authentication failed: Invalid or expired token`);
+      throw new Error(`Authentication failed: Please check your Gitea token has the required permissions. The token may be invalid or expired.`);
+    }
+    console.error(`[Org Creation] Failed to validate authentication:`, authError);
+    throw new Error(`Failed to validate Gitea authentication: ${authError instanceof Error ? authError.message : String(authError)}`);
+  }
+  
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       console.log(`[Org Creation] Attempting to get or create organization: ${orgName} (attempt ${attempt + 1}/${maxRetries})`);
@@ -163,6 +182,18 @@ export async function getOrCreateGiteaOrgEnhanced({
               await new Promise(resolve => setTimeout(resolve, delay));
             }
             continue; // Retry the loop
+          }
+          
+          // Check for permission errors
+          if (createError.status === 403) {
+            console.error(`[Org Creation] Permission denied: User may not have rights to create organizations`);
+            throw new Error(`Permission denied: Your Gitea user account does not have permission to create organizations. Please ensure your account has the necessary privileges or contact your Gitea administrator.`);
+          }
+          
+          // Check for authentication errors
+          if (createError.status === 401) {
+            console.error(`[Org Creation] Authentication failed when creating organization`);
+            throw new Error(`Authentication failed: The Gitea token does not have sufficient permissions to create organizations. Please ensure your token has 'write:organization' scope.`);
           }
         }
         throw createError;

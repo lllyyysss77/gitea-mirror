@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.2.4] - 2025-08-09
+
+### Fixed
+- Fixed critical authentication issue causing "user does not exist [uid: 0]" errors during metadata mirroring (Issue #68)
+- Fixed inconsistent token handling across Gitea API calls
+- Fixed metadata mirroring functions attempting to operate on non-existent repositories
+- Fixed organization creation failing silently without proper error messages
+
+### Added
+- Pre-flight authentication validation for all Gitea operations
+- Repository existence verification before metadata mirroring
+- Graceful fallback to user account when organization creation fails due to permissions
+- Authentication validation utilities for debugging configuration issues
+- Diagnostic test scripts for troubleshooting authentication problems
+
+### Improved
+- Enhanced error messages with specific guidance for authentication failures
+- Better identification and logging of permission-related errors
+- More robust organization creation with retry logic and better error handling
+- Consistent token decryption across all API operations
+- Clearer error reporting for metadata mirroring failures
+
+### Security
+- Fixed potential exposure of encrypted tokens in API calls
+- Improved token handling to ensure proper decryption before use
+
 ## [3.2.0] - 2025-07-31
 
 ### Fixed

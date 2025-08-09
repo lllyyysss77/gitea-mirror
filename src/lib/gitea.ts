@@ -272,7 +272,7 @@ export const mirrorGithubRepoToGitea = async ({
     const decryptedConfig = decryptConfigTokens(config as Config);
 
     // Get the correct owner based on the strategy (with organization overrides)
-    const repoOwner = await getGiteaRepoOwnerAsync({ config, repository });
+    let repoOwner = await getGiteaRepoOwnerAsync({ config, repository });
 
     const isExisting = await isRepoPresentInGitea({
       config,
@@ -355,10 +355,37 @@ export const mirrorGithubRepoToGitea = async ({
     // Handle organization creation if needed for single-org, preserve strategies, or starred repos
     if (repoOwner !== config.giteaConfig.defaultOwner) {
       // Need to create the organization if it doesn't exist
-      await getOrCreateGiteaOrg({
-        orgName: repoOwner,
-        config,
-      });
+      try {
+        await getOrCreateGiteaOrg({
+          orgName: repoOwner,
+          config,
+        });
+      } catch (orgError) {
+        console.error(`Failed to create/access organization ${repoOwner}: ${orgError instanceof Error ? orgError.message : String(orgError)}`);
+        
+        // Check if we should fallback to user account
+        if (orgError instanceof Error && 
+            (orgError.message.includes('Permission denied') || 
+             orgError.message.includes('Authentication failed') ||
+             orgError.message.includes('does not have permission'))) {
+          console.warn(`[Fallback] Organization creation/access failed. Attempting to mirror to user account instead.`);
+          
+          // Update the repository owner to use the user account
+          repoOwner = config.giteaConfig.defaultOwner;
+          
+          // Log this fallback in the database
+          await db
+            .update(repositories)
+            .set({
+              errorMessage: `Organization creation failed, using user account. ${orgError.message}`,
+              updatedAt: new Date(),
+            })
+            .where(eq(repositories.id, repository.id!));
+        } else {
+          // Re-throw if it's not a permission issue
+          throw orgError;
+        }
+      }
     }
 
     // Check if repository already exists as a non-mirror
@@ -1064,6 +1091,19 @@ export const mirrorGitRepoIssuesToGitea = async ({
 
   // Decrypt config tokens for API usage
   const decryptedConfig = decryptConfigTokens(config as Config);
+  
+  // Verify the repository exists in Gitea before attempting to mirror metadata
+  console.log(`[Issues] Verifying repository ${repository.name} exists at ${giteaOwner}`);
+  const repoExists = await isRepoPresentInGitea({
+    config,
+    owner: giteaOwner,
+    repoName: repository.name,
+  });
+  
+  if (!repoExists) {
+    console.error(`[Issues] Repository ${repository.name} not found at ${giteaOwner}. Cannot mirror issues.`);
+    throw new Error(`Repository ${repository.name} does not exist in Gitea at ${giteaOwner}. Please ensure the repository is mirrored first.`);
+  }
 
   const [owner, repo] = repository.fullName.split("/");
 
@@ -1130,7 +1170,7 @@ export const mirrorGitRepoIssuesToGitea = async ({
               }/labels`,
               { name, color: "#ededed" }, // Default color
               {
-                Authorization: `token ${config.giteaConfig!.token}`,
+                Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
               }
             );
 
@@ -1167,7 +1207,7 @@ export const mirrorGitRepoIssuesToGitea = async ({
         }/issues`,
         issuePayload,
         {
-          Authorization: `token ${config.giteaConfig!.token}`,
+          Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
         }
       );
 
@@ -1196,7 +1236,7 @@ export const mirrorGitRepoIssuesToGitea = async ({
                 body: `@${comment.user?.login} commented on GitHub:\n\n${comment.body}`,
               },
               {
-                Authorization: `token ${config.giteaConfig!.token}`,
+                Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
               }
             );
             return comment;
@@ -1312,6 +1352,19 @@ export async function mirrorGitRepoPullRequestsToGitea({
 
   // Decrypt config tokens for API usage
   const decryptedConfig = decryptConfigTokens(config as Config);
+  
+  // Verify the repository exists in Gitea before attempting to mirror metadata
+  console.log(`[Pull Requests] Verifying repository ${repository.name} exists at ${giteaOwner}`);
+  const repoExists = await isRepoPresentInGitea({
+    config,
+    owner: giteaOwner,
+    repoName: repository.name,
+  });
+  
+  if (!repoExists) {
+    console.error(`[Pull Requests] Repository ${repository.name} not found at ${giteaOwner}. Cannot mirror PRs.`);
+    throw new Error(`Repository ${repository.name} does not exist in Gitea at ${giteaOwner}. Please ensure the repository is mirrored first.`);
+  }
 
   const [owner, repo] = repository.fullName.split("/");
 
@@ -1414,6 +1467,19 @@ export async function mirrorGitRepoLabelsToGitea({
 
   // Decrypt config tokens for API usage
   const decryptedConfig = decryptConfigTokens(config as Config);
+  
+  // Verify the repository exists in Gitea before attempting to mirror metadata
+  console.log(`[Labels] Verifying repository ${repository.name} exists at ${giteaOwner}`);
+  const repoExists = await isRepoPresentInGitea({
+    config,
+    owner: giteaOwner,
+    repoName: repository.name,
+  });
+  
+  if (!repoExists) {
+    console.error(`[Labels] Repository ${repository.name} not found at ${giteaOwner}. Cannot mirror labels.`);
+    throw new Error(`Repository ${repository.name} does not exist in Gitea at ${giteaOwner}. Please ensure the repository is mirrored first.`);
+  }
 
   const [owner, repo] = repository.fullName.split("/");
 
@@ -1495,6 +1561,19 @@ export async function mirrorGitRepoMilestonesToGitea({
 
   // Decrypt config tokens for API usage
   const decryptedConfig = decryptConfigTokens(config as Config);
+  
+  // Verify the repository exists in Gitea before attempting to mirror metadata
+  console.log(`[Milestones] Verifying repository ${repository.name} exists at ${giteaOwner}`);
+  const repoExists = await isRepoPresentInGitea({
+    config,
+    owner: giteaOwner,
+    repoName: repository.name,
+  });
+  
+  if (!repoExists) {
+    console.error(`[Milestones] Repository ${repository.name} not found at ${giteaOwner}. Cannot mirror milestones.`);
+    throw new Error(`Repository ${repository.name} does not exist in Gitea at ${giteaOwner}. Please ensure the repository is mirrored first.`);
+  }
 
   const [owner, repo] = repository.fullName.split("/");
 

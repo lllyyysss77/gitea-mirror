@@ -49,6 +49,24 @@ let createOrgCalled = false;
 
 const mockHttpGet = mock(async (url: string, headers?: any) => {
   // Return different responses based on URL patterns
+  
+  // Handle user authentication endpoint
+  if (url.includes("/api/v1/user")) {
+    return {
+      data: {
+        id: 1,
+        login: "testuser",
+        username: "testuser",
+        email: "test@example.com",
+        is_admin: false,
+        full_name: "Test User"
+      },
+      status: 200,
+      statusText: "OK",
+      headers: new Headers()
+    };
+  }
+  
   if (url.includes("/api/v1/repos/starred/test-repo")) {
     return { 
       data: { 
