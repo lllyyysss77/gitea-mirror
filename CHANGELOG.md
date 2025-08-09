@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.2.5] - 2025-08-09
+
+### Fixed
+- Fixed critical authentication issue in releases mirroring that was still using encrypted tokens
+- Added missing repository existence check for releases mirroring function
+- Fixed "user does not exist [uid: 0]" error specifically affecting GitHub releases synchronization
+
+### Improved
+- Enhanced releases mirroring with duplicate detection to avoid errors on re-runs
+- Better error handling and logging for release operations with [Releases] prefix
+- Added individual release error handling to continue mirroring even if some releases fail
+
+### Notes
+This patch completes the authentication fixes started in v3.2.4, specifically addressing the releases mirroring function that was accidentally missed in the previous update.
+
 ## [3.2.4] - 2025-08-09
 
 ### Fixed

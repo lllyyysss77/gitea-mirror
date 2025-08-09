@@ -1298,36 +1298,80 @@ export async function mirrorGitHubReleasesToGitea({
     throw new Error("Gitea config is incomplete for mirroring releases.");
   }
 
+  // Decrypt config tokens for API usage
+  const decryptedConfig = decryptConfigTokens(config as Config);
+
   const repoOwner = await getGiteaRepoOwnerAsync({
     config,
     repository,
   });
 
-  const { url, token } = config.giteaConfig;
+  // Verify the repository exists in Gitea before attempting to mirror releases
+  console.log(`[Releases] Verifying repository ${repository.name} exists at ${repoOwner}`);
+  const repoExists = await isRepoPresentInGitea({
+    config,
+    owner: repoOwner,
+    repoName: repository.name,
+  });
+  
+  if (!repoExists) {
+    console.error(`[Releases] Repository ${repository.name} not found at ${repoOwner}. Cannot mirror releases.`);
+    throw new Error(`Repository ${repository.name} does not exist in Gitea at ${repoOwner}. Please ensure the repository is mirrored first.`);
+  }
 
   const releases = await octokit.rest.repos.listReleases({
     owner: repository.owner,
     repo: repository.name,
   });
 
-  for (const release of releases.data) {
-    await httpPost(
-      `${url}/api/v1/repos/${repoOwner}/${repository.name}/releases`,
-      {
-        tag_name: release.tag_name,
-        target: release.target_commitish,
-        title: release.name || release.tag_name,
-        note: release.body || "",
-        draft: release.draft,
-        prerelease: release.prerelease,
-      },
-      {
-        Authorization: `token ${token}`,
-      }
-    );
+  console.log(`[Releases] Found ${releases.data.length} releases to mirror for ${repository.fullName}`);
+
+  if (releases.data.length === 0) {
+    console.log(`[Releases] No releases to mirror for ${repository.fullName}`);
+    return;
   }
 
-  console.log(`✅ Mirrored ${releases.data.length} GitHub releases to Gitea`);
+  let mirroredCount = 0;
+  let skippedCount = 0;
+
+  for (const release of releases.data) {
+    try {
+      // Check if release already exists
+      const existingReleasesResponse = await httpGet(
+        `${config.giteaConfig.url}/api/v1/repos/${repoOwner}/${repository.name}/releases/tags/${release.tag_name}`,
+        {
+          Authorization: `token ${decryptedConfig.giteaConfig.token}`,
+        }
+      ).catch(() => null);
+
+      if (existingReleasesResponse) {
+        console.log(`[Releases] Release ${release.tag_name} already exists, skipping`);
+        skippedCount++;
+        continue;
+      }
+
+      await httpPost(
+        `${config.giteaConfig.url}/api/v1/repos/${repoOwner}/${repository.name}/releases`,
+        {
+          tag_name: release.tag_name,
+          target: release.target_commitish,
+          title: release.name || release.tag_name,
+          note: release.body || "",
+          draft: release.draft,
+          prerelease: release.prerelease,
+        },
+        {
+          Authorization: `token ${decryptedConfig.giteaConfig.token}`,
+        }
+      );
+      mirroredCount++;
+      console.log(`[Releases] Successfully mirrored release: ${release.tag_name}`);
+    } catch (error) {
+      console.error(`[Releases] Failed to mirror release ${release.tag_name}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  console.log(`✅ Mirrored ${mirroredCount} new releases to Gitea (${skippedCount} already existed)`);
 }
 
 export async function mirrorGitRepoPullRequestsToGitea({
