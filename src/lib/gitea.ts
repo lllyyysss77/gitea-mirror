@@ -431,11 +431,17 @@ export const mirrorGithubRepoToGitea = async ({
     //mirror releases
     console.log(`[Metadata] Release mirroring check: mirrorReleases=${config.giteaConfig?.mirrorReleases}`);
     if (config.giteaConfig?.mirrorReleases) {
-      await mirrorGitHubReleasesToGitea({
-        config,
-        octokit,
-        repository,
-      });
+      try {
+        await mirrorGitHubReleasesToGitea({
+          config,
+          octokit,
+          repository,
+        });
+        console.log(`[Metadata] Successfully mirrored releases for ${repository.name}`);
+      } catch (error) {
+        console.error(`[Metadata] Failed to mirror releases for ${repository.name}: ${error instanceof Error ? error.message : String(error)}`);
+        // Continue with other operations even if releases fail
+      }
     }
 
     // clone issues
@@ -446,45 +452,69 @@ export const mirrorGithubRepoToGitea = async ({
     console.log(`[Metadata] Issue mirroring check: mirrorIssues=${config.giteaConfig?.mirrorIssues}, isStarred=${repository.isStarred}, skipStarredIssues=${config.githubConfig?.skipStarredIssues}, shouldMirrorIssues=${shouldMirrorIssues}`);
     
     if (shouldMirrorIssues) {
-      await mirrorGitRepoIssuesToGitea({
-        config,
-        octokit,
-        repository,
-        giteaOwner: repoOwner,
-      });
+      try {
+        await mirrorGitRepoIssuesToGitea({
+          config,
+          octokit,
+          repository,
+          giteaOwner: repoOwner,
+        });
+        console.log(`[Metadata] Successfully mirrored issues for ${repository.name}`);
+      } catch (error) {
+        console.error(`[Metadata] Failed to mirror issues for ${repository.name}: ${error instanceof Error ? error.message : String(error)}`);
+        // Continue with other metadata operations even if issues fail
+      }
     }
 
     // Mirror pull requests if enabled
     console.log(`[Metadata] Pull request mirroring check: mirrorPullRequests=${config.giteaConfig?.mirrorPullRequests}`);
     if (config.giteaConfig?.mirrorPullRequests) {
-      await mirrorGitRepoPullRequestsToGitea({
-        config,
-        octokit,
-        repository,
-        giteaOwner: repoOwner,
-      });
+      try {
+        await mirrorGitRepoPullRequestsToGitea({
+          config,
+          octokit,
+          repository,
+          giteaOwner: repoOwner,
+        });
+        console.log(`[Metadata] Successfully mirrored pull requests for ${repository.name}`);
+      } catch (error) {
+        console.error(`[Metadata] Failed to mirror pull requests for ${repository.name}: ${error instanceof Error ? error.message : String(error)}`);
+        // Continue with other metadata operations even if PRs fail
+      }
     }
 
     // Mirror labels if enabled (and not already done via issues)
     console.log(`[Metadata] Label mirroring check: mirrorLabels=${config.giteaConfig?.mirrorLabels}, shouldMirrorIssues=${shouldMirrorIssues}`);
     if (config.giteaConfig?.mirrorLabels && !shouldMirrorIssues) {
-      await mirrorGitRepoLabelsToGitea({
-        config,
-        octokit,
-        repository,
-        giteaOwner: repoOwner,
-      });
+      try {
+        await mirrorGitRepoLabelsToGitea({
+          config,
+          octokit,
+          repository,
+          giteaOwner: repoOwner,
+        });
+        console.log(`[Metadata] Successfully mirrored labels for ${repository.name}`);
+      } catch (error) {
+        console.error(`[Metadata] Failed to mirror labels for ${repository.name}: ${error instanceof Error ? error.message : String(error)}`);
+        // Continue with other metadata operations even if labels fail
+      }
     }
 
     // Mirror milestones if enabled
     console.log(`[Metadata] Milestone mirroring check: mirrorMilestones=${config.giteaConfig?.mirrorMilestones}`);
     if (config.giteaConfig?.mirrorMilestones) {
-      await mirrorGitRepoMilestonesToGitea({
-        config,
-        octokit,
-        repository,
-        giteaOwner: repoOwner,
-      });
+      try {
+        await mirrorGitRepoMilestonesToGitea({
+          config,
+          octokit,
+          repository,
+          giteaOwner: repoOwner,
+        });
+        console.log(`[Metadata] Successfully mirrored milestones for ${repository.name}`);
+      } catch (error) {
+        console.error(`[Metadata] Failed to mirror milestones for ${repository.name}: ${error instanceof Error ? error.message : String(error)}`);
+        // Continue with other metadata operations even if milestones fail
+      }
     }
 
     console.log(`Repository ${repository.name} mirrored successfully`);
@@ -691,11 +721,17 @@ export async function mirrorGitHubRepoToGiteaOrg({
     //mirror releases
     console.log(`[Metadata] Release mirroring check: mirrorReleases=${config.giteaConfig?.mirrorReleases}`);
     if (config.giteaConfig?.mirrorReleases) {
-      await mirrorGitHubReleasesToGitea({
-        config,
-        octokit,
-        repository,
-      });
+      try {
+        await mirrorGitHubReleasesToGitea({
+          config,
+          octokit,
+          repository,
+        });
+        console.log(`[Metadata] Successfully mirrored releases for ${repository.name}`);
+      } catch (error) {
+        console.error(`[Metadata] Failed to mirror releases for ${repository.name}: ${error instanceof Error ? error.message : String(error)}`);
+        // Continue with other operations even if releases fail
+      }
     }
 
     // Clone issues
@@ -703,46 +739,72 @@ export async function mirrorGitHubRepoToGiteaOrg({
     const shouldMirrorIssues = config.giteaConfig?.mirrorIssues && 
       !(repository.isStarred && config.githubConfig?.skipStarredIssues);
     
+    console.log(`[Metadata] Issue mirroring check: mirrorIssues=${config.giteaConfig?.mirrorIssues}, isStarred=${repository.isStarred}, skipStarredIssues=${config.githubConfig?.skipStarredIssues}, shouldMirrorIssues=${shouldMirrorIssues}`);
+    
     if (shouldMirrorIssues) {
-      await mirrorGitRepoIssuesToGitea({
-        config,
-        octokit,
-        repository,
-        giteaOwner: orgName,
-      });
+      try {
+        await mirrorGitRepoIssuesToGitea({
+          config,
+          octokit,
+          repository,
+          giteaOwner: orgName,
+        });
+        console.log(`[Metadata] Successfully mirrored issues for ${repository.name} to org ${orgName}`);
+      } catch (error) {
+        console.error(`[Metadata] Failed to mirror issues for ${repository.name} to org ${orgName}: ${error instanceof Error ? error.message : String(error)}`);
+        // Continue with other metadata operations even if issues fail
+      }
     }
 
     // Mirror pull requests if enabled
     console.log(`[Metadata] Pull request mirroring check: mirrorPullRequests=${config.giteaConfig?.mirrorPullRequests}`);
     if (config.giteaConfig?.mirrorPullRequests) {
-      await mirrorGitRepoPullRequestsToGitea({
-        config,
-        octokit,
-        repository,
-        giteaOwner: orgName,
-      });
+      try {
+        await mirrorGitRepoPullRequestsToGitea({
+          config,
+          octokit,
+          repository,
+          giteaOwner: orgName,
+        });
+        console.log(`[Metadata] Successfully mirrored pull requests for ${repository.name} to org ${orgName}`);
+      } catch (error) {
+        console.error(`[Metadata] Failed to mirror pull requests for ${repository.name} to org ${orgName}: ${error instanceof Error ? error.message : String(error)}`);
+        // Continue with other metadata operations even if PRs fail
+      }
     }
 
     // Mirror labels if enabled (and not already done via issues)
     console.log(`[Metadata] Label mirroring check: mirrorLabels=${config.giteaConfig?.mirrorLabels}, shouldMirrorIssues=${shouldMirrorIssues}`);
     if (config.giteaConfig?.mirrorLabels && !shouldMirrorIssues) {
-      await mirrorGitRepoLabelsToGitea({
-        config,
-        octokit,
-        repository,
-        giteaOwner: orgName,
-      });
+      try {
+        await mirrorGitRepoLabelsToGitea({
+          config,
+          octokit,
+          repository,
+          giteaOwner: orgName,
+        });
+        console.log(`[Metadata] Successfully mirrored labels for ${repository.name} to org ${orgName}`);
+      } catch (error) {
+        console.error(`[Metadata] Failed to mirror labels for ${repository.name} to org ${orgName}: ${error instanceof Error ? error.message : String(error)}`);
+        // Continue with other metadata operations even if labels fail
+      }
     }
 
     // Mirror milestones if enabled
     console.log(`[Metadata] Milestone mirroring check: mirrorMilestones=${config.giteaConfig?.mirrorMilestones}`);
     if (config.giteaConfig?.mirrorMilestones) {
-      await mirrorGitRepoMilestonesToGitea({
-        config,
-        octokit,
-        repository,
-        giteaOwner: orgName,
-      });
+      try {
+        await mirrorGitRepoMilestonesToGitea({
+          config,
+          octokit,
+          repository,
+          giteaOwner: orgName,
+        });
+        console.log(`[Metadata] Successfully mirrored milestones for ${repository.name} to org ${orgName}`);
+      } catch (error) {
+        console.error(`[Metadata] Failed to mirror milestones for ${repository.name} to org ${orgName}: ${error instanceof Error ? error.message : String(error)}`);
+        // Continue with other metadata operations even if milestones fail
+      }
     }
 
     console.log(
@@ -1094,13 +1156,19 @@ export const mirrorGitRepoIssuesToGitea = async ({
     !config.githubConfig?.token ||
     !config.giteaConfig?.token ||
     !config.giteaConfig?.url ||
-    !config.giteaConfig?.username
+    !config.giteaConfig?.defaultOwner
   ) {
     throw new Error("Missing GitHub or Gitea configuration.");
   }
 
   // Decrypt config tokens for API usage
   const decryptedConfig = decryptConfigTokens(config as Config);
+  
+  // Log configuration details for debugging
+  console.log(`[Issues] Starting issue mirroring for repository ${repository.name}`);
+  console.log(`[Issues] Gitea URL: ${config.giteaConfig!.url}`);
+  console.log(`[Issues] Gitea Owner: ${giteaOwner}`);
+  console.log(`[Issues] Gitea Default Owner: ${config.giteaConfig!.defaultOwner}`);
   
   // Verify the repository exists in Gitea before attempting to mirror metadata
   console.log(`[Issues] Verifying repository ${repository.name} exists at ${giteaOwner}`);
@@ -1450,13 +1518,19 @@ export async function mirrorGitRepoPullRequestsToGitea({
     !config.githubConfig?.token ||
     !config.giteaConfig?.token ||
     !config.giteaConfig?.url ||
-    !config.giteaConfig?.username
+    !config.giteaConfig?.defaultOwner
   ) {
     throw new Error("Missing GitHub or Gitea configuration.");
   }
 
   // Decrypt config tokens for API usage
   const decryptedConfig = decryptConfigTokens(config as Config);
+  
+  // Log configuration details for debugging
+  console.log(`[Pull Requests] Starting PR mirroring for repository ${repository.name}`);
+  console.log(`[Pull Requests] Gitea URL: ${config.giteaConfig!.url}`);
+  console.log(`[Pull Requests] Gitea Owner: ${giteaOwner}`);
+  console.log(`[Pull Requests] Gitea Default Owner: ${config.giteaConfig!.defaultOwner}`);
   
   // Verify the repository exists in Gitea before attempting to mirror metadata
   console.log(`[Pull Requests] Verifying repository ${repository.name} exists at ${giteaOwner}`);
