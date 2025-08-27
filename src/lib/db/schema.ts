@@ -138,6 +138,7 @@ export const repositorySchema = z.object({
       "mirrored",
       "failed",
       "skipped",
+      "ignored",  // User explicitly wants to ignore this repository
       "deleting",
       "deleted",
       "syncing",
@@ -166,6 +167,7 @@ export const mirrorJobSchema = z.object({
       "mirrored",
       "failed",
       "skipped",
+      "ignored",  // User explicitly wants to ignore this repository
       "deleting",
       "deleted",
       "syncing",
@@ -202,6 +204,7 @@ export const organizationSchema = z.object({
       "mirrored",
       "failed",
       "skipped",
+      "ignored",  // User explicitly wants to ignore this repository
       "deleting",
       "deleted",
       "syncing",

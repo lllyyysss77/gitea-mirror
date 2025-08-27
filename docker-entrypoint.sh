@@ -35,8 +35,8 @@ else
   echo "No custom CA certificates found in /app/certs"
 fi
 
-# Check if system CA bundle is mounted and use it
-if [ -f "/etc/ssl/certs/ca-certificates.crt" ] && [ ! -L "/etc/ssl/certs/ca-certificates.crt" ]; then
+# Check if system CA bundle is mounted and use it (only if not already set)
+if [ -z "$NODE_EXTRA_CA_CERTS" ] && [ -f "/etc/ssl/certs/ca-certificates.crt" ] && [ ! -L "/etc/ssl/certs/ca-certificates.crt" ]; then
   # Check if it's a mounted file (not the default symlink)
   if [ "$(stat -c '%d' /etc/ssl/certs/ca-certificates.crt 2>/dev/null)" != "$(stat -c '%d' / 2>/dev/null)" ] || \
      [ "$(stat -f '%d' /etc/ssl/certs/ca-certificates.crt 2>/dev/null)" != "$(stat -f '%d' / 2>/dev/null)" ]; then
