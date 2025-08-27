@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { auth } from '@/lib/auth';
-import { createSecureErrorResponse } from '@/lib/utils/error-handler';
+import { createSecureErrorResponse } from '@/lib/utils';
 import { triggerRepositoryCleanup } from '@/lib/repository-cleanup-service';
 
 /**

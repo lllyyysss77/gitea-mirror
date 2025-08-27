@@ -4,6 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 DONT HALLUCIATE THINGS. IF YOU DONT KNOW LOOK AT THE CODE OR ASK FOR DOCS
 
+NEVER MENTION CLAUDE CODE ANYWHERE.
+
 ## Project Overview
 
 Gitea Mirror is a web application that automatically mirrors repositories from GitHub to self-hosted Gitea instances. It uses Astro for SSR, React for UI, SQLite for data storage, and Bun as the JavaScript runtime.

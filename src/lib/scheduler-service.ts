@@ -18,7 +18,7 @@ let isSchedulerRunning = false;
 
 /**
  * Parse schedule interval with enhanced support for duration strings, cron, and numbers
- * Supports formats like: "8h", "30m", "24h", "0 */2 * * *", or plain numbers (seconds)
+ * Supports formats like: "8h", "30m", "24h", "0 0/2 * * *", or plain numbers (seconds)
  */
 function parseScheduleInterval(interval: string | number): number {
   try {
