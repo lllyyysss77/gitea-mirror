@@ -35,9 +35,13 @@ First user signup becomes admin. Configure GitHub and Gitea through the web inte
 - 🔁 Mirror public, private, and starred GitHub repos to Gitea
 - 🏢 Mirror entire organizations with flexible strategies
 - 🎯 Custom destination control for repos and organizations
+- 📦 **Git LFS support** - Mirror large files with Git LFS
+- 📝 **Metadata mirroring** - Issues, PRs, labels, milestones, wiki
+- 🚫 **Repository ignore** - Mark specific repos to skip
 - 🔐 Secure authentication with Better Auth (email/password, SSO, OIDC)
 - 📊 Real-time dashboard with activity logs
-- ⏱️ Scheduled automatic mirroring
+- ⏱️ Scheduled automatic mirroring with flexible intervals
+- 🗑️ Automatic database cleanup with configurable retention
 - 🐳 Dockerized with multi-arch support (AMD64/ARM64)
 
 ## 📸 Screenshots
@@ -175,6 +179,30 @@ bun run dev
    - Click edit buttons on organization cards to set custom destinations
    - Override individual repository destinations in the table view
    - Starred repositories automatically go to a dedicated organization
+
+## Advanced Features
+
+### Git LFS (Large File Storage)
+Mirror Git LFS objects along with your repositories:
+- Enable "Mirror LFS" option in Settings → Mirror Options
+- Requires Gitea server with LFS enabled (`LFS_START_SERVER = true`)
+- Requires Git v2.1.2+ on the server
+
+### Metadata Mirroring
+Transfer complete repository metadata from GitHub to Gitea:
+- **Issues** - Mirror all issues with comments and labels
+- **Pull Requests** - Transfer PR discussions to Gitea
+- **Labels** - Preserve repository labels
+- **Milestones** - Keep project milestones
+- **Wiki** - Mirror wiki content
+- **Releases** - Transfer GitHub releases with assets
+
+Enable in Settings → Mirror Options → Mirror metadata
+
+### Repository Management
+- **Ignore Status** - Mark repositories to skip from mirroring
+- **Automatic Cleanup** - Configure retention period for activity logs
+- **Scheduled Sync** - Set custom intervals for automatic mirroring
 
 ## Troubleshooting
 

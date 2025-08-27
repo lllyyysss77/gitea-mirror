@@ -25,6 +25,7 @@ Essential application settings required for running Gitea Mirror.
 | `DATABASE_URL` | Database connection URL | `sqlite://data/gitea-mirror.db` | No |
 | `BETTER_AUTH_SECRET` | Secret key for session signing (generate with: `openssl rand -base64 32`) | - | Yes |
 | `BETTER_AUTH_URL` | Base URL for authentication | `http://localhost:4321` | No |
+| `BETTER_AUTH_TRUSTED_ORIGINS` | Comma-separated list of trusted origins for OIDC | - | No |
 | `ENCRYPTION_SECRET` | Optional encryption key for tokens (generate with: `openssl rand -base64 48`) | - | No |
 
 ## GitHub Configuration
@@ -84,7 +85,7 @@ Settings for the destination Gitea instance.
 |----------|-------------|---------|---------|
 | `GITEA_ORG_VISIBILITY` | Default organization visibility | `public` | `public`, `private`, `limited`, `default` |
 | `GITEA_MIRROR_INTERVAL` | Mirror sync interval (automatically enables scheduler) | `8h` | Duration string (e.g., `30m`, `1h`, `8h`, `24h`) |
-| `GITEA_LFS` | Enable LFS support | `false` | `true`, `false` |
+| `GITEA_LFS` | Enable LFS support (requires LFS on Gitea server) | `false` | `true`, `false` |
 | `GITEA_CREATE_ORG` | Auto-create organizations | `true` | `true`, `false` |
 | `GITEA_PRESERVE_VISIBILITY` | Preserve GitHub repo visibility in Gitea | `false` | `true`, `false` |
 

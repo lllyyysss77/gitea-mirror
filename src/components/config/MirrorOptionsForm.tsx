@@ -97,6 +97,32 @@ export function MirrorOptionsForm({
               </Tooltip>
             </label>
           </div>
+          
+          <div className="flex items-center">
+            <Checkbox
+              id="mirror-lfs"
+              checked={config.mirrorLFS}
+              onCheckedChange={(checked) =>
+                handleChange("mirrorLFS", Boolean(checked))
+              }
+            />
+            <label
+              htmlFor="mirror-lfs"
+              className="ml-2 text-sm select-none flex items-center"
+            >
+              Mirror LFS (Large File Storage)
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="ml-1 cursor-pointer text-muted-foreground">
+                    <Info size={14} />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-xs text-xs">
+                  Mirror Git LFS objects. Requires LFS to be enabled on your Gitea server and Git v2.1.2+
+                </TooltipContent>
+              </Tooltip>
+            </label>
+          </div>
 
           <div className="flex items-center">
             <Checkbox

@@ -63,7 +63,7 @@ export function mapUiToDbConfig(
     
     // Mirror interval and options
     mirrorInterval: "8h", // Default value, could be made configurable
-    lfs: false, // Not in UI yet
+    lfs: mirrorOptions.mirrorLFS || false, // LFS mirroring option
     wiki: mirrorOptions.mirrorMetadata && mirrorOptions.metadataComponents.wiki,
     
     // Visibility settings
@@ -132,6 +132,7 @@ export function mapDbToUiConfig(dbConfig: any): {
   // Map mirror options from various database fields
   const mirrorOptions: MirrorOptions = {
     mirrorReleases: dbConfig.giteaConfig?.mirrorReleases || false,
+    mirrorLFS: dbConfig.giteaConfig?.lfs || false,
     mirrorMetadata: dbConfig.giteaConfig?.mirrorMetadata || false,
     metadataComponents: {
       issues: dbConfig.giteaConfig?.mirrorIssues || false,

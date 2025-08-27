@@ -418,6 +418,7 @@ export const mirrorGithubRepoToGitea = async ({
         repo_name: repository.name,
         mirror: true,
         wiki: config.giteaConfig?.wiki || false, // will mirror wiki if it exists
+        lfs: config.giteaConfig?.lfs || false, // Enable LFS mirroring if configured
         private: repository.isPrivate,
         repo_owner: repoOwner,
         description: "",
@@ -711,6 +712,7 @@ export async function mirrorGitHubRepoToGiteaOrg({
         repo_name: repository.name,
         mirror: true,
         wiki: config.giteaConfig?.wiki || false, // will mirror wiki if it exists
+        lfs: config.giteaConfig?.lfs || false, // Enable LFS mirroring if configured
         private: repository.isPrivate,
       },
       {

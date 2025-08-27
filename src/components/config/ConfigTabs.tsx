@@ -59,6 +59,7 @@ export function ConfigTabs() {
     },
     mirrorOptions: {
       mirrorReleases: false,
+      mirrorLFS: false,
       mirrorMetadata: false,
       metadataComponents: {
         issues: false,
@@ -470,10 +471,14 @@ export function ConfigTabs() {
               response.giteaConfig || config.giteaConfig,
             scheduleConfig:
               response.scheduleConfig || config.scheduleConfig,
-            cleanupConfig:
-              response.cleanupConfig || config.cleanupConfig,
-            mirrorOptions:
-              response.mirrorOptions || config.mirrorOptions,
+            cleanupConfig: {
+              ...config.cleanupConfig,
+              ...response.cleanupConfig, // Merge to preserve all fields
+            },
+            mirrorOptions: {
+              ...config.mirrorOptions,
+              ...response.mirrorOptions, // Merge to preserve all fields including new mirrorLFS
+            },
             advancedOptions:
               response.advancedOptions || config.advancedOptions,
           });

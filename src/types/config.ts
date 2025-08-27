@@ -38,6 +38,7 @@ export interface GitHubConfig {
 
 export interface MirrorOptions {
   mirrorReleases: boolean;
+  mirrorLFS: boolean;  // Mirror Git LFS objects
   mirrorMetadata: boolean;
   metadataComponents: {
     issues: boolean;
