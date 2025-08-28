@@ -3,7 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "../ui/checkbox";
 import type { MirrorOptions } from "@/types/config";
 import { RefreshCw, Info } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { 
+  Tooltip, 
+  TooltipContent, 
+  TooltipProvider, 
+  TooltipTrigger 
+} from "../ui/tooltip";
 
 interface MirrorOptionsFormProps {
   config: MirrorOptions;
@@ -27,7 +32,7 @@ export function MirrorOptionsForm({
       if (!checked) {
         newConfig.metadataComponents = {
           issues: false,
-          pullRequests: false,
+          pullRequests: false, // Keep for backwards compatibility but not shown in UI
           labels: false,
           milestones: false,
           wiki: false,
@@ -188,8 +193,33 @@ export function MirrorOptionsForm({
                     htmlFor="metadata-pullRequests"
                     className="ml-2 text-sm select-none"
                   >
-                    Pull requests
+                    Pull Requests (as issues)
                   </label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="h-3 w-3 ml-1 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-sm">
+                        <div className="space-y-2">
+                          <p className="font-semibold">Pull Requests are mirrored as issues</p>
+                          <p className="text-xs">
+                            Due to Gitea API limitations, PRs cannot be created as actual pull requests.
+                            Instead, they are mirrored as issues with:
+                          </p>
+                          <ul className="text-xs space-y-1 ml-3">
+                            <li>• [PR #number] prefix in title</li>
+                            <li>• Full PR description and metadata</li>
+                            <li>• Commit history (up to 10 commits)</li>
+                            <li>• File changes summary</li>
+                            <li>• Diff preview (first 5 files)</li>
+                            <li>• Review comments preserved</li>
+                            <li>• Merge/close status tracking</li>
+                          </ul>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
 
                 <div className="flex items-center">

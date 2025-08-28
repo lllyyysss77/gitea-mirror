@@ -1593,17 +1593,90 @@ export async function mirrorGitRepoPullRequestsToGitea({
 
   const { processWithRetry } = await import("@/lib/utils/concurrency");
 
+  let successCount = 0;
+  let failedCount = 0;
+
   await processWithRetry(
     pullRequests,
     async (pr) => {
-      const issueData = {
-        title: `[PR #${pr.number}] ${pr.title}`,
-        body: `**Original Pull Request:** ${pr.html_url}\n\n**State:** ${pr.state}\n**Merged:** ${pr.merged_at ? 'Yes' : 'No'}\n\n---\n\n${pr.body || 'No description provided'}`,
-        labels: [{ name: "pull-request" }],
-        state: pr.state === "closed" ? "closed" : "open",
-      };
-
       try {
+        // Fetch additional PR data for rich metadata
+        const [prDetail, commits, files] = await Promise.all([
+          octokit.rest.pulls.get({ owner, repo, pull_number: pr.number }),
+          octokit.rest.pulls.listCommits({ owner, repo, pull_number: pr.number, per_page: 10 }),
+          octokit.rest.pulls.listFiles({ owner, repo, pull_number: pr.number, per_page: 100 })
+        ]);
+
+        // Build rich PR body with metadata
+        let richBody = `## 📋 Pull Request Information\n\n`;
+        richBody += `**Original PR:** ${pr.html_url}\n`;
+        richBody += `**Author:** [@${pr.user?.login}](${pr.user?.html_url})\n`;
+        richBody += `**Created:** ${new Date(pr.created_at).toLocaleDateString()}\n`;
+        richBody += `**Status:** ${pr.state === 'closed' ? (pr.merged_at ? '✅ Merged' : '❌ Closed') : '🔄 Open'}\n`;
+        
+        if (pr.merged_at) {
+          richBody += `**Merged:** ${new Date(pr.merged_at).toLocaleDateString()}\n`;
+          richBody += `**Merged by:** [@${prDetail.data.merged_by?.login}](${prDetail.data.merged_by?.html_url})\n`;
+        }
+
+        richBody += `\n**Base:** \`${pr.base.ref}\` ← **Head:** \`${pr.head.ref}\`\n`;
+        richBody += `\n---\n\n`;
+
+        // Add commit history (up to 10 commits)
+        if (commits.data.length > 0) {
+          richBody += `### 📝 Commits (${commits.data.length}${commits.data.length >= 10 ? '+' : ''})\n\n`;
+          commits.data.slice(0, 10).forEach(commit => {
+            const shortSha = commit.sha.substring(0, 7);
+            richBody += `- [\`${shortSha}\`](${commit.html_url}) ${commit.commit.message.split('\n')[0]}\n`;
+          });
+          if (commits.data.length > 10) {
+            richBody += `\n_...and ${commits.data.length - 10} more commits_\n`;
+          }
+          richBody += `\n`;
+        }
+
+        // Add file changes summary
+        if (files.data.length > 0) {
+          const additions = prDetail.data.additions || 0;
+          const deletions = prDetail.data.deletions || 0;
+          const changedFiles = prDetail.data.changed_files || files.data.length;
+          
+          richBody += `### 📊 Changes\n\n`;
+          richBody += `**${changedFiles} file${changedFiles !== 1 ? 's' : ''} changed** `;
+          richBody += `(+${additions} additions, -${deletions} deletions)\n\n`;
+          
+          // List changed files (up to 20)
+          richBody += `<details>\n<summary>View changed files</summary>\n\n`;
+          files.data.slice(0, 20).forEach(file => {
+            const changeIndicator = file.status === 'added' ? '➕' : 
+                                   file.status === 'removed' ? '➖' : '📝';
+            richBody += `${changeIndicator} \`${file.filename}\` (+${file.additions} -${file.deletions})\n`;
+          });
+          if (files.data.length > 20) {
+            richBody += `\n_...and ${files.data.length - 20} more files_\n`;
+          }
+          richBody += `\n</details>\n\n`;
+        }
+
+        // Add original PR description
+        richBody += `### 📄 Description\n\n`;
+        richBody += pr.body || '_No description provided_';
+        richBody += `\n\n---\n`;
+        richBody += `\n<sub>🔄 This issue represents a GitHub Pull Request. `;
+        richBody += `It cannot be merged through Gitea due to API limitations.</sub>`;
+
+        // Prepare issue title with status indicator
+        const statusPrefix = pr.merged_at ? '[MERGED] ' : (pr.state === 'closed' ? '[CLOSED] ' : '');
+        const issueTitle = `[PR #${pr.number}] ${statusPrefix}${pr.title}`;
+
+        const issueData = {
+          title: issueTitle,
+          body: richBody,
+          labels: [{ name: "pull-request" }],
+          state: pr.state === "closed" ? "closed" : "open",
+        };
+
+        console.log(`[Pull Requests] Creating enriched issue for PR #${pr.number}: ${pr.title}`);
         await httpPost(
           `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repository.name}/issues`,
           issueData,
@@ -1611,10 +1684,34 @@ export async function mirrorGitRepoPullRequestsToGitea({
             Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
           }
         );
-      } catch (error) {
-        console.error(
-          `Failed to mirror PR #${pr.number}: ${error instanceof Error ? error.message : String(error)}`
-        );
+        successCount++;
+        console.log(`[Pull Requests] ✅ Successfully created issue for PR #${pr.number}`);
+      } catch (apiError) {
+        // If the detailed fetch fails, fall back to basic PR info
+        console.log(`[Pull Requests] Falling back to basic info for PR #${pr.number} due to error: ${apiError}`);
+        const basicIssueData = {
+          title: `[PR #${pr.number}] ${pr.title}`,
+          body: `**Original Pull Request:** ${pr.html_url}\n\n**State:** ${pr.state}\n**Merged:** ${pr.merged_at ? 'Yes' : 'No'}\n\n---\n\n${pr.body || 'No description provided'}`,
+          labels: [{ name: "pull-request" }],
+          state: pr.state === "closed" ? "closed" : "open",
+        };
+        
+        try {
+          await httpPost(
+            `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repository.name}/issues`,
+            basicIssueData,
+            {
+              Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
+            }
+          );
+          successCount++;
+          console.log(`[Pull Requests] ✅ Created basic issue for PR #${pr.number}`);
+        } catch (error) {
+          failedCount++;
+          console.error(
+            `[Pull Requests] ❌ Failed to mirror PR #${pr.number}: ${error instanceof Error ? error.message : String(error)}`
+          );
+        }
       }
     },
     {
@@ -1624,7 +1721,7 @@ export async function mirrorGitRepoPullRequestsToGitea({
     }
   );
 
-  console.log(`✅ Mirrored ${pullRequests.length} pull requests to Gitea`);
+  console.log(`✅ Mirrored ${successCount}/${pullRequests.length} pull requests to Gitea as enriched issues (${failedCount} failed)`);
 }
 
 export async function mirrorGitRepoLabelsToGitea({

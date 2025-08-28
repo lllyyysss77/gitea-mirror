@@ -36,7 +36,7 @@ First user signup becomes admin. Configure GitHub and Gitea through the web inte
 - 🏢 Mirror entire organizations with flexible strategies
 - 🎯 Custom destination control for repos and organizations
 - 📦 **Git LFS support** - Mirror large files with Git LFS
-- 📝 **Metadata mirroring** - Issues, PRs, labels, milestones, wiki
+- 📝 **Metadata mirroring** - Issues, pull requests (as issues), labels, milestones, wiki
 - 🚫 **Repository ignore** - Mark specific repos to skip
 - 🔐 Secure authentication with Better Auth (email/password, SSO, OIDC)
 - 📊 Real-time dashboard with activity logs
@@ -310,6 +310,31 @@ Gitea Mirror can also act as an OIDC provider for other applications. Register O
 - Allow other services to authenticate using Gitea Mirror accounts
 - Create service-to-service authentication
 - Build integrations with your Gitea Mirror instance
+
+## Known Limitations
+
+### Pull Request Mirroring Implementation
+Pull requests **cannot be created as actual PRs** in Gitea due to API limitations. Instead, they are mirrored as **enriched issues** with comprehensive metadata.
+
+**Why real PR mirroring isn't possible:**
+- Gitea's API doesn't support creating pull requests from external sources
+- Real PRs require actual Git branches with commits to exist in the repository
+- Would require complex branch synchronization and commit replication
+- The mirror relationship is one-way (GitHub → Gitea) for repository content
+
+**How we handle Pull Requests:**
+PRs are mirrored as issues with rich metadata including:
+- 🏷️ Special "pull-request" label for identification
+- 📌 [PR #number] prefix in title with status indicators ([MERGED], [CLOSED])
+- 👤 Original author and creation date
+- 📝 Complete commit history (up to 10 commits with links)
+- 📊 File changes summary with additions/deletions
+- 📁 List of modified files (up to 20 files)
+- 💬 Original PR description and comments
+- 🔀 Base and head branch information
+- ✅ Merge status tracking
+
+This approach preserves all important PR information while working within Gitea's API constraints. The PRs appear in Gitea's issue tracker with clear visual distinction and comprehensive details.
 
 ## Contributing
 
