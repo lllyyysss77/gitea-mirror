@@ -190,16 +190,38 @@ export function mapUiScheduleToDb(uiSchedule: any): DbScheduleConfig {
  * Maps database schedule config to UI format
  */
 export function mapDbScheduleToUi(dbSchedule: DbScheduleConfig): any {
+  // Handle null/undefined schedule config
+  if (!dbSchedule) {
+    return {
+      enabled: false,
+      interval: 86400, // Default to daily (24 hours)
+      lastRun: null,
+      nextRun: null,
+    };
+  }
+
   // Extract hours from cron expression if possible
-  let intervalSeconds = 3600; // Default 1 hour
-  const cronMatch = dbSchedule.interval.match(/0 \*\/(\d+) \* \* \*/);
-  if (cronMatch) {
-    intervalSeconds = parseInt(cronMatch[1]) * 3600;
+  let intervalSeconds = 86400; // Default to daily (24 hours)
+  
+  if (dbSchedule.interval) {
+    // Check if it's a cron expression
+    const cronMatch = dbSchedule.interval.match(/0 \*\/(\d+) \* \* \*/);
+    if (cronMatch) {
+      intervalSeconds = parseInt(cronMatch[1]) * 3600;
+    } else if (typeof dbSchedule.interval === 'number') {
+      // If it's already a number (seconds), use it directly
+      intervalSeconds = dbSchedule.interval;
+    } else if (dbSchedule.interval === "0 2 * * *") {
+      // Daily at 2 AM
+      intervalSeconds = 86400;
+    }
   }
 
   return {
-    enabled: dbSchedule.enabled,
+    enabled: dbSchedule.enabled || false,
     interval: intervalSeconds,
+    lastRun: dbSchedule.lastRun || null,
+    nextRun: dbSchedule.nextRun || null,
   };
 }
 
@@ -224,8 +246,20 @@ export function mapUiCleanupToDb(uiCleanup: any): DbCleanupConfig {
  * Maps database cleanup config to UI format
  */
 export function mapDbCleanupToUi(dbCleanup: DbCleanupConfig): any {
+  // Handle null/undefined cleanup config
+  if (!dbCleanup) {
+    return {
+      enabled: false,
+      retentionDays: 604800, // Default to 7 days in seconds
+      lastRun: null,
+      nextRun: null,
+    };
+  }
+
   return {
-    enabled: dbCleanup.enabled,
+    enabled: dbCleanup.enabled || false,
     retentionDays: dbCleanup.retentionDays || 604800, // Use actual value from DB or default to 7 days
+    lastRun: dbCleanup.lastRun || null,
+    nextRun: dbCleanup.nextRun || null,
   };
 }
