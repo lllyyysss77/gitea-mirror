@@ -37,6 +37,9 @@
     "test:coverage": "bun test --coverage",
     "astro": "bunx --bun astro"
   },
+  "overrides": {
+    "@esbuild-kit/esm-loader": "npm:tsx@^4.20.5"
+  },
   "dependencies": {
     "@astrojs/check": "^0.9.4",
     "@astrojs/mdx": "4.3.4",
