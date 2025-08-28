@@ -51,11 +51,11 @@ export function ConfigTabs() {
     },
     scheduleConfig: {
       enabled: false,
-      interval: 3600,
+      interval: 86400, // Default to daily (24 hours) instead of hourly
     },
     cleanupConfig: {
       enabled: false,
-      retentionDays: 604800, // 7 days in seconds
+      retentionDays: 604800, // 7 days in seconds - Default retention period
     },
     mirrorOptions: {
       mirrorReleases: false,

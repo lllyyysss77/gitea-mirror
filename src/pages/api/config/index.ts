@@ -13,6 +13,7 @@ import {
   mapDbCleanupToUi 
 } from "@/lib/utils/config-mapper";
 import { encrypt, decrypt, migrateToken } from "@/lib/utils/encryption";
+import { createDefaultConfig } from "@/lib/utils/config-defaults";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -188,58 +189,20 @@ export const GET: APIRoute = async ({ request }) => {
       .limit(1);
 
     if (config.length === 0) {
-      // Return a default empty configuration with database structure
-      const defaultDbConfig = {
-        githubConfig: {
-          owner: "",
-          type: "personal",
-          token: "",
-          includeStarred: false,
-          includeForks: true,
-          includeArchived: false,
-          includePrivate: false,
-          includePublic: true,
-          includeOrganizations: [],
-          starredReposOrg: "starred",
-          mirrorStrategy: "preserve",
-          defaultOrg: "github-mirrors",
-        },
-        giteaConfig: {
-          url: "",
-          token: "",
-          defaultOwner: "",
-          mirrorInterval: "8h",
-          lfs: false,
-          wiki: false,
-          visibility: "public",
-          createOrg: true,
-          addTopics: true,
-          preserveVisibility: false,
-          forkStrategy: "reference",
-        },
-      };
+      // Create default configuration for the user
+      const defaultConfig = await createDefaultConfig({ userId });
       
-      const uiConfig = mapDbToUiConfig(defaultDbConfig);
+      // Map the created config to UI format
+      const uiConfig = mapDbToUiConfig(defaultConfig);
+      const uiScheduleConfig = mapDbScheduleToUi(defaultConfig.scheduleConfig);
+      const uiCleanupConfig = mapDbCleanupToUi(defaultConfig.cleanupConfig);
       
       return new Response(
         JSON.stringify({
-          id: null,
-          userId: userId,
-          name: "Default Configuration",
-          isActive: true,
+          ...defaultConfig,
           ...uiConfig,
-          scheduleConfig: {
-            enabled: false,
-            interval: 3600,
-            lastRun: null,
-            nextRun: null,
-          },
-          cleanupConfig: {
-            enabled: false,
-            retentionDays: 604800, // 7 days in seconds
-            lastRun: null,
-            nextRun: null,
-          },
+          scheduleConfig: uiScheduleConfig,
+          cleanupConfig: uiCleanupConfig,
         }),
         {
           status: 200,
