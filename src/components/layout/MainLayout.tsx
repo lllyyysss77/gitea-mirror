@@ -97,6 +97,15 @@ function AppWithProviders({ page: initialPage }: AppProps) {
     );
   }
 
+  // Redirect to login if not authenticated
+  if (!authLoading && !user) {
+    // Use window.location for client-side redirect
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
+    return null;
+  }
+
   return (
     <NavigationContext.Provider value={{ navigationKey }}>
       <main className="flex min-h-screen flex-col">
