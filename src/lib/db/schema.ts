@@ -222,6 +222,9 @@ export const organizationSchema = z.object({
   lastMirrored: z.coerce.date().optional().nullable(),
   errorMessage: z.string().optional().nullable(),
   repositoryCount: z.number().default(0),
+  publicRepositoryCount: z.number().optional(),
+  privateRepositoryCount: z.number().optional(),
+  forkRepositoryCount: z.number().optional(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 });

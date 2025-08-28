@@ -209,16 +209,39 @@ export function OrganizationList({
                     {statusBadge.label}
                   </Badge>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full capitalize ${
-                      org.membershipRole === "member"
-                        ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                        : "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
-                    }`}
-                  >
-                    {org.membershipRole}
-                  </span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full capitalize ${
+                        org.membershipRole === "member"
+                          ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                          : "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                      }`}
+                    >
+                      {org.membershipRole}
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    <span className="font-semibold">{org.repositoryCount}</span>
+                    <span className="ml-1">repos</span>
+                    {/* Repository breakdown for mobile - only show non-zero counts */}
+                    {(() => {
+                      const parts = [];
+                      if (org.publicRepositoryCount && org.publicRepositoryCount > 0) {
+                        parts.push(`${org.publicRepositoryCount}pub`);
+                      }
+                      if (org.privateRepositoryCount && org.privateRepositoryCount > 0) {
+                        parts.push(`${org.privateRepositoryCount}priv`);
+                      }
+                      if (org.forkRepositoryCount && org.forkRepositoryCount > 0) {
+                        parts.push(`${org.forkRepositoryCount}fork`);
+                      }
+                      
+                      return parts.length > 0 ? (
+                        <span className="ml-1">({parts.join('/')})</span>
+                      ) : null;
+                    })()}
+                  </div>
                 </div>
               </div>
 
@@ -288,19 +311,29 @@ export function OrganizationList({
                     </span>
                   </div>
                   
-                  {/* Repository breakdown - TODO: Add these properties to Organization type */}
-                  {/* Commented out until repository count breakdown is available
-                  {isLoading || (org.status === "mirroring") ? (
-                    <div className="flex items-center gap-3">
-                      <Skeleton className="h-4 w-20" />
-                      <Skeleton className="h-4 w-20" />
-                      <Skeleton className="h-4 w-20" />
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3">
-                    </div>
-                  )}
-                  */}
+                  {/* Repository breakdown - only show non-zero counts */}
+                  {(() => {
+                    const counts = [];
+                    if (org.publicRepositoryCount && org.publicRepositoryCount > 0) {
+                      counts.push(`${org.publicRepositoryCount} public`);
+                    }
+                    if (org.privateRepositoryCount && org.privateRepositoryCount > 0) {
+                      counts.push(`${org.privateRepositoryCount} private`);
+                    }
+                    if (org.forkRepositoryCount && org.forkRepositoryCount > 0) {
+                      counts.push(`${org.forkRepositoryCount} ${org.forkRepositoryCount === 1 ? 'fork' : 'forks'}`);
+                    }
+                    
+                    return counts.length > 0 ? (
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        {counts.map((count, index) => (
+                          <span key={index} className={index > 0 ? "border-l pl-3" : ""}>
+                            {count}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
               </div>
             </div>
