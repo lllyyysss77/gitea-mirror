@@ -41,15 +41,15 @@ export async function createDefaultConfig({ userId, envOverrides = {} }: Default
   const giteaToken = envOverrides.giteaToken || process.env.GITEA_TOKEN || "";
   const giteaUsername = envOverrides.giteaUsername || process.env.GITEA_USERNAME || "";
   
-  // Schedule config from env
+  // Schedule config from env - default to ENABLED
   const scheduleEnabled = envOverrides.scheduleEnabled ?? 
-    (process.env.SCHEDULE_ENABLED === "true" ? true : false);
+    (process.env.SCHEDULE_ENABLED === "false" ? false : true); // Default: ENABLED
   const scheduleInterval = envOverrides.scheduleInterval ?? 
     (process.env.SCHEDULE_INTERVAL ? parseInt(process.env.SCHEDULE_INTERVAL, 10) : 86400); // Default: daily
   
-  // Cleanup config from env
+  // Cleanup config from env - default to ENABLED
   const cleanupEnabled = envOverrides.cleanupEnabled ?? 
-    (process.env.CLEANUP_ENABLED === "true" ? true : false);
+    (process.env.CLEANUP_ENABLED === "false" ? false : true); // Default: ENABLED
   const cleanupRetentionDays = envOverrides.cleanupRetentionDays ?? 
     (process.env.CLEANUP_RETENTION_DAYS ? parseInt(process.env.CLEANUP_RETENTION_DAYS, 10) * 86400 : 604800); // Default: 7 days
 
