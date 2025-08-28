@@ -240,6 +240,7 @@ export async function initializeConfigFromEnv(): Promise<void> {
       token: envConfig.github.token ? encrypt(envConfig.github.token) : existingConfig?.[0]?.githubConfig?.token || '',
       includeStarred: envConfig.github.mirrorStarred ?? existingConfig?.[0]?.githubConfig?.includeStarred ?? false,
       includeForks: !(envConfig.github.skipForks ?? false),
+      skipForks: envConfig.github.skipForks ?? existingConfig?.[0]?.githubConfig?.skipForks ?? false,
       includeArchived: envConfig.github.includeArchived ?? existingConfig?.[0]?.githubConfig?.includeArchived ?? false,
       includePrivate: envConfig.github.privateRepositories ?? existingConfig?.[0]?.githubConfig?.includePrivate ?? false,
       includePublic: envConfig.github.publicRepositories ?? existingConfig?.[0]?.githubConfig?.includePublic ?? true,
@@ -255,6 +256,8 @@ export async function initializeConfigFromEnv(): Promise<void> {
       url: envConfig.gitea.url || existingConfig?.[0]?.giteaConfig?.url || '',
       token: envConfig.gitea.token ? encrypt(envConfig.gitea.token) : existingConfig?.[0]?.giteaConfig?.token || '',
       defaultOwner: envConfig.gitea.username || existingConfig?.[0]?.giteaConfig?.defaultOwner || '',
+      organization: envConfig.gitea.organization || existingConfig?.[0]?.giteaConfig?.organization || undefined,
+      preserveOrgStructure: mirrorStrategy === 'preserve' || mirrorStrategy === 'mixed',
       mirrorInterval: envConfig.gitea.mirrorInterval || existingConfig?.[0]?.giteaConfig?.mirrorInterval || '8h',
       lfs: envConfig.gitea.lfs ?? existingConfig?.[0]?.giteaConfig?.lfs ?? false,
       wiki: envConfig.mirror.mirrorWiki ?? existingConfig?.[0]?.giteaConfig?.wiki ?? false,
@@ -296,8 +299,8 @@ export async function initializeConfigFromEnv(): Promise<void> {
       updateInterval: envConfig.schedule.updateInterval ?? existingConfig?.[0]?.scheduleConfig?.updateInterval ?? 86400000,
       skipRecentlyMirrored: envConfig.schedule.skipRecentlyMirrored ?? existingConfig?.[0]?.scheduleConfig?.skipRecentlyMirrored ?? true,
       recentThreshold: envConfig.schedule.recentThreshold ?? existingConfig?.[0]?.scheduleConfig?.recentThreshold ?? 3600000,
-      lastRun: existingConfig?.[0]?.scheduleConfig?.lastRun || null,
-      nextRun: existingConfig?.[0]?.scheduleConfig?.nextRun || null,
+      lastRun: existingConfig?.[0]?.scheduleConfig?.lastRun || undefined,
+      nextRun: existingConfig?.[0]?.scheduleConfig?.nextRun || undefined,
     };
 
     // Build cleanup config
@@ -311,8 +314,8 @@ export async function initializeConfigFromEnv(): Promise<void> {
       orphanedRepoAction: envConfig.cleanup.orphanedRepoAction || existingConfig?.[0]?.cleanupConfig?.orphanedRepoAction || 'archive',
       batchSize: envConfig.cleanup.batchSize ?? existingConfig?.[0]?.cleanupConfig?.batchSize ?? 10,
       pauseBetweenDeletes: envConfig.cleanup.pauseBetweenDeletes ?? existingConfig?.[0]?.cleanupConfig?.pauseBetweenDeletes ?? 2000,
-      lastRun: existingConfig?.[0]?.cleanupConfig?.lastRun || null,
-      nextRun: existingConfig?.[0]?.cleanupConfig?.nextRun || null,
+      lastRun: existingConfig?.[0]?.cleanupConfig?.lastRun || undefined,
+      nextRun: existingConfig?.[0]?.cleanupConfig?.nextRun || undefined,
     };
 
     if (existingConfig.length > 0) {

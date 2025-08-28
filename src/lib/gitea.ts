@@ -1618,8 +1618,8 @@ export async function mirrorGitRepoPullRequestsToGitea({
       }
     },
     {
-      maxConcurrency: 5,
-      retryAttempts: 3,
+      concurrencyLimit: 5,
+      maxRetries: 3,
       retryDelay: 1000,
     }
   );
@@ -1840,8 +1840,8 @@ export async function deleteGiteaRepo(
       }
     );
     
-    if (!response.success) {
-      throw new Error(`Failed to delete repository ${owner}/${repo}: ${response.statusCode}`);
+    if (response.status >= 400) {
+      throw new Error(`Failed to delete repository ${owner}/${repo}: ${response.status} ${response.statusText}`);
     }
     
     console.log(`Successfully deleted repository ${owner}/${repo} from Gitea`);
@@ -1871,8 +1871,8 @@ export async function archiveGiteaRepo(
       }
     );
     
-    if (!response.success) {
-      throw new Error(`Failed to archive repository ${owner}/${repo}: ${response.statusCode}`);
+    if (response.status >= 400) {
+      throw new Error(`Failed to archive repository ${owner}/${repo}: ${response.status} ${response.statusText}`);
     }
     
     console.log(`Successfully archived repository ${owner}/${repo} in Gitea`);

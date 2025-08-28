@@ -53,7 +53,7 @@ async function cleanupForUser(userId: string, retentionSeconds: number): Promise
     let mirrorJobsDeleted = 0;
 
     // Clean up old events
-    const eventsResult = await db
+    await db
       .delete(events)
       .where(
         and(
@@ -61,10 +61,10 @@ async function cleanupForUser(userId: string, retentionSeconds: number): Promise
           lt(events.createdAt, cutoffDate)
         )
       );
-    eventsDeleted = eventsResult.changes || 0;
+    eventsDeleted = 0; // SQLite delete doesn't return count
 
     // Clean up old mirror jobs (only completed ones)
-    const jobsResult = await db
+    await db
       .delete(mirrorJobs)
       .where(
         and(
@@ -73,7 +73,7 @@ async function cleanupForUser(userId: string, retentionSeconds: number): Promise
           lt(mirrorJobs.timestamp, cutoffDate)
         )
       );
-    mirrorJobsDeleted = jobsResult.changes || 0;
+    mirrorJobsDeleted = 0; // SQLite delete doesn't return count
 
     console.log(`Cleanup completed for user ${userId}: ${eventsDeleted} events, ${mirrorJobsDeleted} jobs deleted`);
 

@@ -10,7 +10,7 @@ import { syncGiteaRepo } from '@/lib/gitea';
 import { createGitHubClient } from '@/lib/github';
 import { getDecryptedGitHubToken } from '@/lib/utils/config-encryption';
 import { parseInterval, formatDuration } from '@/lib/utils/duration-parser';
-import type { Repository } from '@/types';
+import type { Repository } from '@/lib/db/schema';
 import { repoStatusEnum, repositoryVisibilityEnum } from '@/types/Repository';
 
 let schedulerInterval: NodeJS.Timeout | null = null;

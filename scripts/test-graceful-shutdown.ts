@@ -47,7 +47,6 @@ async function createTestJob(): Promise<string> {
     jobType: "mirror",
     totalItems: 10,
     itemIds: ['item-1', 'item-2', 'item-3', 'item-4', 'item-5'],
-    completedItems: 2, // Simulate partial completion
     inProgress: true,
   });
   

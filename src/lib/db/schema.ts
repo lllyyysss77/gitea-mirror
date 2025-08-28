@@ -19,6 +19,7 @@ export const githubConfigSchema = z.object({
   token: z.string(),
   includeStarred: z.boolean().default(false),
   includeForks: z.boolean().default(true),
+  skipForks: z.boolean().default(false),
   includeArchived: z.boolean().default(false),
   includePrivate: z.boolean().default(true),
   includePublic: z.boolean().default(true),
@@ -33,6 +34,7 @@ export const giteaConfigSchema = z.object({
   url: z.url(),
   token: z.string(),
   defaultOwner: z.string(),
+  organization: z.string().optional(),
   mirrorInterval: z.string().default("8h"),
   lfs: z.boolean().default(false),
   wiki: z.boolean().default(false),
@@ -45,6 +47,7 @@ export const giteaConfigSchema = z.object({
   addTopics: z.boolean().default(true),
   topicPrefix: z.string().optional(),
   preserveVisibility: z.boolean().default(true),
+  preserveOrgStructure: z.boolean().default(false),
   forkStrategy: z
     .enum(["skip", "reference", "full-copy"])
     .default("reference"),
@@ -76,6 +79,8 @@ export const scheduleConfigSchema = z.object({
   updateInterval: z.number().default(86400000),
   skipRecentlyMirrored: z.boolean().default(true),
   recentThreshold: z.number().default(3600000),
+  lastRun: z.coerce.date().optional(),
+  nextRun: z.coerce.date().optional(),
 });
 
 export const cleanupConfigSchema = z.object({
@@ -90,6 +95,8 @@ export const cleanupConfigSchema = z.object({
     .default("archive"),
   batchSize: z.number().default(10),
   pauseBetweenDeletes: z.number().default(2000),
+  lastRun: z.coerce.date().optional(),
+  nextRun: z.coerce.date().optional(),
 });
 
 export const configSchema = z.object({
@@ -243,7 +250,7 @@ export const users = sqliteTable("users", {
     .default(sql`(unixepoch())`),
   // Custom fields
   username: text("username"),
-});
+}, (_table) => []);
 
 export const events = sqliteTable("events", {
   id: text("id").primaryKey(),
@@ -256,13 +263,11 @@ export const events = sqliteTable("events", {
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
-}, (table) => {
-  return {
-    userChannelIdx: index("idx_events_user_channel").on(table.userId, table.channel),
-    createdAtIdx: index("idx_events_created_at").on(table.createdAt),
-    readIdx: index("idx_events_read").on(table.read),
-  };
-});
+}, (table) => [
+  index("idx_events_user_channel").on(table.userId, table.channel),
+  index("idx_events_created_at").on(table.createdAt),
+  index("idx_events_read").on(table.read),
+]);
 
 export const configs = sqliteTable("configs", {
   id: text("id").primaryKey(),
@@ -305,7 +310,7 @@ export const configs = sqliteTable("configs", {
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
-});
+}, (_table) => []);
 
 export const repositories = sqliteTable("repositories", {
   id: text("id").primaryKey(),
@@ -362,17 +367,15 @@ export const repositories = sqliteTable("repositories", {
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
-}, (table) => {
-  return {
-    userIdIdx: index("idx_repositories_user_id").on(table.userId),
-    configIdIdx: index("idx_repositories_config_id").on(table.configId),
-    statusIdx: index("idx_repositories_status").on(table.status),
-    ownerIdx: index("idx_repositories_owner").on(table.owner),
-    organizationIdx: index("idx_repositories_organization").on(table.organization),
-    isForkedIdx: index("idx_repositories_is_fork").on(table.isForked),
-    isStarredIdx: index("idx_repositories_is_starred").on(table.isStarred),
-  };
-});
+}, (table) => [
+  index("idx_repositories_user_id").on(table.userId),
+  index("idx_repositories_config_id").on(table.configId),
+  index("idx_repositories_status").on(table.status),
+  index("idx_repositories_owner").on(table.owner),
+  index("idx_repositories_organization").on(table.organization),
+  index("idx_repositories_is_fork").on(table.isForked),
+  index("idx_repositories_is_starred").on(table.isStarred),
+]);
 
 export const mirrorJobs = sqliteTable("mirror_jobs", {
   id: text("id").primaryKey(),
@@ -405,15 +408,13 @@ export const mirrorJobs = sqliteTable("mirror_jobs", {
   startedAt: integer("started_at", { mode: "timestamp" }),
   completedAt: integer("completed_at", { mode: "timestamp" }),
   lastCheckpoint: integer("last_checkpoint", { mode: "timestamp" }),
-}, (table) => {
-  return {
-    userIdIdx: index("idx_mirror_jobs_user_id").on(table.userId),
-    batchIdIdx: index("idx_mirror_jobs_batch_id").on(table.batchId),
-    inProgressIdx: index("idx_mirror_jobs_in_progress").on(table.inProgress),
-    jobTypeIdx: index("idx_mirror_jobs_job_type").on(table.jobType),
-    timestampIdx: index("idx_mirror_jobs_timestamp").on(table.timestamp),
-  };
-});
+}, (table) => [
+  index("idx_mirror_jobs_user_id").on(table.userId),
+  index("idx_mirror_jobs_batch_id").on(table.batchId),
+  index("idx_mirror_jobs_in_progress").on(table.inProgress),
+  index("idx_mirror_jobs_job_type").on(table.jobType),
+  index("idx_mirror_jobs_timestamp").on(table.timestamp),
+]);
 
 export const organizations = sqliteTable("organizations", {
   id: text("id").primaryKey(),
@@ -447,14 +448,12 @@ export const organizations = sqliteTable("organizations", {
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
-}, (table) => {
-  return {
-    userIdIdx: index("idx_organizations_user_id").on(table.userId),
-    configIdIdx: index("idx_organizations_config_id").on(table.configId),
-    statusIdx: index("idx_organizations_status").on(table.status),
-    isIncludedIdx: index("idx_organizations_is_included").on(table.isIncluded),
-  };
-});
+}, (table) => [
+  index("idx_organizations_user_id").on(table.userId),
+  index("idx_organizations_config_id").on(table.configId),
+  index("idx_organizations_status").on(table.status),
+  index("idx_organizations_is_included").on(table.isIncluded),
+]);
 
 // ===== Better Auth Tables =====
 
@@ -472,13 +471,11 @@ export const sessions = sqliteTable("sessions", {
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
-}, (table) => {
-  return {
-    userIdIdx: index("idx_sessions_user_id").on(table.userId),
-    tokenIdx: index("idx_sessions_token").on(table.token),
-    expiresAtIdx: index("idx_sessions_expires_at").on(table.expiresAt),
-  };
-});
+}, (table) => [
+  index("idx_sessions_user_id").on(table.userId),
+  index("idx_sessions_token").on(table.token),
+  index("idx_sessions_expires_at").on(table.expiresAt),
+]);
 
 // Accounts table (for OAuth providers and credentials)
 export const accounts = sqliteTable("accounts", {
@@ -497,13 +494,11 @@ export const accounts = sqliteTable("accounts", {
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
-}, (table) => {
-  return {
-    accountIdIdx: index("idx_accounts_account_id").on(table.accountId),
-    userIdIdx: index("idx_accounts_user_id").on(table.userId),
-    providerIdx: index("idx_accounts_provider").on(table.providerId, table.providerUserId),
-  };
-});
+}, (table) => [
+  index("idx_accounts_account_id").on(table.accountId),
+  index("idx_accounts_user_id").on(table.userId),
+  index("idx_accounts_provider").on(table.providerId, table.providerUserId),
+]);
 
 // Verification tokens table
 export const verificationTokens = sqliteTable("verification_tokens", {
@@ -515,12 +510,10 @@ export const verificationTokens = sqliteTable("verification_tokens", {
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
-}, (table) => {
-  return {
-    tokenIdx: index("idx_verification_tokens_token").on(table.token),
-    identifierIdx: index("idx_verification_tokens_identifier").on(table.identifier),
-  };
-});
+}, (table) => [
+  index("idx_verification_tokens_token").on(table.token),
+  index("idx_verification_tokens_identifier").on(table.identifier),
+]);
 
 // Verifications table (for Better Auth)
 export const verifications = sqliteTable("verifications", {
@@ -534,11 +527,9 @@ export const verifications = sqliteTable("verifications", {
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
-}, (table) => {
-  return {
-    identifierIdx: index("idx_verifications_identifier").on(table.identifier),
-  };
-});
+}, (table) => [
+  index("idx_verifications_identifier").on(table.identifier),
+]);
 
 // ===== OIDC Provider Tables =====
 
@@ -559,12 +550,10 @@ export const oauthApplications = sqliteTable("oauth_applications", {
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
-}, (table) => {
-  return {
-    clientIdIdx: index("idx_oauth_applications_client_id").on(table.clientId),
-    userIdIdx: index("idx_oauth_applications_user_id").on(table.userId),
-  };
-});
+}, (table) => [
+  index("idx_oauth_applications_client_id").on(table.clientId),
+  index("idx_oauth_applications_user_id").on(table.userId),
+]);
 
 // OAuth Access Tokens table
 export const oauthAccessTokens = sqliteTable("oauth_access_tokens", {
@@ -582,13 +571,11 @@ export const oauthAccessTokens = sqliteTable("oauth_access_tokens", {
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
-}, (table) => {
-  return {
-    accessTokenIdx: index("idx_oauth_access_tokens_access_token").on(table.accessToken),
-    userIdIdx: index("idx_oauth_access_tokens_user_id").on(table.userId),
-    clientIdIdx: index("idx_oauth_access_tokens_client_id").on(table.clientId),
-  };
-});
+}, (table) => [
+  index("idx_oauth_access_tokens_access_token").on(table.accessToken),
+  index("idx_oauth_access_tokens_user_id").on(table.userId),
+  index("idx_oauth_access_tokens_client_id").on(table.clientId),
+]);
 
 // OAuth Consent table
 export const oauthConsent = sqliteTable("oauth_consent", {
@@ -603,13 +590,11 @@ export const oauthConsent = sqliteTable("oauth_consent", {
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
-}, (table) => {
-  return {
-    userIdIdx: index("idx_oauth_consent_user_id").on(table.userId),
-    clientIdIdx: index("idx_oauth_consent_client_id").on(table.clientId),
-    userClientIdx: index("idx_oauth_consent_user_client").on(table.userId, table.clientId),
-  };
-});
+}, (table) => [
+  index("idx_oauth_consent_user_id").on(table.userId),
+  index("idx_oauth_consent_client_id").on(table.clientId),
+  index("idx_oauth_consent_user_client").on(table.userId, table.clientId),
+]);
 
 // ===== SSO Provider Tables =====
 
@@ -628,13 +613,11 @@ export const ssoProviders = sqliteTable("sso_providers", {
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
-}, (table) => {
-  return {
-    providerIdIdx: index("idx_sso_providers_provider_id").on(table.providerId),
-    domainIdx: index("idx_sso_providers_domain").on(table.domain),
-    issuerIdx: index("idx_sso_providers_issuer").on(table.issuer),
-  };
-});
+}, (table) => [
+  index("idx_sso_providers_provider_id").on(table.providerId),
+  index("idx_sso_providers_domain").on(table.domain),
+  index("idx_sso_providers_issuer").on(table.issuer),
+]);
 
 // Export type definitions
 export type User = z.infer<typeof userSchema>;

@@ -4,8 +4,8 @@
  */
 
 import { findInterruptedJobs, resumeInterruptedJob } from './helpers';
-import { db, repositories, organizations, mirrorJobs } from './db';
-import { eq, and, lt } from 'drizzle-orm';
+import { db, repositories, organizations, mirrorJobs, configs } from './db';
+import { eq, and, lt, inArray } from 'drizzle-orm';
 import { mirrorGithubRepoToGitea, mirrorGitHubOrgRepoToGiteaOrg, syncGiteaRepo } from './gitea';
 import { createGitHubClient } from './github';
 import { processWithResilience } from './utils/concurrency';
@@ -217,26 +217,26 @@ async function recoverMirrorJob(job: any, remainingItemIds: string[]) {
 
   try {
     // Get the config for this user with better error handling
-    const configs = await db
+    const userConfigs = await db
       .select()
-      .from(repositories)
-      .where(eq(repositories.userId, job.userId))
+      .from(configs)
+      .where(eq(configs.userId, job.userId))
       .limit(1);
 
-    if (configs.length === 0) {
+    if (userConfigs.length === 0) {
       throw new Error(`No configuration found for user ${job.userId}`);
     }
 
-    const config = configs[0];
-    if (!config.configId) {
-      throw new Error(`Configuration missing configId for user ${job.userId}`);
+    const config = userConfigs[0];
+    if (!config.id) {
+      throw new Error(`Configuration missing id for user ${job.userId}`);
     }
 
     // Get repositories to process with validation
     const repos = await db
       .select()
       .from(repositories)
-      .where(eq(repositories.id, remainingItemIds));
+      .where(inArray(repositories.id, remainingItemIds));
 
     if (repos.length === 0) {
       console.warn(`No repositories found for remaining item IDs: ${remainingItemIds.join(', ')}`);
@@ -286,7 +286,7 @@ async function recoverMirrorJob(job: any, remainingItemIds: string[]) {
         };
 
         // Mirror the repository based on whether it's in an organization
-        if (repo.organization && config.githubConfig.preserveOrgStructure) {
+        if (repo.organization && config.giteaConfig.preserveOrgStructure) {
           await mirrorGitHubOrgRepoToGiteaOrg({
             config,
             octokit,
@@ -346,26 +346,26 @@ async function recoverSyncJob(job: any, remainingItemIds: string[]) {
 
   try {
     // Get the config for this user with better error handling
-    const configs = await db
+    const userConfigs = await db
       .select()
-      .from(repositories)
-      .where(eq(repositories.userId, job.userId))
+      .from(configs)
+      .where(eq(configs.userId, job.userId))
       .limit(1);
 
-    if (configs.length === 0) {
+    if (userConfigs.length === 0) {
       throw new Error(`No configuration found for user ${job.userId}`);
     }
 
-    const config = configs[0];
-    if (!config.configId) {
-      throw new Error(`Configuration missing configId for user ${job.userId}`);
+    const config = userConfigs[0];
+    if (!config.id) {
+      throw new Error(`Configuration missing id for user ${job.userId}`);
     }
 
     // Get repositories to process with validation
     const repos = await db
       .select()
       .from(repositories)
-      .where(eq(repositories.id, remainingItemIds));
+      .where(inArray(repositories.id, remainingItemIds));
 
     if (repos.length === 0) {
       console.warn(`No repositories found for remaining item IDs: ${remainingItemIds.join(', ')}`);
@@ -397,6 +397,7 @@ async function recoverSyncJob(job: any, remainingItemIds: string[]) {
           errorMessage: repo.errorMessage ?? undefined,
           forkedFrom: repo.forkedFrom ?? undefined,
           visibility: repositoryVisibilityEnum.parse(repo.visibility || "public"),
+          mirroredLocation: repo.mirroredLocation || "",
         };
 
         // Sync the repository
