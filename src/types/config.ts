@@ -38,6 +38,7 @@ export interface GitHubConfig {
 
 export interface MirrorOptions {
   mirrorReleases: boolean;
+  releaseLimit?: number;  // Limit number of releases to mirror (default: 10)
   mirrorLFS: boolean;  // Mirror Git LFS objects
   mirrorMetadata: boolean;
   metadataComponents: {

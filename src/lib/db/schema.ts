@@ -53,6 +53,7 @@ export const giteaConfigSchema = z.object({
     .default("reference"),
   // Mirror options
   mirrorReleases: z.boolean().default(false),
+  releaseLimit: z.number().default(10),
   mirrorMetadata: z.boolean().default(false),
   mirrorIssues: z.boolean().default(false),
   mirrorPullRequests: z.boolean().default(false),

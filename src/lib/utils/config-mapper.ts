@@ -89,6 +89,7 @@ export function mapUiToDbConfig(
     
     // Mirror options from UI
     mirrorReleases: mirrorOptions.mirrorReleases,
+    releaseLimit: mirrorOptions.releaseLimit || 10,
     mirrorMetadata: mirrorOptions.mirrorMetadata,
     mirrorIssues: mirrorOptions.mirrorMetadata && mirrorOptions.metadataComponents.issues,
     mirrorPullRequests: mirrorOptions.mirrorMetadata && mirrorOptions.metadataComponents.pullRequests,
@@ -135,6 +136,7 @@ export function mapDbToUiConfig(dbConfig: any): {
   // Map mirror options from various database fields
   const mirrorOptions: MirrorOptions = {
     mirrorReleases: dbConfig.giteaConfig?.mirrorReleases || false,
+    releaseLimit: dbConfig.giteaConfig?.releaseLimit || 10,
     mirrorLFS: dbConfig.giteaConfig?.lfs || false,
     mirrorMetadata: dbConfig.giteaConfig?.mirrorMetadata || false,
     metadataComponents: {

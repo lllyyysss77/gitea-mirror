@@ -1399,12 +1399,16 @@ export async function mirrorGitHubReleasesToGitea({
     throw new Error(`Repository ${repository.name} does not exist in Gitea at ${repoOwner}. Please ensure the repository is mirrored first.`);
   }
 
+  // Get release limit from config (default to 10)
+  const releaseLimit = config.giteaConfig?.releaseLimit || 10;
+  
   const releases = await octokit.rest.repos.listReleases({
     owner: repository.owner,
     repo: repository.name,
+    per_page: releaseLimit, // Only fetch the latest N releases
   });
 
-  console.log(`[Releases] Found ${releases.data.length} releases to mirror for ${repository.fullName}`);
+  console.log(`[Releases] Found ${releases.data.length} releases (limited to latest ${releaseLimit}) to mirror for ${repository.fullName}`);
 
   if (releases.data.length === 0) {
     console.log(`[Releases] No releases to mirror for ${repository.fullName}`);
@@ -1414,7 +1418,12 @@ export async function mirrorGitHubReleasesToGitea({
   let mirroredCount = 0;
   let skippedCount = 0;
 
-  for (const release of releases.data) {
+  // Sort releases by created_at to ensure we get the most recent ones
+  const sortedReleases = releases.data.sort((a, b) => 
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  ).slice(0, releaseLimit);
+
+  for (const release of sortedReleases) {
     try {
       // Check if release already exists
       const existingReleasesResponse = await httpGet(
