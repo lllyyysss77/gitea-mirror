@@ -2,6 +2,17 @@
 
 This document provides a comprehensive list of all environment variables supported by Gitea Mirror. These can be used to configure the application via Docker or other deployment methods.
 
+## Environment Variables and UI Interaction
+
+When environment variables are set:
+1. They are loaded on application startup
+2. Values are stored in the database on first load
+3. The UI will display these values and they can be modified
+4. UI changes are saved to the database and persist
+5. Environment variables provide initial defaults but don't override UI changes
+
+**Note**: Some critical settings like `GITEA_LFS`, `MIRROR_RELEASES`, and `MIRROR_METADATA` will be visible and configurable in the UI even when set via environment variables.
+
 ## Table of Contents
 
 - [Core Configuration](#core-configuration)
@@ -85,7 +96,7 @@ Settings for the destination Gitea instance.
 |----------|-------------|---------|---------|
 | `GITEA_ORG_VISIBILITY` | Default organization visibility | `public` | `public`, `private`, `limited`, `default` |
 | `GITEA_MIRROR_INTERVAL` | Mirror sync interval (automatically enables scheduler) | `8h` | Duration string (e.g., `30m`, `1h`, `8h`, `24h`) |
-| `GITEA_LFS` | Enable LFS support (requires LFS on Gitea server) | `false` | `true`, `false` |
+| `GITEA_LFS` | Enable LFS support (requires LFS on Gitea server) - Shows in UI | `false` | `true`, `false` |
 | `GITEA_CREATE_ORG` | Auto-create organizations | `true` | `true`, `false` |
 | `GITEA_PRESERVE_VISIBILITY` | Preserve GitHub repo visibility in Gitea | `false` | `true`, `false` |
 
