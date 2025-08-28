@@ -38,6 +38,7 @@ export function mapUiToDbConfig(
     includeStarred: githubConfig.mirrorStarred,
     includePrivate: githubConfig.privateRepositories,
     includeForks: !advancedOptions.skipForks, // Note: UI has skipForks, DB has includeForks
+    skipForks: advancedOptions.skipForks, // Add skipForks field
     includeArchived: false, // Not in UI yet, default to false
     includePublic: true, // Not in UI yet, default to true
     
@@ -60,6 +61,8 @@ export function mapUiToDbConfig(
     url: giteaConfig.url,
     token: giteaConfig.token,
     defaultOwner: giteaConfig.username, // Map username to defaultOwner
+    organization: giteaConfig.organization, // Add organization field
+    preserveOrgStructure: giteaConfig.mirrorStrategy === "preserve" || giteaConfig.mirrorStrategy === "mixed", // Add preserveOrgStructure field
     
     // Mirror interval and options
     mirrorInterval: "8h", // Default value, could be made configurable
@@ -68,7 +71,7 @@ export function mapUiToDbConfig(
     
     // Visibility settings
     visibility: giteaConfig.visibility || "default",
-    preserveVisibility: giteaConfig.preserveOrgStructure,
+    preserveVisibility: false, // This should be a separate field, not the same as preserveOrgStructure
     
     // Organization creation
     createOrg: true, // Default to true

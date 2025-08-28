@@ -49,7 +49,7 @@ export const POST: APIRoute = async ({ request }) => {
     );
   } catch (error) {
     console.error('[Cleanup API] Error during manual cleanup:', error);
-    return createSecureErrorResponse(error);
+    return createSecureErrorResponse(error, 'manual cleanup', 500);
   }
 };
 
@@ -125,6 +125,6 @@ export const GET: APIRoute = async ({ request }) => {
     );
   } catch (error) {
     console.error('[Cleanup API] Error getting cleanup status:', error);
-    return createSecureErrorResponse(error);
+    return createSecureErrorResponse(error, 'cleanup status', 500);
   }
 };
