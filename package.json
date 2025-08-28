@@ -38,7 +38,8 @@
     "astro": "bunx --bun astro"
   },
   "overrides": {
-    "@esbuild-kit/esm-loader": "npm:tsx@^4.20.5"
+    "@esbuild-kit/esm-loader": "npm:tsx@^4.20.5",
+    "devalue": "^5.3.2"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",
