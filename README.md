@@ -204,6 +204,26 @@ Enable in Settings → Mirror Options → Mirror metadata
 - **Automatic Cleanup** - Configure retention period for activity logs
 - **Scheduled Sync** - Set custom intervals for automatic mirroring
 
+### Automatic Mirroring
+
+Gitea Mirror can automatically sync your repositories at regular intervals. There are two ways to configure this:
+
+#### Via Web Interface (Recommended)
+Navigate to the Configuration page and enable "Automatic Mirroring" with your preferred interval (e.g., every 6 hours, daily, etc.).
+
+#### Via Environment Variables
+Set `GITEA_MIRROR_INTERVAL` to automatically enable scheduled mirroring:
+
+```bash
+# Examples of supported formats:
+GITEA_MIRROR_INTERVAL=8h     # Every 8 hours
+GITEA_MIRROR_INTERVAL=30m    # Every 30 minutes  
+GITEA_MIRROR_INTERVAL=1d     # Daily
+GITEA_MIRROR_INTERVAL=86400  # Every 86400 seconds (24 hours)
+```
+
+When this variable is set, the scheduler automatically enables and runs at the specified interval. The timer starts from the last successful sync, not from container startup.
+
 ## Troubleshooting
 
 ### Reverse Proxy Configuration

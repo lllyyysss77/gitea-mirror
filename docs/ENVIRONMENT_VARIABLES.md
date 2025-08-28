@@ -95,7 +95,7 @@ Settings for the destination Gitea instance.
 | Variable | Description | Default | Options |
 |----------|-------------|---------|---------|
 | `GITEA_ORG_VISIBILITY` | Default organization visibility | `public` | `public`, `private`, `limited`, `default` |
-| `GITEA_MIRROR_INTERVAL` | Mirror sync interval (automatically enables scheduler) | `8h` | Duration string (e.g., `30m`, `1h`, `8h`, `24h`) |
+| `GITEA_MIRROR_INTERVAL` | Mirror sync interval - **automatically enables scheduled mirroring when set** | `8h` | Duration string (e.g., `30m`, `1h`, `8h`, `24h`, `1d`) or seconds |
 | `GITEA_LFS` | Enable LFS support (requires LFS on Gitea server) - Shows in UI | `false` | `true`, `false` |
 | `GITEA_CREATE_ORG` | Auto-create organizations | `true` | `true`, `false` |
 | `GITEA_PRESERVE_VISIBILITY` | Preserve GitHub repo visibility in Gitea | `false` | `true`, `false` |
@@ -351,9 +351,14 @@ BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000,http://192.168.1.100:3000
 
 3. **Token Security**: All tokens are encrypted before being stored in the database.
 
-4. **Backward Compatibility**: The `DELAY` variable is maintained for backward compatibility but `SCHEDULE_INTERVAL` is preferred.
+4. **Auto-Enabling Features**: Certain environment variables automatically enable features when set:
+   - `GITEA_MIRROR_INTERVAL` - Automatically enables scheduled mirroring
+   - `CLEANUP_DELETE_IF_NOT_IN_GITHUB=true` - Automatically enables repository cleanup
+   - `SCHEDULE_INTERVAL` or `DELAY` - Automatically enables the scheduler
 
-5. **Required Scopes**: The GitHub token requires the following scopes:
+5. **Backward Compatibility**: The `DELAY` variable is maintained for backward compatibility but `SCHEDULE_INTERVAL` is preferred.
+
+6. **Required Scopes**: The GitHub token requires the following scopes:
    - `repo` (full control of private repositories)
    - `admin:org` (read organization data)
    - Additional scopes may be required for specific features
