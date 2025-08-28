@@ -235,3 +235,4 @@ Repositories can have the following statuses:
 
 - **Confidentiality Guidelines**:
   - Dont ever say Claude Code or generated with AI anyhwere.
+- Never commit without the explicict ask

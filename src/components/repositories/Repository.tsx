@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Button } from "@/components/ui/button";
-import { Search, RefreshCw, FlipHorizontal, RotateCcw, X, Filter } from "lucide-react";
+import { Search, RefreshCw, FlipHorizontal, RotateCcw, X, Filter, Ban, Check } from "lucide-react";
 import type { MirrorRepoRequest, MirrorRepoResponse } from "@/types/mirror";
 import {
   Drawer,
@@ -210,10 +210,13 @@ export default function Repository() {
         return;
       }
 
-      // Filter out repositories that are already mirroring to avoid duplicate operations. also filter out mirrored (mirrored can be synced and not mirrored again)
+      // Filter out repositories that are already mirroring, mirrored, or ignored
       const eligibleRepos = repositories.filter(
         (repo) =>
-          repo.status !== "mirroring" && repo.status !== "mirrored" && repo.id //not ignoring failed ones because we want to retry them if not mirrored. if mirrored, gitea fucnion handlers will silently ignore them
+          repo.status !== "mirroring" && 
+          repo.status !== "mirrored" && 
+          repo.status !== "ignored" && // Skip ignored repositories
+          repo.id
       );
 
       if (eligibleRepos.length === 0) {
@@ -400,6 +403,80 @@ export default function Repository() {
     }
   };
 
+  const handleBulkSkip = async (skip: boolean) => {
+    if (selectedRepoIds.size === 0) return;
+    
+    const selectedRepos = repositories.filter(repo => repo.id && selectedRepoIds.has(repo.id));
+    const eligibleRepos = skip 
+      ? selectedRepos.filter(repo => 
+          repo.status !== "ignored" && 
+          repo.status !== "mirroring" && 
+          repo.status !== "syncing"
+        )
+      : selectedRepos.filter(repo => repo.status === "ignored");
+
+    if (eligibleRepos.length === 0) {
+      toast.info(`No eligible repositories to ${skip ? "ignore" : "include"} in selection`);
+      return;
+    }
+
+    const repoIds = eligibleRepos.map(repo => repo.id as string);
+    
+    setLoadingRepoIds(prev => {
+      const newSet = new Set(prev);
+      repoIds.forEach(id => newSet.add(id));
+      return newSet;
+    });
+
+    try {
+      // Update each repository's status
+      const newStatus = skip ? "ignored" : "imported";
+      const promises = repoIds.map(repoId => 
+        apiRequest<{ success: boolean; repository?: Repository; error?: string }>(
+          `/repositories/${repoId}/status`,
+          {
+            method: "PATCH",
+            data: { status: newStatus, userId: user?.id },
+          }
+        )
+      );
+      
+      const results = await Promise.allSettled(promises);
+      const successCount = results.filter(r => r.status === "fulfilled" && (r.value as any).success).length;
+      
+      if (successCount > 0) {
+        toast.success(`${successCount} repositories ${skip ? "ignored" : "included"}`);
+        
+        // Update local state for successful updates
+        const successfulRepoIds = new Set<string>();
+        results.forEach((result, index) => {
+          if (result.status === "fulfilled" && (result.value as any).success) {
+            successfulRepoIds.add(repoIds[index]);
+          }
+        });
+        
+        setRepositories(prevRepos =>
+          prevRepos.map(repo => {
+            if (repo.id && successfulRepoIds.has(repo.id)) {
+              return { ...repo, status: newStatus as any };
+            }
+            return repo;
+          })
+        );
+        
+        setSelectedRepoIds(new Set());
+      }
+      
+      if (successCount < repoIds.length) {
+        toast.error(`Failed to ${skip ? "ignore" : "include"} ${repoIds.length - successCount} repositories`);
+      }
+    } catch (error) {
+      showErrorToast(error, toast);
+    } finally {
+      setLoadingRepoIds(new Set());
+    }
+  };
+
   const handleSyncRepo = async ({ repoId }: { repoId: string }) => {
     try {
       if (!user || !user.id) {
@@ -433,6 +510,58 @@ export default function Repository() {
       showErrorToast(error, toast);
     } finally {
       setLoadingRepoIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(repoId);
+        return newSet;
+      });
+    }
+  };
+
+  const handleSkipRepo = async ({ repoId, skip }: { repoId: string; skip: boolean }) => {
+    try {
+      if (!user || !user.id) {
+        return;
+      }
+
+      // Check if repository is currently being processed
+      const repo = repositories.find(r => r.id === repoId);
+      if (skip && repo && (repo.status === "mirroring" || repo.status === "syncing")) {
+        toast.warning("Cannot skip repository while it's being processed");
+        return;
+      }
+
+      // Set loading state
+      setLoadingRepoIds(prev => {
+        const newSet = new Set(prev);
+        newSet.add(repoId);
+        return newSet;
+      });
+
+      const newStatus = skip ? "ignored" : "imported";
+      
+      // Update repository status via API
+      const response = await apiRequest<{ success: boolean; repository?: Repository; error?: string }>(
+        `/repositories/${repoId}/status`,
+        {
+          method: "PATCH",
+          data: { status: newStatus, userId: user.id },
+        }
+      );
+
+      if (response.success && response.repository) {
+        toast.success(`Repository ${skip ? "ignored" : "included"}`);
+        setRepositories(prevRepos =>
+          prevRepos.map(repo =>
+            repo.id === repoId ? response.repository! : repo
+          )
+        );
+      } else {
+        showErrorToast(response.error || `Error ${skip ? "ignoring" : "including"} repository`, toast);
+      }
+    } catch (error) {
+      showErrorToast(error, toast);
+    } finally {
+      setLoadingRepoIds(prev => {
         const newSet = new Set(prev);
         newSet.delete(repoId);
         return newSet;
@@ -543,7 +672,6 @@ export default function Repository() {
     if (selectedRepoIds.size === 0) return [];
     
     const selectedRepos = repositories.filter(repo => repo.id && selectedRepoIds.has(repo.id));
-    const statuses = new Set(selectedRepos.map(repo => repo.status));
     
     const actions = [];
     
@@ -562,10 +690,35 @@ export default function Repository() {
       actions.push('retry');
     }
     
+    // Check if any selected repos can be ignored
+    if (selectedRepos.some(repo => repo.status !== "ignored")) {
+      actions.push('ignore');
+    }
+    
+    // Check if any selected repos can be included (unignored)
+    if (selectedRepos.some(repo => repo.status === "ignored")) {
+      actions.push('include');
+    }
+    
     return actions;
   };
   
   const availableActions = getAvailableActions();
+  
+  // Get counts for eligible repositories for each action
+  const getActionCounts = () => {
+    const selectedRepos = repositories.filter(repo => repo.id && selectedRepoIds.has(repo.id));
+    
+    return {
+      mirror: selectedRepos.filter(repo => repo.status === "imported" || repo.status === "failed").length,
+      sync: selectedRepos.filter(repo => repo.status === "mirrored" || repo.status === "synced").length,
+      retry: selectedRepos.filter(repo => repo.status === "failed").length,
+      ignore: selectedRepos.filter(repo => repo.status !== "ignored").length,
+      include: selectedRepos.filter(repo => repo.status === "ignored").length,
+    };
+  };
+  
+  const actionCounts = getActionCounts();
 
   // Check if any filters are active
   const hasActiveFilters = !!(filter.owner || filter.organization || filter.status);
@@ -867,7 +1020,7 @@ export default function Repository() {
                     disabled={loadingRepoIds.size > 0}
                   >
                     <FlipHorizontal className="h-4 w-4 mr-2" />
-                    Mirror ({selectedRepoIds.size})
+                    Mirror ({actionCounts.mirror})
                   </Button>
                 )}
                 
@@ -879,7 +1032,7 @@ export default function Repository() {
                     disabled={loadingRepoIds.size > 0}
                   >
                     <RefreshCw className="h-4 w-4 mr-2" />
-                    Sync ({selectedRepoIds.size})
+                    Sync ({actionCounts.sync})
                   </Button>
                 )}
                 
@@ -892,6 +1045,30 @@ export default function Repository() {
                   >
                     <RotateCcw className="h-4 w-4 mr-2" />
                     Retry
+                  </Button>
+                )}
+                
+                {availableActions.includes('ignore') && (
+                  <Button
+                    variant="ghost"
+                    size="default"
+                    onClick={() => handleBulkSkip(true)}
+                    disabled={loadingRepoIds.size > 0}
+                  >
+                    <Ban className="h-4 w-4 mr-2" />
+                    Ignore
+                  </Button>
+                )}
+                
+                {availableActions.includes('include') && (
+                  <Button
+                    variant="outline"
+                    size="default"
+                    onClick={() => handleBulkSkip(false)}
+                    disabled={loadingRepoIds.size > 0}
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    Include
                   </Button>
                 )}
               </>
@@ -926,7 +1103,7 @@ export default function Repository() {
               disabled={loadingRepoIds.size > 0}
             >
               <FlipHorizontal className="h-4 w-4 mr-2" />
-              <span>Mirror </span>({selectedRepoIds.size})
+              <span>Mirror </span>({actionCounts.mirror})
             </Button>
           )}
           
@@ -938,7 +1115,7 @@ export default function Repository() {
               disabled={loadingRepoIds.size > 0}
             >
               <RefreshCw className="h-4 w-4 mr-2" />
-              <span className="hidden sm:inline">Sync </span>({selectedRepoIds.size})
+              <span className="hidden sm:inline">Sync </span>({actionCounts.sync})
             </Button>
           )}
           
@@ -951,6 +1128,30 @@ export default function Repository() {
             >
               <RotateCcw className="h-4 w-4 mr-2" />
               Retry
+            </Button>
+          )}
+          
+          {availableActions.includes('ignore') && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleBulkSkip(true)}
+              disabled={loadingRepoIds.size > 0}
+            >
+              <Ban className="h-4 w-4 mr-2" />
+              Ignore
+            </Button>
+          )}
+          
+          {availableActions.includes('include') && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleBulkSkip(false)}
+              disabled={loadingRepoIds.size > 0}
+            >
+              <Check className="h-4 w-4 mr-2" />
+              Include
             </Button>
           )}
           </div>
@@ -984,6 +1185,7 @@ export default function Repository() {
           onMirror={handleMirrorRepo}
           onSync={handleSyncRepo}
           onRetry={handleRetryRepoAction}
+          onSkip={handleSkipRepo}
           loadingRepoIds={loadingRepoIds}
           selectedRepoIds={selectedRepoIds}
           onSelectionChange={setSelectedRepoIds}
