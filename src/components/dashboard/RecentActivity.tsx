@@ -16,27 +16,27 @@ export function RecentActivity({ activities }: RecentActivityProps) {
           <a href="/activity">View All</a>
         </Button>
       </CardHeader>
-      <CardContent className="max-h-[300px] sm:max-h-[400px] lg:max-h-[calc(100dvh-22.5rem)] overflow-y-auto">
+      <CardContent>
         <div className="flex flex-col divide-y divide-border">
           {activities.length === 0 ? (
             <p className="text-sm text-muted-foreground">No recent activity</p>
           ) : (
             activities.map((activity, index) => (
-              <div key={index} className="flex items-start gap-x-4 py-4">
-                <div className="relative mt-1">
+              <div key={index} className="flex items-center gap-x-3 py-3.5">
+                <div className="relative flex-shrink-0">
                   <div
                     className={`h-2 w-2 rounded-full ${getStatusColor(
                       activity.status
                     )}`}
                   />
                 </div>
-                <div className="flex-1 space-y-1">
-                  <p className="text-sm font-medium leading-none break-words">
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium">
                     {activity.message}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
                     {formatDate(activity.timestamp)}
-                  </p>
+                  </div>
                 </div>
               </div>
             ))

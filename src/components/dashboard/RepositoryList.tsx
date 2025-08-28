@@ -47,14 +47,13 @@ export function RepositoryList({ repositories }: RepositoryListProps) {
 
   return (
     <Card className="w-full">
-      {/* calculating the max height based non the other elements and sizing styles */}
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Repositories</CardTitle>
         <Button variant="outline" asChild>
           <a href="/repositories">View All</a>
         </Button>
       </CardHeader>
-      <CardContent className="max-h-[300px] sm:max-h-[400px] lg:max-h-[calc(100dvh-22.5rem)] overflow-y-auto">
+      <CardContent>
         {repositories.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-6 text-center">
             <GitFork className="h-10 w-10 text-muted-foreground mb-4" />
@@ -71,89 +70,80 @@ export function RepositoryList({ repositories }: RepositoryListProps) {
             {repositories.map((repo, index) => (
               <div
                 key={index}
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-x-4 py-4"
+                className="flex items-center gap-x-3 py-3.5"
               >
-                <div className="flex-1">
-                  <div className="flex items-center flex-wrap gap-2">
-                    <h4 className="text-sm font-medium break-all">{repo.name}</h4>
-                    {repo.isPrivate && (
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs">
-                        Private
-                      </span>
-                    )}
-                    {repo.isForked && (
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs">
-                        Fork
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-muted-foreground">
-                      {repo.owner}
-                    </span>
-                    {repo.organization && (
-                      <span className="text-xs text-muted-foreground">
-                        • {repo.organization}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 sm:ml-auto">
+                <div className="relative flex-shrink-0">
                   <div
                     className={`h-2 w-2 rounded-full ${getStatusColor(
                       repo.status
                     )}`}
                   />
-                  <span className="text-xs capitalize w-[3rem] sm:w-auto">
-                    {/* setting the minimum width to 3rem corresponding to the largest status (mirrored) so that all are left alligned */}
-                    {repo.status}
-                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="text-sm font-medium truncate">{repo.name}</h4>
+                    {repo.isPrivate && (
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px]">
+                        Private
+                      </span>
+                    )}
+                    {repo.isForked && (
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px]">
+                        Fork
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
+                    <span className="truncate">{repo.owner}</span>
+                    {repo.organization && (
+                      <>
+                        <span>/</span>
+                        <span className="truncate">{repo.organization}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-medium mr-2
+                  ${repo.status === 'imported' ? 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400' :
+                    repo.status === 'mirrored' || repo.status === 'synced' ? 'bg-green-500/10 text-green-600 dark:text-green-400' :
+                    repo.status === 'mirroring' || repo.status === 'syncing' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400' :
+                    repo.status === 'failed' ? 'bg-red-500/10 text-red-600 dark:text-red-400' :
+                    'bg-muted text-muted-foreground'}`}>
+                  {repo.status}
+                </span>
+
+                <div className="flex items-center gap-1 flex-shrink-0">
                   {(() => {
                     const giteaUrl = getGiteaRepoUrl(repo);
+                    const giteaEnabled = giteaUrl && ['mirrored', 'synced'].includes(repo.status);
 
-                    // Determine tooltip based on status and configuration
-                    let tooltip: string;
-                    if (!giteaConfig?.url) {
-                      tooltip = "Gitea not configured";
-                    } else if (repo.status === 'imported') {
-                      tooltip = "Repository not yet mirrored to Gitea";
-                    } else if (repo.status === 'failed') {
-                      tooltip = "Repository mirroring failed";
-                    } else if (repo.status === 'mirroring') {
-                      tooltip = "Repository is being mirrored to Gitea";
-                    } else if (giteaUrl) {
-                      tooltip = "View on Gitea";
-                    } else {
-                      tooltip = "Gitea repository not available";
-                    }
-
-                    return giteaUrl ? (
-                      <Button variant="ghost" size="icon" asChild>
+                    return giteaEnabled ? (
+                      <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
                         <a
                           href={giteaUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          title={tooltip}
+                          title="View on Gitea"
                         >
                           <SiGitea className="h-4 w-4" />
                         </a>
                       </Button>
                     ) : (
-                      <Button variant="ghost" size="icon" disabled title={tooltip}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" disabled title="Not mirrored yet">
                         <SiGitea className="h-4 w-4" />
                       </Button>
                     );
                   })()}
-                  <Button variant="ghost" size="icon" asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
                     <a
                       href={repo.url}
                       target="_blank"
                       rel="noopener noreferrer"
                       title="View on GitHub"
-                      >
-                       <SiGithub className="h-4 w-4" />
-                      </a>
+                    >
+                      <SiGithub className="h-4 w-4" />
+                    </a>
                   </Button>
                 </div>
               </div>
