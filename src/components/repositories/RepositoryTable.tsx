@@ -1,7 +1,7 @@
 import { useMemo, useRef } from "react";
 import Fuse from "fuse.js";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { FlipHorizontal, GitFork, RefreshCw, RotateCcw, Star, Lock } from "lucide-react";
+import { FlipHorizontal, GitFork, RefreshCw, RotateCcw, Star, Lock, Ban, Check, ChevronDown } from "lucide-react";
 import { SiGithub, SiGitea } from "react-icons/si";
 import type { Repository } from "@/lib/db/schema";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,12 @@ import {
 import { InlineDestinationEditor } from "./InlineDestinationEditor";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface RepositoryTableProps {
   repositories: Repository[];
@@ -29,6 +35,7 @@ interface RepositoryTableProps {
   onMirror: ({ repoId }: { repoId: string }) => Promise<void>;
   onSync: ({ repoId }: { repoId: string }) => Promise<void>;
   onRetry: ({ repoId }: { repoId: string }) => Promise<void>;
+  onSkip: ({ repoId, skip }: { repoId: string; skip: boolean }) => Promise<void>;
   loadingRepoIds: Set<string>;
   selectedRepoIds: Set<string>;
   onSelectionChange: (selectedIds: Set<string>) => void;
@@ -44,6 +51,7 @@ export default function RepositoryTable({
   onMirror,
   onSync,
   onRetry,
+  onSkip,
   loadingRepoIds,
   selectedRepoIds,
   onSelectionChange,
@@ -220,10 +228,19 @@ export default function RepositoryTable({
 
               {/* Status & Last Mirrored */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className={`h-2.5 w-2.5 rounded-full ${getStatusColor(repo.status)}`} />
-                  <span className="text-sm font-medium capitalize">{repo.status}</span>
-                </div>
+                <Badge 
+                  className={`capitalize
+                    ${repo.status === 'imported' ? 'bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20 dark:text-yellow-400' :
+                      repo.status === 'mirrored' || repo.status === 'synced' ? 'bg-green-500/10 text-green-600 hover:bg-green-500/20 dark:text-green-400' :
+                      repo.status === 'mirroring' || repo.status === 'syncing' ? 'bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 dark:text-blue-400' :
+                      repo.status === 'failed' ? 'bg-red-500/10 text-red-600 hover:bg-red-500/20 dark:text-red-400' :
+                      repo.status === 'ignored' ? 'bg-gray-500/10 text-gray-600 hover:bg-gray-500/20 dark:text-gray-400' :
+                      repo.status === 'skipped' ? 'bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 dark:text-orange-400' :
+                      'bg-muted hover:bg-muted/80'}`}
+                  variant="secondary"
+                >
+                  {repo.status}
+                </Badge>
                 <span className="text-xs text-muted-foreground">
                   {repo.lastMirrored ? formatDate(repo.lastMirrored) : "Never mirrored"}
                 </span>
@@ -294,6 +311,31 @@ export default function RepositoryTable({
                       Retry Mirror
                     </>
                   )}
+                </Button>
+              )}
+              
+              {/* Ignore/Include button */}
+              {repo.status === "ignored" ? (
+                <Button
+                  size="default"
+                  variant="outline"
+                  onClick={() => repo.id && onSkip({ repoId: repo.id, skip: false })}
+                  disabled={isLoading}
+                  className="w-full h-10"
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Include Repository
+                </Button>
+              ) : (
+                <Button
+                  size="default"
+                  variant="ghost"
+                  onClick={() => repo.id && onSkip({ repoId: repo.id, skip: true })}
+                  disabled={isLoading}
+                  className="w-full h-10"
+                >
+                  <Ban className="h-4 w-4 mr-2" />
+                  Ignore Repository
                 </Button>
               )}
               
@@ -546,8 +588,7 @@ export default function RepositoryTable({
                       </div>
 
                       {/* Repository */}
-                      <div className="h-full p-3 flex items-center gap-2 flex-[2.5]">
-                        <GitFork className="h-4 w-4 text-muted-foreground" />
+                      <div className="h-full py-3 flex items-center gap-2 flex-[2.5]">
                         <div className="flex-1">
                           <div className="font-medium flex items-center gap-1">
                             {repo.name}
@@ -595,15 +636,17 @@ export default function RepositoryTable({
                       </div>
 
                       {/* Status */}
-                      <div className="h-full p-3 flex items-center gap-x-2 flex-[1]">
+                      <div className="h-full p-3 flex items-center flex-[1]">
                         {repo.status === "failed" && repo.errorMessage ? (
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <div className="flex items-center gap-x-2 cursor-help">
-                                  <div className={`h-2 w-2 rounded-full ${getStatusColor(repo.status)}`} />
-                                  <span className="text-sm capitalize underline decoration-dotted">{repo.status}</span>
-                                </div>
+                                <Badge 
+                                  variant="destructive"
+                                  className="cursor-help capitalize"
+                                >
+                                  {repo.status}
+                                </Badge>
                               </TooltipTrigger>
                               <TooltipContent className="max-w-xs">
                                 <p className="text-sm">{repo.errorMessage}</p>
@@ -611,10 +654,19 @@ export default function RepositoryTable({
                             </Tooltip>
                           </TooltipProvider>
                         ) : (
-                          <>
-                            <div className={`h-2 w-2 rounded-full ${getStatusColor(repo.status)}`} />
-                            <span className="text-sm capitalize">{repo.status}</span>
-                          </>
+                          <Badge 
+                            className={`capitalize
+                              ${repo.status === 'imported' ? 'bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20 dark:text-yellow-400' :
+                                repo.status === 'mirrored' || repo.status === 'synced' ? 'bg-green-500/10 text-green-600 hover:bg-green-500/20 dark:text-green-400' :
+                                repo.status === 'mirroring' || repo.status === 'syncing' ? 'bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 dark:text-blue-400' :
+                                repo.status === 'failed' ? 'bg-red-500/10 text-red-600 hover:bg-red-500/20 dark:text-red-400' :
+                                repo.status === 'ignored' ? 'bg-gray-500/10 text-gray-600 hover:bg-gray-500/20 dark:text-gray-400' :
+                                repo.status === 'skipped' ? 'bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 dark:text-orange-400' :
+                                'bg-muted hover:bg-muted/80'}`}
+                            variant="secondary"
+                          >
+                            {repo.status}
+                          </Badge>
                         )}
                       </div>
                       {/* Actions */}
@@ -625,6 +677,7 @@ export default function RepositoryTable({
                           onMirror={() => onMirror({ repoId: repo.id ?? "" })}
                           onSync={() => onSync({ repoId: repo.id ?? "" })}
                           onRetry={() => onRetry({ repoId: repo.id ?? "" })}
+                          onSkip={(skip) => onSkip({ repoId: repo.id ?? "", skip })}
                         />
                       </div>
                       {/* Links */}
@@ -734,54 +787,108 @@ function RepoActionButton({
   onMirror,
   onSync,
   onRetry,
+  onSkip,
 }: {
   repo: { id: string; status: string };
   isLoading: boolean;
   onMirror: () => void;
   onSync: () => void;
   onRetry: () => void;
+  onSkip: (skip: boolean) => void;
 }) {
-  let label = "";
-  let icon = <></>;
-  let onClick = () => {};
-  let disabled = isLoading;
-
-  if (repo.status === "failed") {
-    label = "Retry";
-    icon = <RotateCcw className="h-4 w-4 mr-1" />;
-    onClick = onRetry;
-  } else if (["mirrored", "synced", "syncing"].includes(repo.status)) {
-    label = "Sync";
-    icon = <RefreshCw className="h-4 w-4 mr-1" />;
-    onClick = onSync;
-    disabled ||= repo.status === "syncing";
-  } else if (["imported", "mirroring"].includes(repo.status)) {
-    label = "Mirror";
-    icon = <FlipHorizontal className="h-4 w-4 mr-1" />;
-    onClick = onMirror;
-    disabled ||= repo.status === "mirroring";
-  } else {
-    return null; // unsupported status
+  // For ignored repos, show an "Include" action
+  if (repo.status === "ignored") {
+    return (
+      <Button
+        variant="outline"
+        disabled={isLoading}
+        onClick={() => onSkip(false)}
+        className="min-w-[80px] justify-start"
+      >
+        <Check className="h-4 w-4 mr-1" />
+        Include
+      </Button>
+    );
   }
 
+  // For actionable statuses, show action + dropdown for skip
+  let primaryLabel = "";
+  let primaryIcon = <></>;
+  let primaryOnClick = () => {};
+  let primaryDisabled = isLoading;
+  let showPrimaryAction = true;
+
+  if (repo.status === "failed") {
+    primaryLabel = "Retry";
+    primaryIcon = <RotateCcw className="h-4 w-4" />;
+    primaryOnClick = onRetry;
+  } else if (["mirrored", "synced", "syncing"].includes(repo.status)) {
+    primaryLabel = "Sync";
+    primaryIcon = <RefreshCw className="h-4 w-4" />;
+    primaryOnClick = onSync;
+    primaryDisabled ||= repo.status === "syncing";
+  } else if (["imported", "mirroring"].includes(repo.status)) {
+    primaryLabel = "Mirror";
+    primaryIcon = <FlipHorizontal className="h-4 w-4" />;
+    primaryOnClick = onMirror;
+    primaryDisabled ||= repo.status === "mirroring";
+  } else {
+    showPrimaryAction = false;
+  }
+
+  // If there's no primary action, just show ignore button
+  if (!showPrimaryAction) {
+    return (
+      <Button
+        variant="ghost"
+        disabled={isLoading}
+        onClick={() => onSkip(true)}
+        className="min-w-[80px] justify-start"
+      >
+        <Ban className="h-4 w-4 mr-1" />
+        Ignore
+      </Button>
+    );
+  }
+
+  // Show primary action with dropdown for skip option
   return (
-    <Button
-      variant="ghost"
-      disabled={disabled}
-      onClick={onClick}
-      className="min-w-[80px] justify-start"
-    >
-      {isLoading ? (
-        <>
-          <RefreshCw className="h-4 w-4 animate-spin mr-1" />
-          {label}
-        </>
-      ) : (
-        <>
-          {icon}
-          {label}
-        </>
-      )}
-    </Button>
+    <DropdownMenu>
+      <div className="flex">
+        <Button
+          variant="ghost"
+          disabled={primaryDisabled}
+          onClick={primaryOnClick}
+          className="min-w-[80px] justify-start rounded-r-none"
+        >
+          {isLoading ? (
+            <>
+              <RefreshCw className="h-4 w-4 animate-spin mr-1" />
+              {primaryLabel}
+            </>
+          ) : (
+            <>
+              {primaryIcon}
+              <span className="ml-1">{primaryLabel}</span>
+            </>
+          )}
+        </Button>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            disabled={isLoading}
+            className="rounded-l-none px-2 border-l"
+          >
+            <ChevronDown className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+      </div>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => onSkip(true)}>
+          <Ban className="h-4 w-4 mr-2" />
+          Ignore Repository
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

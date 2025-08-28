@@ -11,11 +11,12 @@ import { authClient } from '@/lib/auth-client';
 import { Separator } from '@/components/ui/separator';
 import { toast, Toaster } from 'sonner';
 import { showErrorToast } from '@/lib/utils';
-import { Loader2, Mail, Globe } from 'lucide-react';
+import { Loader2, Mail, Globe, Eye, EyeOff } from 'lucide-react';
 
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [ssoEmail, setSsoEmail] = useState('');
   const { login } = useAuth();
   const { authMethods, isLoading: isLoadingMethods } = useAuthMethods();
@@ -139,15 +140,29 @@ export function LoginForm() {
                           <label htmlFor="password" className="block text-sm font-medium mb-1">
                             Password
                           </label>
-                          <input
-                            id="password"
-                            name="password"
-                            type="password"
-                            required
-                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                            placeholder="Enter your password"
-                            disabled={isLoading}
-                          />
+                          <div className="relative">
+                            <input
+                              id="password"
+                              name="password"
+                              type={showPassword ? "text" : "password"}
+                              required
+                              className="w-full rounded-md border border-input bg-background px-3 py-2 pr-10 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                              placeholder="Enter your password"
+                              disabled={isLoading}
+                            />
+                            <button
+                              type="button"
+                              className="absolute inset-y-0 right-0 flex items-center pr-3"
+                              onClick={() => setShowPassword(!showPassword)}
+                              tabIndex={-1}
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+                              ) : (
+                                <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+                              )}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </form>

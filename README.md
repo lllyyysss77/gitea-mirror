@@ -35,9 +35,13 @@ First user signup becomes admin. Configure GitHub and Gitea through the web inte
 - 🔁 Mirror public, private, and starred GitHub repos to Gitea
 - 🏢 Mirror entire organizations with flexible strategies
 - 🎯 Custom destination control for repos and organizations
+- 📦 **Git LFS support** - Mirror large files with Git LFS
+- 📝 **Metadata mirroring** - Issues, pull requests (as issues), labels, milestones, wiki
+- 🚫 **Repository ignore** - Mark specific repos to skip
 - 🔐 Secure authentication with Better Auth (email/password, SSO, OIDC)
 - 📊 Real-time dashboard with activity logs
-- ⏱️ Scheduled automatic mirroring
+- ⏱️ Scheduled automatic mirroring with flexible intervals
+- 🗑️ Automatic database cleanup with configurable retention
 - 🐳 Dockerized with multi-arch support (AMD64/ARM64)
 
 ## 📸 Screenshots
@@ -176,6 +180,30 @@ bun run dev
    - Override individual repository destinations in the table view
    - Starred repositories automatically go to a dedicated organization
 
+## Advanced Features
+
+### Git LFS (Large File Storage)
+Mirror Git LFS objects along with your repositories:
+- Enable "Mirror LFS" option in Settings → Mirror Options
+- Requires Gitea server with LFS enabled (`LFS_START_SERVER = true`)
+- Requires Git v2.1.2+ on the server
+
+### Metadata Mirroring
+Transfer complete repository metadata from GitHub to Gitea:
+- **Issues** - Mirror all issues with comments and labels
+- **Pull Requests** - Transfer PR discussions to Gitea
+- **Labels** - Preserve repository labels
+- **Milestones** - Keep project milestones
+- **Wiki** - Mirror wiki content
+- **Releases** - Transfer GitHub releases with assets
+
+Enable in Settings → Mirror Options → Mirror metadata
+
+### Repository Management
+- **Ignore Status** - Mark repositories to skip from mirroring
+- **Automatic Cleanup** - Configure retention period for activity logs
+- **Scheduled Sync** - Set custom intervals for automatic mirroring
+
 ## Troubleshooting
 
 ### Reverse Proxy Configuration
@@ -282,6 +310,31 @@ Gitea Mirror can also act as an OIDC provider for other applications. Register O
 - Allow other services to authenticate using Gitea Mirror accounts
 - Create service-to-service authentication
 - Build integrations with your Gitea Mirror instance
+
+## Known Limitations
+
+### Pull Request Mirroring Implementation
+Pull requests **cannot be created as actual PRs** in Gitea due to API limitations. Instead, they are mirrored as **enriched issues** with comprehensive metadata.
+
+**Why real PR mirroring isn't possible:**
+- Gitea's API doesn't support creating pull requests from external sources
+- Real PRs require actual Git branches with commits to exist in the repository
+- Would require complex branch synchronization and commit replication
+- The mirror relationship is one-way (GitHub → Gitea) for repository content
+
+**How we handle Pull Requests:**
+PRs are mirrored as issues with rich metadata including:
+- 🏷️ Special "pull-request" label for identification
+- 📌 [PR #number] prefix in title with status indicators ([MERGED], [CLOSED])
+- 👤 Original author and creation date
+- 📝 Complete commit history (up to 10 commits with links)
+- 📊 File changes summary with additions/deletions
+- 📁 List of modified files (up to 20 files)
+- 💬 Original PR description and comments
+- 🔀 Base and head branch information
+- ✅ Merge status tracking
+
+This approach preserves all important PR information while working within Gitea's API constraints. The PRs appear in Gitea's issue tracker with clear visual distinction and comprehensive details.
 
 ## Contributing
 

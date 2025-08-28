@@ -6,6 +6,10 @@ export const repoStatusEnum = z.enum([
   "mirroring",
   "mirrored",
   "failed",
+  "skipped",
+  "ignored",  // User explicitly wants to ignore this repository
+  "deleting",
+  "deleted",
   "syncing",
   "synced",
 ]);

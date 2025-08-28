@@ -29,7 +29,8 @@ import {
   BookOpen,
   GitFork,
   ChevronDown,
-  Funnel
+  Funnel,
+  HardDrive
 } from "lucide-react";
 import type { GitHubConfig, MirrorOptions, AdvancedOptions } from "@/types/config";
 import { cn } from "@/lib/utils";
@@ -56,7 +57,7 @@ export function GitHubMirrorSettings({
     onGitHubConfigChange({ ...githubConfig, [field]: value });
   };
 
-  const handleMirrorChange = (field: keyof MirrorOptions, value: boolean) => {
+  const handleMirrorChange = (field: keyof MirrorOptions, value: boolean | number) => {
     onMirrorOptionsChange({ ...mirrorOptions, [field]: value });
   };
 
@@ -312,15 +313,61 @@ export function GitHubMirrorSettings({
               onCheckedChange={(checked) => handleMirrorChange('mirrorReleases', !!checked)}
             />
             <div className="space-y-0.5 flex-1">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <Label
+                    htmlFor="mirror-releases"
+                    className="text-sm font-normal cursor-pointer flex items-center gap-2"
+                  >
+                    <Tag className="h-3.5 w-3.5" />
+                    Releases & Tags
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Include GitHub releases, tags, and associated assets
+                  </p>
+                </div>
+                {mirrorOptions.mirrorReleases && (
+                  <div className="flex items-center gap-2 ml-4">
+                    <label htmlFor="release-limit" className="text-xs text-muted-foreground">
+                      Latest
+                    </label>
+                    <input
+                      id="release-limit"
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={mirrorOptions.releaseLimit || 10}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value) || 10;
+                        const clampedValue = Math.min(100, Math.max(1, value));
+                        handleMirrorChange('releaseLimit', clampedValue);
+                      }}
+                      className="w-16 px-2 py-1 text-xs border border-input rounded bg-background text-foreground"
+                    />
+                    <span className="text-xs text-muted-foreground">releases</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-start space-x-3">
+            <Checkbox
+              id="mirror-lfs"
+              checked={mirrorOptions.mirrorLFS}
+              onCheckedChange={(checked) => handleMirrorChange('mirrorLFS', !!checked)}
+            />
+            <div className="space-y-0.5 flex-1">
               <Label
-                htmlFor="mirror-releases"
+                htmlFor="mirror-lfs"
                 className="text-sm font-normal cursor-pointer flex items-center gap-2"
               >
-                <Tag className="h-3.5 w-3.5" />
-                Releases & Tags
+                <HardDrive className="h-3.5 w-3.5" />
+                Git LFS (Large File Storage)
+                <Badge variant="secondary" className="ml-2 text-[10px] px-1.5 py-0">BETA</Badge>
               </Label>
               <p className="text-xs text-muted-foreground">
-                Include GitHub releases, tags, and associated assets
+                Mirror Git LFS objects. Requires LFS to be enabled on your Gitea server and Git v2.1.2+
               </p>
             </div>
           </div>
@@ -430,6 +477,31 @@ export function GitHubMirrorSettings({
                         >
                           <GitPullRequest className="h-3.5 w-3.5 text-muted-foreground" />
                           Pull Requests
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-3 w-3 text-muted-foreground" />
+                              </TooltipTrigger>
+                              <TooltipContent side="right" className="max-w-sm">
+                                <div className="space-y-2">
+                                  <p className="font-semibold">Pull Requests are mirrored as issues</p>
+                                  <p className="text-xs">
+                                    Due to Gitea API limitations, PRs cannot be created as actual pull requests.
+                                    Instead, they are mirrored as issues with:
+                                  </p>
+                                  <ul className="text-xs space-y-1 ml-3">
+                                    <li>• [PR #number] prefix in title</li>
+                                    <li>• Full PR description and metadata</li>
+                                    <li>• Commit history (up to 10 commits)</li>
+                                    <li>• File changes summary</li>
+                                    <li>• Diff preview (first 5 files)</li>
+                                    <li>• Review comments preserved</li>
+                                    <li>• Merge/close status tracking</li>
+                                  </ul>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </Label>
                       </div>
 

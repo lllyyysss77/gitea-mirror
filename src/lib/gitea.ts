@@ -7,7 +7,7 @@ import { membershipRoleEnum } from "@/types/organizations";
 import { Octokit } from "@octokit/rest";
 import type { Config } from "@/types/config";
 import type { Organization, Repository } from "./db/schema";
-import { httpPost, httpGet } from "./http-client";
+import { httpPost, httpGet, httpDelete, httpPut } from "./http-client";
 import { createMirrorJob } from "./helpers";
 import { db, organizations, repositories } from "./db";
 import { eq, and } from "drizzle-orm";
@@ -418,6 +418,7 @@ export const mirrorGithubRepoToGitea = async ({
         repo_name: repository.name,
         mirror: true,
         wiki: config.giteaConfig?.wiki || false, // will mirror wiki if it exists
+        lfs: config.giteaConfig?.lfs || false, // Enable LFS mirroring if configured
         private: repository.isPrivate,
         repo_owner: repoOwner,
         description: "",
@@ -431,11 +432,17 @@ export const mirrorGithubRepoToGitea = async ({
     //mirror releases
     console.log(`[Metadata] Release mirroring check: mirrorReleases=${config.giteaConfig?.mirrorReleases}`);
     if (config.giteaConfig?.mirrorReleases) {
-      await mirrorGitHubReleasesToGitea({
-        config,
-        octokit,
-        repository,
-      });
+      try {
+        await mirrorGitHubReleasesToGitea({
+          config,
+          octokit,
+          repository,
+        });
+        console.log(`[Metadata] Successfully mirrored releases for ${repository.name}`);
+      } catch (error) {
+        console.error(`[Metadata] Failed to mirror releases for ${repository.name}: ${error instanceof Error ? error.message : String(error)}`);
+        // Continue with other operations even if releases fail
+      }
     }
 
     // clone issues
@@ -446,45 +453,69 @@ export const mirrorGithubRepoToGitea = async ({
     console.log(`[Metadata] Issue mirroring check: mirrorIssues=${config.giteaConfig?.mirrorIssues}, isStarred=${repository.isStarred}, skipStarredIssues=${config.githubConfig?.skipStarredIssues}, shouldMirrorIssues=${shouldMirrorIssues}`);
     
     if (shouldMirrorIssues) {
-      await mirrorGitRepoIssuesToGitea({
-        config,
-        octokit,
-        repository,
-        giteaOwner: repoOwner,
-      });
+      try {
+        await mirrorGitRepoIssuesToGitea({
+          config,
+          octokit,
+          repository,
+          giteaOwner: repoOwner,
+        });
+        console.log(`[Metadata] Successfully mirrored issues for ${repository.name}`);
+      } catch (error) {
+        console.error(`[Metadata] Failed to mirror issues for ${repository.name}: ${error instanceof Error ? error.message : String(error)}`);
+        // Continue with other metadata operations even if issues fail
+      }
     }
 
     // Mirror pull requests if enabled
     console.log(`[Metadata] Pull request mirroring check: mirrorPullRequests=${config.giteaConfig?.mirrorPullRequests}`);
     if (config.giteaConfig?.mirrorPullRequests) {
-      await mirrorGitRepoPullRequestsToGitea({
-        config,
-        octokit,
-        repository,
-        giteaOwner: repoOwner,
-      });
+      try {
+        await mirrorGitRepoPullRequestsToGitea({
+          config,
+          octokit,
+          repository,
+          giteaOwner: repoOwner,
+        });
+        console.log(`[Metadata] Successfully mirrored pull requests for ${repository.name}`);
+      } catch (error) {
+        console.error(`[Metadata] Failed to mirror pull requests for ${repository.name}: ${error instanceof Error ? error.message : String(error)}`);
+        // Continue with other metadata operations even if PRs fail
+      }
     }
 
     // Mirror labels if enabled (and not already done via issues)
     console.log(`[Metadata] Label mirroring check: mirrorLabels=${config.giteaConfig?.mirrorLabels}, shouldMirrorIssues=${shouldMirrorIssues}`);
     if (config.giteaConfig?.mirrorLabels && !shouldMirrorIssues) {
-      await mirrorGitRepoLabelsToGitea({
-        config,
-        octokit,
-        repository,
-        giteaOwner: repoOwner,
-      });
+      try {
+        await mirrorGitRepoLabelsToGitea({
+          config,
+          octokit,
+          repository,
+          giteaOwner: repoOwner,
+        });
+        console.log(`[Metadata] Successfully mirrored labels for ${repository.name}`);
+      } catch (error) {
+        console.error(`[Metadata] Failed to mirror labels for ${repository.name}: ${error instanceof Error ? error.message : String(error)}`);
+        // Continue with other metadata operations even if labels fail
+      }
     }
 
     // Mirror milestones if enabled
     console.log(`[Metadata] Milestone mirroring check: mirrorMilestones=${config.giteaConfig?.mirrorMilestones}`);
     if (config.giteaConfig?.mirrorMilestones) {
-      await mirrorGitRepoMilestonesToGitea({
-        config,
-        octokit,
-        repository,
-        giteaOwner: repoOwner,
-      });
+      try {
+        await mirrorGitRepoMilestonesToGitea({
+          config,
+          octokit,
+          repository,
+          giteaOwner: repoOwner,
+        });
+        console.log(`[Metadata] Successfully mirrored milestones for ${repository.name}`);
+      } catch (error) {
+        console.error(`[Metadata] Failed to mirror milestones for ${repository.name}: ${error instanceof Error ? error.message : String(error)}`);
+        // Continue with other metadata operations even if milestones fail
+      }
     }
 
     console.log(`Repository ${repository.name} mirrored successfully`);
@@ -681,6 +712,7 @@ export async function mirrorGitHubRepoToGiteaOrg({
         repo_name: repository.name,
         mirror: true,
         wiki: config.giteaConfig?.wiki || false, // will mirror wiki if it exists
+        lfs: config.giteaConfig?.lfs || false, // Enable LFS mirroring if configured
         private: repository.isPrivate,
       },
       {
@@ -691,11 +723,17 @@ export async function mirrorGitHubRepoToGiteaOrg({
     //mirror releases
     console.log(`[Metadata] Release mirroring check: mirrorReleases=${config.giteaConfig?.mirrorReleases}`);
     if (config.giteaConfig?.mirrorReleases) {
-      await mirrorGitHubReleasesToGitea({
-        config,
-        octokit,
-        repository,
-      });
+      try {
+        await mirrorGitHubReleasesToGitea({
+          config,
+          octokit,
+          repository,
+        });
+        console.log(`[Metadata] Successfully mirrored releases for ${repository.name}`);
+      } catch (error) {
+        console.error(`[Metadata] Failed to mirror releases for ${repository.name}: ${error instanceof Error ? error.message : String(error)}`);
+        // Continue with other operations even if releases fail
+      }
     }
 
     // Clone issues
@@ -703,46 +741,72 @@ export async function mirrorGitHubRepoToGiteaOrg({
     const shouldMirrorIssues = config.giteaConfig?.mirrorIssues && 
       !(repository.isStarred && config.githubConfig?.skipStarredIssues);
     
+    console.log(`[Metadata] Issue mirroring check: mirrorIssues=${config.giteaConfig?.mirrorIssues}, isStarred=${repository.isStarred}, skipStarredIssues=${config.githubConfig?.skipStarredIssues}, shouldMirrorIssues=${shouldMirrorIssues}`);
+    
     if (shouldMirrorIssues) {
-      await mirrorGitRepoIssuesToGitea({
-        config,
-        octokit,
-        repository,
-        giteaOwner: orgName,
-      });
+      try {
+        await mirrorGitRepoIssuesToGitea({
+          config,
+          octokit,
+          repository,
+          giteaOwner: orgName,
+        });
+        console.log(`[Metadata] Successfully mirrored issues for ${repository.name} to org ${orgName}`);
+      } catch (error) {
+        console.error(`[Metadata] Failed to mirror issues for ${repository.name} to org ${orgName}: ${error instanceof Error ? error.message : String(error)}`);
+        // Continue with other metadata operations even if issues fail
+      }
     }
 
     // Mirror pull requests if enabled
     console.log(`[Metadata] Pull request mirroring check: mirrorPullRequests=${config.giteaConfig?.mirrorPullRequests}`);
     if (config.giteaConfig?.mirrorPullRequests) {
-      await mirrorGitRepoPullRequestsToGitea({
-        config,
-        octokit,
-        repository,
-        giteaOwner: orgName,
-      });
+      try {
+        await mirrorGitRepoPullRequestsToGitea({
+          config,
+          octokit,
+          repository,
+          giteaOwner: orgName,
+        });
+        console.log(`[Metadata] Successfully mirrored pull requests for ${repository.name} to org ${orgName}`);
+      } catch (error) {
+        console.error(`[Metadata] Failed to mirror pull requests for ${repository.name} to org ${orgName}: ${error instanceof Error ? error.message : String(error)}`);
+        // Continue with other metadata operations even if PRs fail
+      }
     }
 
     // Mirror labels if enabled (and not already done via issues)
     console.log(`[Metadata] Label mirroring check: mirrorLabels=${config.giteaConfig?.mirrorLabels}, shouldMirrorIssues=${shouldMirrorIssues}`);
     if (config.giteaConfig?.mirrorLabels && !shouldMirrorIssues) {
-      await mirrorGitRepoLabelsToGitea({
-        config,
-        octokit,
-        repository,
-        giteaOwner: orgName,
-      });
+      try {
+        await mirrorGitRepoLabelsToGitea({
+          config,
+          octokit,
+          repository,
+          giteaOwner: orgName,
+        });
+        console.log(`[Metadata] Successfully mirrored labels for ${repository.name} to org ${orgName}`);
+      } catch (error) {
+        console.error(`[Metadata] Failed to mirror labels for ${repository.name} to org ${orgName}: ${error instanceof Error ? error.message : String(error)}`);
+        // Continue with other metadata operations even if labels fail
+      }
     }
 
     // Mirror milestones if enabled
     console.log(`[Metadata] Milestone mirroring check: mirrorMilestones=${config.giteaConfig?.mirrorMilestones}`);
     if (config.giteaConfig?.mirrorMilestones) {
-      await mirrorGitRepoMilestonesToGitea({
-        config,
-        octokit,
-        repository,
-        giteaOwner: orgName,
-      });
+      try {
+        await mirrorGitRepoMilestonesToGitea({
+          config,
+          octokit,
+          repository,
+          giteaOwner: orgName,
+        });
+        console.log(`[Metadata] Successfully mirrored milestones for ${repository.name} to org ${orgName}`);
+      } catch (error) {
+        console.error(`[Metadata] Failed to mirror milestones for ${repository.name} to org ${orgName}: ${error instanceof Error ? error.message : String(error)}`);
+        // Continue with other metadata operations even if milestones fail
+      }
     }
 
     console.log(
@@ -1094,13 +1158,19 @@ export const mirrorGitRepoIssuesToGitea = async ({
     !config.githubConfig?.token ||
     !config.giteaConfig?.token ||
     !config.giteaConfig?.url ||
-    !config.giteaConfig?.username
+    !config.giteaConfig?.defaultOwner
   ) {
     throw new Error("Missing GitHub or Gitea configuration.");
   }
 
   // Decrypt config tokens for API usage
   const decryptedConfig = decryptConfigTokens(config as Config);
+  
+  // Log configuration details for debugging
+  console.log(`[Issues] Starting issue mirroring for repository ${repository.name}`);
+  console.log(`[Issues] Gitea URL: ${config.giteaConfig!.url}`);
+  console.log(`[Issues] Gitea Owner: ${giteaOwner}`);
+  console.log(`[Issues] Gitea Default Owner: ${config.giteaConfig!.defaultOwner}`);
   
   // Verify the repository exists in Gitea before attempting to mirror metadata
   console.log(`[Issues] Verifying repository ${repository.name} exists at ${giteaOwner}`);
@@ -1329,12 +1399,16 @@ export async function mirrorGitHubReleasesToGitea({
     throw new Error(`Repository ${repository.name} does not exist in Gitea at ${repoOwner}. Please ensure the repository is mirrored first.`);
   }
 
+  // Get release limit from config (default to 10)
+  const releaseLimit = config.giteaConfig?.releaseLimit || 10;
+  
   const releases = await octokit.rest.repos.listReleases({
     owner: repository.owner,
     repo: repository.name,
+    per_page: releaseLimit, // Only fetch the latest N releases
   });
 
-  console.log(`[Releases] Found ${releases.data.length} releases to mirror for ${repository.fullName}`);
+  console.log(`[Releases] Found ${releases.data.length} releases (limited to latest ${releaseLimit}) to mirror for ${repository.fullName}`);
 
   if (releases.data.length === 0) {
     console.log(`[Releases] No releases to mirror for ${repository.fullName}`);
@@ -1344,7 +1418,12 @@ export async function mirrorGitHubReleasesToGitea({
   let mirroredCount = 0;
   let skippedCount = 0;
 
-  for (const release of releases.data) {
+  // Sort releases by created_at to ensure we get the most recent ones
+  const sortedReleases = releases.data.sort((a, b) => 
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  ).slice(0, releaseLimit);
+
+  for (const release of sortedReleases) {
     try {
       // Check if release already exists
       const existingReleasesResponse = await httpGet(
@@ -1450,13 +1529,19 @@ export async function mirrorGitRepoPullRequestsToGitea({
     !config.githubConfig?.token ||
     !config.giteaConfig?.token ||
     !config.giteaConfig?.url ||
-    !config.giteaConfig?.username
+    !config.giteaConfig?.defaultOwner
   ) {
     throw new Error("Missing GitHub or Gitea configuration.");
   }
 
   // Decrypt config tokens for API usage
   const decryptedConfig = decryptConfigTokens(config as Config);
+  
+  // Log configuration details for debugging
+  console.log(`[Pull Requests] Starting PR mirroring for repository ${repository.name}`);
+  console.log(`[Pull Requests] Gitea URL: ${config.giteaConfig!.url}`);
+  console.log(`[Pull Requests] Gitea Owner: ${giteaOwner}`);
+  console.log(`[Pull Requests] Gitea Default Owner: ${config.giteaConfig!.defaultOwner}`);
   
   // Verify the repository exists in Gitea before attempting to mirror metadata
   console.log(`[Pull Requests] Verifying repository ${repository.name} exists at ${giteaOwner}`);
@@ -1517,17 +1602,90 @@ export async function mirrorGitRepoPullRequestsToGitea({
 
   const { processWithRetry } = await import("@/lib/utils/concurrency");
 
+  let successCount = 0;
+  let failedCount = 0;
+
   await processWithRetry(
     pullRequests,
     async (pr) => {
-      const issueData = {
-        title: `[PR #${pr.number}] ${pr.title}`,
-        body: `**Original Pull Request:** ${pr.html_url}\n\n**State:** ${pr.state}\n**Merged:** ${pr.merged_at ? 'Yes' : 'No'}\n\n---\n\n${pr.body || 'No description provided'}`,
-        labels: [{ name: "pull-request" }],
-        state: pr.state === "closed" ? "closed" : "open",
-      };
-
       try {
+        // Fetch additional PR data for rich metadata
+        const [prDetail, commits, files] = await Promise.all([
+          octokit.rest.pulls.get({ owner, repo, pull_number: pr.number }),
+          octokit.rest.pulls.listCommits({ owner, repo, pull_number: pr.number, per_page: 10 }),
+          octokit.rest.pulls.listFiles({ owner, repo, pull_number: pr.number, per_page: 100 })
+        ]);
+
+        // Build rich PR body with metadata
+        let richBody = `## 📋 Pull Request Information\n\n`;
+        richBody += `**Original PR:** ${pr.html_url}\n`;
+        richBody += `**Author:** [@${pr.user?.login}](${pr.user?.html_url})\n`;
+        richBody += `**Created:** ${new Date(pr.created_at).toLocaleDateString()}\n`;
+        richBody += `**Status:** ${pr.state === 'closed' ? (pr.merged_at ? '✅ Merged' : '❌ Closed') : '🔄 Open'}\n`;
+        
+        if (pr.merged_at) {
+          richBody += `**Merged:** ${new Date(pr.merged_at).toLocaleDateString()}\n`;
+          richBody += `**Merged by:** [@${prDetail.data.merged_by?.login}](${prDetail.data.merged_by?.html_url})\n`;
+        }
+
+        richBody += `\n**Base:** \`${pr.base.ref}\` ← **Head:** \`${pr.head.ref}\`\n`;
+        richBody += `\n---\n\n`;
+
+        // Add commit history (up to 10 commits)
+        if (commits.data.length > 0) {
+          richBody += `### 📝 Commits (${commits.data.length}${commits.data.length >= 10 ? '+' : ''})\n\n`;
+          commits.data.slice(0, 10).forEach(commit => {
+            const shortSha = commit.sha.substring(0, 7);
+            richBody += `- [\`${shortSha}\`](${commit.html_url}) ${commit.commit.message.split('\n')[0]}\n`;
+          });
+          if (commits.data.length > 10) {
+            richBody += `\n_...and ${commits.data.length - 10} more commits_\n`;
+          }
+          richBody += `\n`;
+        }
+
+        // Add file changes summary
+        if (files.data.length > 0) {
+          const additions = prDetail.data.additions || 0;
+          const deletions = prDetail.data.deletions || 0;
+          const changedFiles = prDetail.data.changed_files || files.data.length;
+          
+          richBody += `### 📊 Changes\n\n`;
+          richBody += `**${changedFiles} file${changedFiles !== 1 ? 's' : ''} changed** `;
+          richBody += `(+${additions} additions, -${deletions} deletions)\n\n`;
+          
+          // List changed files (up to 20)
+          richBody += `<details>\n<summary>View changed files</summary>\n\n`;
+          files.data.slice(0, 20).forEach(file => {
+            const changeIndicator = file.status === 'added' ? '➕' : 
+                                   file.status === 'removed' ? '➖' : '📝';
+            richBody += `${changeIndicator} \`${file.filename}\` (+${file.additions} -${file.deletions})\n`;
+          });
+          if (files.data.length > 20) {
+            richBody += `\n_...and ${files.data.length - 20} more files_\n`;
+          }
+          richBody += `\n</details>\n\n`;
+        }
+
+        // Add original PR description
+        richBody += `### 📄 Description\n\n`;
+        richBody += pr.body || '_No description provided_';
+        richBody += `\n\n---\n`;
+        richBody += `\n<sub>🔄 This issue represents a GitHub Pull Request. `;
+        richBody += `It cannot be merged through Gitea due to API limitations.</sub>`;
+
+        // Prepare issue title with status indicator
+        const statusPrefix = pr.merged_at ? '[MERGED] ' : (pr.state === 'closed' ? '[CLOSED] ' : '');
+        const issueTitle = `[PR #${pr.number}] ${statusPrefix}${pr.title}`;
+
+        const issueData = {
+          title: issueTitle,
+          body: richBody,
+          labels: [{ name: "pull-request" }],
+          state: pr.state === "closed" ? "closed" : "open",
+        };
+
+        console.log(`[Pull Requests] Creating enriched issue for PR #${pr.number}: ${pr.title}`);
         await httpPost(
           `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repository.name}/issues`,
           issueData,
@@ -1535,20 +1693,44 @@ export async function mirrorGitRepoPullRequestsToGitea({
             Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
           }
         );
-      } catch (error) {
-        console.error(
-          `Failed to mirror PR #${pr.number}: ${error instanceof Error ? error.message : String(error)}`
-        );
+        successCount++;
+        console.log(`[Pull Requests] ✅ Successfully created issue for PR #${pr.number}`);
+      } catch (apiError) {
+        // If the detailed fetch fails, fall back to basic PR info
+        console.log(`[Pull Requests] Falling back to basic info for PR #${pr.number} due to error: ${apiError}`);
+        const basicIssueData = {
+          title: `[PR #${pr.number}] ${pr.title}`,
+          body: `**Original Pull Request:** ${pr.html_url}\n\n**State:** ${pr.state}\n**Merged:** ${pr.merged_at ? 'Yes' : 'No'}\n\n---\n\n${pr.body || 'No description provided'}`,
+          labels: [{ name: "pull-request" }],
+          state: pr.state === "closed" ? "closed" : "open",
+        };
+        
+        try {
+          await httpPost(
+            `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repository.name}/issues`,
+            basicIssueData,
+            {
+              Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
+            }
+          );
+          successCount++;
+          console.log(`[Pull Requests] ✅ Created basic issue for PR #${pr.number}`);
+        } catch (error) {
+          failedCount++;
+          console.error(
+            `[Pull Requests] ❌ Failed to mirror PR #${pr.number}: ${error instanceof Error ? error.message : String(error)}`
+          );
+        }
       }
     },
     {
-      maxConcurrency: 5,
-      retryAttempts: 3,
+      concurrencyLimit: 5,
+      maxRetries: 3,
       retryDelay: 1000,
     }
   );
 
-  console.log(`✅ Mirrored ${pullRequests.length} pull requests to Gitea`);
+  console.log(`✅ Mirrored ${successCount}/${pullRequests.length} pull requests to Gitea as enriched issues (${failedCount} failed)`);
 }
 
 export async function mirrorGitRepoLabelsToGitea({
@@ -1739,4 +1921,69 @@ export async function mirrorGitRepoMilestonesToGitea({
   }
 
   console.log(`✅ Mirrored ${mirroredCount} new milestones to Gitea`);
+}
+
+/**
+ * Create a simple Gitea client object with base URL and token
+ */
+export function createGiteaClient(url: string, token: string) {
+  return { url, token };
+}
+
+/**
+ * Delete a repository from Gitea
+ */
+export async function deleteGiteaRepo(
+  client: { url: string; token: string },
+  owner: string,
+  repo: string
+): Promise<void> {
+  try {
+    const response = await httpDelete(
+      `${client.url}/api/v1/repos/${owner}/${repo}`,
+      {
+        Authorization: `token ${client.token}`,
+      }
+    );
+    
+    if (response.status >= 400) {
+      throw new Error(`Failed to delete repository ${owner}/${repo}: ${response.status} ${response.statusText}`);
+    }
+    
+    console.log(`Successfully deleted repository ${owner}/${repo} from Gitea`);
+  } catch (error) {
+    console.error(`Error deleting repository ${owner}/${repo}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Archive a repository in Gitea
+ */
+export async function archiveGiteaRepo(
+  client: { url: string; token: string },
+  owner: string,
+  repo: string
+): Promise<void> {
+  try {
+    const response = await httpPut(
+      `${client.url}/api/v1/repos/${owner}/${repo}`,
+      {
+        archived: true,
+      },
+      {
+        Authorization: `token ${client.token}`,
+        'Content-Type': 'application/json',
+      }
+    );
+    
+    if (response.status >= 400) {
+      throw new Error(`Failed to archive repository ${owner}/${repo}: ${response.status} ${response.statusText}`);
+    }
+    
+    console.log(`Successfully archived repository ${owner}/${repo} in Gitea`);
+  } catch (error) {
+    console.error(`Error archiving repository ${owner}/${repo}:`, error);
+    throw error;
+  }
 }

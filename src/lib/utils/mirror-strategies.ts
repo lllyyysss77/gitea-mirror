@@ -2,7 +2,7 @@
  * Mirror strategy configuration for handling various repository scenarios
  */
 
-export type NonMirrorStrategy = "skip" | "delete" | "rename" | "convert";
+export type NonMirrorStrategy = "skip" | "delete" | "rename";
 
 export interface MirrorStrategyConfig {
   /**
@@ -10,7 +10,7 @@ export interface MirrorStrategyConfig {
    * - "skip": Leave the repository as-is and mark as failed
    * - "delete": Delete the repository and recreate as mirror
    * - "rename": Rename the existing repository (not implemented yet)
-   * - "convert": Try to convert to mirror (not supported by most Gitea versions)
+   * Note: "convert" strategy was removed as it's not supported by most Gitea versions
    */
   nonMirrorStrategy: NonMirrorStrategy;
 
@@ -69,7 +69,7 @@ export function getMirrorStrategyConfig(): MirrorStrategyConfig {
 export function validateStrategyConfig(config: MirrorStrategyConfig): string[] {
   const errors: string[] = [];
 
-  if (!["skip", "delete", "rename", "convert"].includes(config.nonMirrorStrategy)) {
+  if (!["skip", "delete", "rename"].includes(config.nonMirrorStrategy)) {
     errors.push(`Invalid nonMirrorStrategy: ${config.nonMirrorStrategy}`);
   }
 

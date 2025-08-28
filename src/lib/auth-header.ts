@@ -74,7 +74,11 @@ export function extractUserFromHeaders(headers: Headers): {
     }
   }
 
-  return { username, email, name };
+  return { 
+    username: username || undefined, 
+    email: email || undefined, 
+    name: name || undefined 
+  };
 }
 
 // Find or create user from header auth

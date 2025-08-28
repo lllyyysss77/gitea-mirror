@@ -193,7 +193,7 @@ export function Dashboard() {
           </div>
           <div className="space-y-3">
             {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-16 w-full" />
+              <Skeleton key={i} className="h-14 w-full" />
             ))}
           </div>
         </div>
@@ -206,7 +206,7 @@ export function Dashboard() {
           </div>
           <div className="space-y-3">
             {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-16 w-full" />
+              <Skeleton key={i} className="h-14 w-full" />
             ))}
           </div>
         </div>
@@ -254,12 +254,11 @@ export function Dashboard() {
 
       <div className="flex flex-col lg:flex-row gap-6 items-start">
         <div className="w-full lg:w-1/2">
-          <RepositoryList repositories={repositories} />
+          <RepositoryList repositories={repositories.slice(0, 8)} />
         </div>
 
         <div className="w-full lg:w-1/2">
-          {/* the api already sends 10 activities only but slicing in case of realtime updates */}
-          <RecentActivity activities={activities.slice(0, 10)} />
+          <RecentActivity activities={activities.slice(0, 8)} />
         </div>
       </div>
     </div>

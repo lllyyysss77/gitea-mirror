@@ -195,21 +195,27 @@ export function AutomationSettings({
                     <Clock className="h-3.5 w-3.5" />
                     Last sync
                   </span>
-                  <span className="font-medium">
+                  <span className="font-medium text-muted-foreground">
                     {scheduleConfig.lastRun
                       ? formatDate(scheduleConfig.lastRun)
                       : "Never"}
                   </span>
                 </div>
-                {scheduleConfig.enabled && scheduleConfig.nextRun && (
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="flex items-center gap-1.5">
-                      <Calendar className="h-3.5 w-3.5" />
-                      Next sync
-                    </span>
-                    <span className="font-medium">
-                      {formatDate(scheduleConfig.nextRun)}
-                    </span>
+                {scheduleConfig.enabled ? (
+                  scheduleConfig.nextRun && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5" />
+                        Next sync
+                      </span>
+                      <span className="font-medium">
+                        {formatDate(scheduleConfig.nextRun)}
+                      </span>
+                    </div>
+                  )
+                ) : (
+                  <div className="text-xs text-muted-foreground">
+                    Enable automatic syncing to schedule periodic repository updates
                   </div>
                 )}
               </div>
@@ -307,23 +313,27 @@ export function AutomationSettings({
                     <Clock className="h-3.5 w-3.5" />
                     Last cleanup
                   </span>
-                  <span className="font-medium">
+                  <span className="font-medium text-muted-foreground">
                     {cleanupConfig.lastRun
                       ? formatDate(cleanupConfig.lastRun)
                       : "Never"}
                   </span>
                 </div>
-                {cleanupConfig.enabled && cleanupConfig.nextRun && (
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="flex items-center gap-1.5">
-                      <Calendar className="h-3.5 w-3.5" />
-                      Next cleanup
-                    </span>
-                    <span className="font-medium">
-                      {cleanupConfig.nextRun
-                        ? formatDate(cleanupConfig.nextRun)
-                        : "Calculating..."}
-                    </span>
+                {cleanupConfig.enabled ? (
+                  cleanupConfig.nextRun && (
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5" />
+                        Next cleanup
+                      </span>
+                      <span className="font-medium">
+                        {formatDate(cleanupConfig.nextRun)}
+                      </span>
+                    </div>
+                  )
+                ) : (
+                  <div className="text-xs text-muted-foreground">
+                    Enable automatic cleanup to optimize database storage
                   </div>
                 )}
               </div>

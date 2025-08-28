@@ -7,6 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Git LFS (Large File Storage) support for mirroring (#74)
+  - New UI checkbox "Mirror LFS" in Mirror Options
+  - Automatic LFS object transfer when enabled
+  - Documentation for Gitea server LFS requirements
+- Repository "ignored" status to skip specific repos from mirroring (#75)
+  - Repositories can be marked as ignored to exclude from all operations
+  - Scheduler automatically skips ignored repositories
+- Enhanced error handling for all metadata mirroring operations
+  - Individual try-catch blocks for issues, PRs, labels, milestones
+  - Operations continue even if individual components fail
+- Support for BETTER_AUTH_TRUSTED_ORIGINS environment variable (#63)
+  - Enables access via multiple URLs (local IP + domain)
+  - Comma-separated trusted origins configuration
+  - Proper documentation for multi-URL access patterns
+- Comprehensive fix report documentation
+
+### Fixed
+- Fixed metadata mirroring authentication errors (#68)
+  - Changed field checking from `username` to `defaultOwner` in metadata functions
+  - Added proper field validation for all metadata operations
+- Fixed automatic mirroring scheduler issues (#72)
+  - Improved interval parsing and error handling
+- Fixed OIDC authentication 500 errors with Authentik (#73)
+  - Added URL validation in Better Auth configuration
+  - Prevented undefined URL errors in auth callback
+- Fixed SSL certificate handling in Docker (#48)
+  - NODE_EXTRA_CA_CERTS no longer gets overridden
+  - Proper preservation of custom CA certificates
+- Fixed reverse proxy base domain issues (#63)
+  - Better handling of custom subdomains
+  - Support for trusted origins configuration
+- Fixed configuration persistence bugs (#49)
+  - Config merging now preserves all fields
+  - Retention period settings no longer reset
+- Fixed sync failures with improved error handling (#51)
+  - Comprehensive error wrapping for all operations
+  - Better error messages and logging
+
+### Improved
+- Enhanced logging throughout metadata mirroring operations
+  - Detailed success/failure messages for each component
+  - Configuration details logged for debugging
+- Better configuration state management
+  - Proper merging of loaded configs with defaults
+  - Preservation of user settings on refresh
+- Updated documentation
+  - Added LFS feature documentation
+  - Updated README with new features
+  - Enhanced CLAUDE.md with repository status definitions
+
 ## [3.2.6] - 2025-08-09
 
 ### Fixed

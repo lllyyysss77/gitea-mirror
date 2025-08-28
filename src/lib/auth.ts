@@ -17,16 +17,45 @@ export const auth = betterAuth({
   // Secret for signing tokens
   secret: process.env.BETTER_AUTH_SECRET,
 
-  // Base URL configuration
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:4321",
+  // Base URL configuration - use the primary URL (Better Auth only supports single baseURL)
+  baseURL: (() => {
+    const url = process.env.BETTER_AUTH_URL || "http://localhost:4321";
+    try {
+      // Validate URL format
+      new URL(url);
+      return url;
+    } catch {
+      console.warn(`Invalid BETTER_AUTH_URL: ${url}, falling back to localhost`);
+      return "http://localhost:4321";
+    }
+  })(),
   basePath: "/api/auth", // Specify the base path for auth endpoints
   
-  // Trusted origins for OAuth flows
-  trustedOrigins: [
-    "http://localhost:4321",
-    "http://localhost:8080", // Keycloak
-    process.env.BETTER_AUTH_URL || "http://localhost:4321"
-  ].filter(Boolean),
+  // Trusted origins - this is how we support multiple access URLs
+  trustedOrigins: (() => {
+    const origins = [
+      "http://localhost:4321",
+      "http://localhost:8080", // Keycloak
+    ];
+    
+    // Add the primary URL from BETTER_AUTH_URL
+    const primaryUrl = process.env.BETTER_AUTH_URL || "http://localhost:4321";
+    try {
+      new URL(primaryUrl);
+      origins.push(primaryUrl);
+    } catch {
+      // Skip if invalid
+    }
+    
+    // Add additional trusted origins from environment
+    // This is where users can specify multiple access URLs
+    if (process.env.BETTER_AUTH_TRUSTED_ORIGINS) {
+      origins.push(...process.env.BETTER_AUTH_TRUSTED_ORIGINS.split(',').map(o => o.trim()));
+    }
+    
+    // Remove duplicates and return
+    return [...new Set(origins.filter(Boolean))];
+  })(),
 
   // Authentication methods
   emailAndPassword: {

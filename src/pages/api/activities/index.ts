@@ -35,6 +35,16 @@ export const GET: APIRoute = async ({ url }) => {
       details: job.details ?? undefined,
       message: job.message,
       timestamp: job.timestamp,
+      jobType: job.jobType,
+      batchId: job.batchId ?? undefined,
+      totalItems: job.totalItems ?? undefined,
+      completedItems: job.completedItems,
+      itemIds: job.itemIds ?? undefined,
+      completedItemIds: job.completedItemIds,
+      inProgress: job.inProgress,
+      startedAt: job.startedAt ?? undefined,
+      completedAt: job.completedAt ?? undefined,
+      lastCheckpoint: job.lastCheckpoint ?? undefined,
     }));
 
     return new Response(

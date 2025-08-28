@@ -38,6 +38,7 @@ export function mapUiToDbConfig(
     includeStarred: githubConfig.mirrorStarred,
     includePrivate: githubConfig.privateRepositories,
     includeForks: !advancedOptions.skipForks, // Note: UI has skipForks, DB has includeForks
+    skipForks: advancedOptions.skipForks, // Add skipForks field
     includeArchived: false, // Not in UI yet, default to false
     includePublic: true, // Not in UI yet, default to true
     
@@ -60,15 +61,17 @@ export function mapUiToDbConfig(
     url: giteaConfig.url,
     token: giteaConfig.token,
     defaultOwner: giteaConfig.username, // Map username to defaultOwner
+    organization: giteaConfig.organization, // Add organization field
+    preserveOrgStructure: giteaConfig.mirrorStrategy === "preserve" || giteaConfig.mirrorStrategy === "mixed", // Add preserveOrgStructure field
     
     // Mirror interval and options
     mirrorInterval: "8h", // Default value, could be made configurable
-    lfs: false, // Not in UI yet
+    lfs: mirrorOptions.mirrorLFS || false, // LFS mirroring option
     wiki: mirrorOptions.mirrorMetadata && mirrorOptions.metadataComponents.wiki,
     
     // Visibility settings
     visibility: giteaConfig.visibility || "default",
-    preserveVisibility: giteaConfig.preserveOrgStructure,
+    preserveVisibility: false, // This should be a separate field, not the same as preserveOrgStructure
     
     // Organization creation
     createOrg: true, // Default to true
@@ -86,6 +89,7 @@ export function mapUiToDbConfig(
     
     // Mirror options from UI
     mirrorReleases: mirrorOptions.mirrorReleases,
+    releaseLimit: mirrorOptions.releaseLimit || 10,
     mirrorMetadata: mirrorOptions.mirrorMetadata,
     mirrorIssues: mirrorOptions.mirrorMetadata && mirrorOptions.metadataComponents.issues,
     mirrorPullRequests: mirrorOptions.mirrorMetadata && mirrorOptions.metadataComponents.pullRequests,
@@ -132,6 +136,8 @@ export function mapDbToUiConfig(dbConfig: any): {
   // Map mirror options from various database fields
   const mirrorOptions: MirrorOptions = {
     mirrorReleases: dbConfig.giteaConfig?.mirrorReleases || false,
+    releaseLimit: dbConfig.giteaConfig?.releaseLimit || 10,
+    mirrorLFS: dbConfig.giteaConfig?.lfs || false,
     mirrorMetadata: dbConfig.giteaConfig?.mirrorMetadata || false,
     metadataComponents: {
       issues: dbConfig.giteaConfig?.mirrorIssues || false,
@@ -186,16 +192,40 @@ export function mapUiScheduleToDb(uiSchedule: any): DbScheduleConfig {
  * Maps database schedule config to UI format
  */
 export function mapDbScheduleToUi(dbSchedule: DbScheduleConfig): any {
+  // Handle null/undefined schedule config
+  if (!dbSchedule) {
+    return {
+      enabled: false,
+      interval: 86400, // Default to daily (24 hours)
+      lastRun: null,
+      nextRun: null,
+    };
+  }
+
   // Extract hours from cron expression if possible
-  let intervalSeconds = 3600; // Default 1 hour
-  const cronMatch = dbSchedule.interval.match(/0 \*\/(\d+) \* \* \*/);
-  if (cronMatch) {
-    intervalSeconds = parseInt(cronMatch[1]) * 3600;
+  let intervalSeconds = 86400; // Default to daily (24 hours)
+  
+  if (dbSchedule.interval) {
+    // Check if it's already a number (seconds), use it directly
+    if (typeof dbSchedule.interval === 'number') {
+      intervalSeconds = dbSchedule.interval;
+    } else if (typeof dbSchedule.interval === 'string') {
+      // Check if it's a cron expression
+      const cronMatch = dbSchedule.interval.match(/0 \*\/(\d+) \* \* \*/);
+      if (cronMatch) {
+        intervalSeconds = parseInt(cronMatch[1]) * 3600;
+      } else if (dbSchedule.interval === "0 2 * * *") {
+        // Daily at 2 AM
+        intervalSeconds = 86400;
+      }
+    }
   }
 
   return {
-    enabled: dbSchedule.enabled,
+    enabled: dbSchedule.enabled || false,
     interval: intervalSeconds,
+    lastRun: dbSchedule.lastRun || null,
+    nextRun: dbSchedule.nextRun || null,
   };
 }
 
@@ -220,8 +250,20 @@ export function mapUiCleanupToDb(uiCleanup: any): DbCleanupConfig {
  * Maps database cleanup config to UI format
  */
 export function mapDbCleanupToUi(dbCleanup: DbCleanupConfig): any {
+  // Handle null/undefined cleanup config
+  if (!dbCleanup) {
+    return {
+      enabled: false,
+      retentionDays: 604800, // Default to 7 days in seconds
+      lastRun: null,
+      nextRun: null,
+    };
+  }
+
   return {
-    enabled: dbCleanup.enabled,
+    enabled: dbCleanup.enabled || false,
     retentionDays: dbCleanup.retentionDays || 604800, // Use actual value from DB or default to 7 days
+    lastRun: dbCleanup.lastRun || null,
+    nextRun: dbCleanup.nextRun || null,
   };
 }

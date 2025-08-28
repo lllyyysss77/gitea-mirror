@@ -4,6 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 DONT HALLUCIATE THINGS. IF YOU DONT KNOW LOOK AT THE CODE OR ASK FOR DOCS
 
+NEVER MENTION CLAUDE CODE ANYWHERE.
+
 ## Project Overview
 
 Gitea Mirror is a web application that automatically mirrors repositories from GitHub to self-hosted Gitea instances. It uses Astro for SSR, React for UI, SQLite for data storage, and Bun as the JavaScript runtime.
@@ -178,6 +180,9 @@ export async function POST({ request }: APIContext) {
 
 ### Mirror Options (UI Fields)
 - **mirrorReleases**: Mirror GitHub releases to Gitea
+- **mirrorLFS**: Mirror Git LFS (Large File Storage) objects
+  - Requires LFS enabled on Gitea server (LFS_START_SERVER = true)
+  - Requires Git v2.1.2+ on server
 - **mirrorMetadata**: Enable metadata mirroring (master toggle)
 - **metadataComponents** (only available when mirrorMetadata is enabled):
   - **issues**: Mirror issues
@@ -189,6 +194,19 @@ export async function POST({ request }: APIContext) {
 ### Advanced Options (UI Fields)
 - **skipForks**: Skip forked repositories (default: false)
 - **skipStarredIssues**: Skip issues for starred repositories (default: false) - enables "Lightweight mode" for starred repos
+
+### Repository Statuses
+Repositories can have the following statuses:
+- **imported**: Repository discovered from GitHub
+- **mirroring**: Currently being mirrored to Gitea
+- **mirrored**: Successfully mirrored
+- **syncing**: Repository being synchronized
+- **synced**: Successfully synchronized
+- **failed**: Mirror/sync operation failed
+- **skipped**: Skipped due to filters or conditions
+- **ignored**: User explicitly marked to ignore (won't be mirrored/synced)
+- **deleting**: Repository being deleted
+- **deleted**: Repository deleted
 
 ### Authentication Configuration
 
@@ -217,3 +235,4 @@ export async function POST({ request }: APIContext) {
 
 - **Confidentiality Guidelines**:
   - Dont ever say Claude Code or generated with AI anyhwere.
+- Never commit without the explicict ask
