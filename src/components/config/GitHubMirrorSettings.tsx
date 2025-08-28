@@ -29,7 +29,8 @@ import {
   BookOpen,
   GitFork,
   ChevronDown,
-  Funnel
+  Funnel,
+  HardDrive
 } from "lucide-react";
 import type { GitHubConfig, MirrorOptions, AdvancedOptions } from "@/types/config";
 import { cn } from "@/lib/utils";
@@ -321,6 +322,27 @@ export function GitHubMirrorSettings({
               </Label>
               <p className="text-xs text-muted-foreground">
                 Include GitHub releases, tags, and associated assets
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start space-x-3">
+            <Checkbox
+              id="mirror-lfs"
+              checked={mirrorOptions.mirrorLFS}
+              onCheckedChange={(checked) => handleMirrorChange('mirrorLFS', !!checked)}
+            />
+            <div className="space-y-0.5 flex-1">
+              <Label
+                htmlFor="mirror-lfs"
+                className="text-sm font-normal cursor-pointer flex items-center gap-2"
+              >
+                <HardDrive className="h-3.5 w-3.5" />
+                Git LFS (Large File Storage)
+                <Badge variant="secondary" className="ml-2 text-[10px] px-1.5 py-0">BETA</Badge>
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Mirror Git LFS objects. Requires LFS to be enabled on your Gitea server and Git v2.1.2+
               </p>
             </div>
           </div>
