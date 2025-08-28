@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { MirrorJob } from "@/lib/db/schema";
 import { formatDate, getStatusColor } from "@/lib/utils";
 import { Button } from "../ui/button";
+import { Activity, Clock } from "lucide-react";
 
 interface RecentActivityProps {
   activities: MirrorJob[];
@@ -17,11 +18,25 @@ export function RecentActivity({ activities }: RecentActivityProps) {
         </Button>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col divide-y divide-border">
-          {activities.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No recent activity</p>
-          ) : (
-            activities.map((activity, index) => (
+        {activities.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-6 text-center">
+            <Clock className="h-10 w-10 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium">No recent activity</h3>
+            <p className="text-sm text-muted-foreground mt-1 mb-4">
+              Activity will appear here when you start mirroring repositories.
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" asChild>
+                <a href="/activity">
+                  <Activity className="h-3.5 w-3.5 mr-1.5" />
+                  View History
+                </a>
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col divide-y divide-border">
+            {activities.map((activity, index) => (
               <div key={index} className="flex items-center gap-x-3 py-3.5">
                 <div className="relative flex-shrink-0">
                   <div
@@ -39,9 +54,9 @@ export function RecentActivity({ activities }: RecentActivityProps) {
                   </div>
                 </div>
               </div>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
