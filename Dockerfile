@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.4
 
-FROM oven/bun:1.2.19-alpine AS base
+FROM oven/bun:1.2.21 AS base
 WORKDIR /app
 RUN apk add --no-cache libc6-compat python3 make g++ gcc wget sqlite openssl ca-certificates
 
