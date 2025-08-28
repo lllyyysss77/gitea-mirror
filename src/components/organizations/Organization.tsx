@@ -196,6 +196,63 @@ export function Organization() {
     }
   };
 
+  const handleIgnoreOrg = async ({ orgId, ignore }: { orgId: string; ignore: boolean }) => {
+    try {
+      if (!user || !user.id) {
+        return;
+      }
+
+      const org = organizations.find(o => o.id === orgId);
+      
+      // Check if organization is currently being processed
+      if (ignore && org && (org.status === "mirroring")) {
+        toast.warning("Cannot ignore organization while it's being processed");
+        return;
+      }
+
+      setLoadingOrgIds((prev) => new Set(prev).add(orgId));
+
+      const newStatus = ignore ? "ignored" : "imported";
+      
+      const response = await apiRequest<{ success: boolean; organization?: Organization; error?: string }>(
+        `/organizations/${orgId}/status`, 
+        {
+          method: "PATCH",
+          data: { 
+            status: newStatus, 
+            userId: user.id 
+          },
+        }
+      );
+
+      if (response.success) {
+        toast.success(ignore 
+          ? `Organization will be ignored in future operations`
+          : `Organization included for mirroring`
+        );
+        
+        // Update local state
+        setOrganizations((prevOrgs) =>
+          prevOrgs.map((org) =>
+            org.id === orgId ? { ...org, status: newStatus } : org
+          )
+        );
+      } else {
+        toast.error(response.error || `Failed to ${ignore ? 'ignore' : 'include'} organization`);
+      }
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : `Error ${ignore ? 'ignoring' : 'including'} organization`
+      );
+    } finally {
+      setLoadingOrgIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(orgId);
+        return newSet;
+      });
+    }
+  };
+
   const handleAddOrganization = async ({
     org,
     role,
@@ -248,10 +305,10 @@ export function Organization() {
         return;
       }
 
-      // Filter out organizations that are already mirrored to avoid duplicate operations
+      // Filter out organizations that are already mirrored or ignored to avoid duplicate operations
       const eligibleOrgs = organizations.filter(
         (org) =>
-          org.status !== "mirroring" && org.status !== "mirrored" && org.id
+          org.status !== "mirroring" && org.status !== "mirrored" && org.status !== "ignored" && org.id
       );
 
       if (eligibleOrgs.length === 0) {
@@ -652,6 +709,7 @@ export function Organization() {
         setFilter={setFilter}
         loadingOrgIds={loadingOrgIds}
         onMirror={handleMirrorOrg}
+        onIgnore={handleIgnoreOrg}
         onAddOrganization={() => setIsDialogOpen(true)}
         onRefresh={async () => {
           await fetchOrganizations(false);

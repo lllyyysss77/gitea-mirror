@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, RefreshCw, Building2, Check, AlertCircle, Clock } from "lucide-react";
+import { Plus, RefreshCw, Building2, Check, AlertCircle, Clock, MoreVertical, Ban } from "lucide-react";
 import { SiGithub, SiGitea } from "react-icons/si";
 import type { Organization } from "@/lib/db/schema";
 import type { FilterParams } from "@/types/filter";
@@ -11,6 +11,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { MirrorDestinationEditor } from "./MirrorDestinationEditor";
 import { useGiteaConfig } from "@/hooks/useGiteaConfig";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface OrganizationListProps {
   organizations: Organization[];
@@ -18,6 +26,7 @@ interface OrganizationListProps {
   filter: FilterParams;
   setFilter: (filter: FilterParams) => void;
   onMirror: ({ orgId }: { orgId: string }) => Promise<void>;
+  onIgnore?: ({ orgId, ignore }: { orgId: string; ignore: boolean }) => Promise<void>;
   loadingOrgIds: Set<string>;
   onAddOrganization?: () => void;
   onRefresh?: () => Promise<void>;
@@ -34,6 +43,8 @@ const getStatusBadge = (status: string | null) => {
       return { variant: "default" as const, label: "Mirrored", icon: Check };
     case "failed":
       return { variant: "destructive" as const, label: "Failed", icon: AlertCircle };
+    case "ignored":
+      return { variant: "outline" as const, label: "Ignored", icon: Ban };
     default:
       return { variant: "secondary" as const, label: "Unknown", icon: null };
   }
@@ -45,6 +56,7 @@ export function OrganizationList({
   filter,
   setFilter,
   onMirror,
+  onIgnore,
   loadingOrgIds,
   onAddOrganization,
   onRefresh,
@@ -296,61 +308,95 @@ export function OrganizationList({
             {/* Mobile Actions */}
             <div className="flex flex-col gap-3 sm:hidden">
               <div className="flex items-center gap-2">
-                {org.status === "imported" && (
+                {org.status === "ignored" ? (
                   <Button
                     size="default"
-                    onClick={() => org.id && onMirror({ orgId: org.id })}
+                    variant="outline"
+                    onClick={() => org.id && onIgnore && onIgnore({ orgId: org.id, ignore: false })}
                     disabled={isLoading}
                     className="w-full h-10"
                   >
-                    {isLoading ? (
-                      <>
-                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                        Starting...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Mirror Organization
-                      </>
-                    )}
-                  </Button>
-                )}
-                
-                {org.status === "mirroring" && (
-                  <Button size="default" disabled variant="outline" className="w-full h-10">
-                    <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                    Mirroring...
-                  </Button>
-                )}
-                
-                {org.status === "mirrored" && (
-                  <Button size="default" disabled variant="secondary" className="w-full h-10">
                     <Check className="h-4 w-4 mr-2" />
-                    Mirrored
+                    Include Organization
                   </Button>
+                ) : (
+                  <>
+                    {org.status === "imported" && (
+                      <Button
+                        size="default"
+                        onClick={() => org.id && onMirror({ orgId: org.id })}
+                        disabled={isLoading}
+                        className="w-full h-10"
+                      >
+                        {isLoading ? (
+                          <>
+                            <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                            Starting...
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Mirror Organization
+                          </>
+                        )}
+                      </Button>
+                    )}
+                    
+                    {org.status === "mirroring" && (
+                      <Button size="default" disabled variant="outline" className="w-full h-10">
+                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                        Mirroring...
+                      </Button>
+                    )}
+                    
+                    {org.status === "mirrored" && (
+                      <Button size="default" disabled variant="secondary" className="w-full h-10">
+                        <Check className="h-4 w-4 mr-2" />
+                        Mirrored
+                      </Button>
+                    )}
+                    
+                    {org.status === "failed" && (
+                      <Button
+                        size="default"
+                        variant="destructive"
+                        onClick={() => org.id && onMirror({ orgId: org.id })}
+                        disabled={isLoading}
+                        className="w-full h-10"
+                      >
+                        {isLoading ? (
+                          <>
+                            <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                            Retrying...
+                          </>
+                        ) : (
+                          <>
+                            <AlertCircle className="h-4 w-4 mr-2" />
+                            Retry Mirror
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </>
                 )}
                 
-                {org.status === "failed" && (
-                  <Button
-                    size="default"
-                    variant="destructive"
-                    onClick={() => org.id && onMirror({ orgId: org.id })}
-                    disabled={isLoading}
-                    className="w-full h-10"
-                  >
-                    {isLoading ? (
-                      <>
-                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                        Retrying...
-                      </>
-                    ) : (
-                      <>
-                        <AlertCircle className="h-4 w-4 mr-2" />
-                        Retry Mirror
-                      </>
-                    )}
-                  </Button>
+                {/* Dropdown menu for additional actions */}
+                {org.status !== "ignored" && org.status !== "mirroring" && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" disabled={isLoading} className="h-10 w-10">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem 
+                        onClick={() => org.id && onIgnore && onIgnore({ orgId: org.id, ignore: true })}
+                      >
+                        <Ban className="h-4 w-4 mr-2" />
+                        Ignore Organization
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
               </div>
               
@@ -412,59 +458,92 @@ export function OrganizationList({
             {/* Desktop Actions */}
             <div className="hidden sm:flex items-center justify-between mt-4">
               <div className="flex items-center gap-2">
-                {org.status === "imported" && (
+                {org.status === "ignored" ? (
                   <Button
                     size="default"
-                    onClick={() => org.id && onMirror({ orgId: org.id })}
+                    variant="outline"
+                    onClick={() => org.id && onIgnore && onIgnore({ orgId: org.id, ignore: false })}
                     disabled={isLoading}
                   >
-                    {isLoading ? (
-                      <>
-                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                        Starting mirror...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Mirror Organization
-                      </>
-                    )}
-                  </Button>
-                )}
-                
-                {org.status === "mirroring" && (
-                  <Button size="default" disabled variant="outline">
-                    <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                    Mirroring in progress...
-                  </Button>
-                )}
-                
-                {org.status === "mirrored" && (
-                  <Button size="default" disabled variant="secondary">
                     <Check className="h-4 w-4 mr-2" />
-                    Successfully mirrored
+                    Include Organization
                   </Button>
+                ) : (
+                  <>
+                    {org.status === "imported" && (
+                      <Button
+                        size="default"
+                        onClick={() => org.id && onMirror({ orgId: org.id })}
+                        disabled={isLoading}
+                      >
+                        {isLoading ? (
+                          <>
+                            <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                            Starting mirror...
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Mirror Organization
+                          </>
+                        )}
+                      </Button>
+                    )}
+                    
+                    {org.status === "mirroring" && (
+                      <Button size="default" disabled variant="outline">
+                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                        Mirroring in progress...
+                      </Button>
+                    )}
+                    
+                    {org.status === "mirrored" && (
+                      <Button size="default" disabled variant="secondary">
+                        <Check className="h-4 w-4 mr-2" />
+                        Successfully mirrored
+                      </Button>
+                    )}
+                    
+                    {org.status === "failed" && (
+                      <Button
+                        size="default"
+                        variant="destructive"
+                        onClick={() => org.id && onMirror({ orgId: org.id })}
+                        disabled={isLoading}
+                      >
+                        {isLoading ? (
+                          <>
+                            <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                            Retrying...
+                          </>
+                        ) : (
+                          <>
+                            <AlertCircle className="h-4 w-4 mr-2" />
+                            Retry Mirror
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </>
                 )}
                 
-                {org.status === "failed" && (
-                  <Button
-                    size="default"
-                    variant="destructive"
-                    onClick={() => org.id && onMirror({ orgId: org.id })}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <>
-                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                        Retrying...
-                      </>
-                    ) : (
-                      <>
-                        <AlertCircle className="h-4 w-4 mr-2" />
-                        Retry Mirror
-                      </>
-                    )}
-                  </Button>
+                {/* Dropdown menu for additional actions */}
+                {org.status !== "ignored" && org.status !== "mirroring" && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" disabled={isLoading}>
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem 
+                        onClick={() => org.id && onIgnore && onIgnore({ orgId: org.id, ignore: true })}
+                      >
+                        <Ban className="h-4 w-4 mr-2" />
+                        Ignore Organization
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
               </div>
 
