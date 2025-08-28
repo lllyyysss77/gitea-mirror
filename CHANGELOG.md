@@ -18,7 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced error handling for all metadata mirroring operations
   - Individual try-catch blocks for issues, PRs, labels, milestones
   - Operations continue even if individual components fail
-- Support for BETTER_AUTH_TRUSTED_ORIGINS environment variable
+- Support for BETTER_AUTH_TRUSTED_ORIGINS environment variable (#63)
+  - Enables access via multiple URLs (local IP + domain)
+  - Comma-separated trusted origins configuration
+  - Proper documentation for multi-URL access patterns
 - Comprehensive fix report documentation
 
 ### Fixed

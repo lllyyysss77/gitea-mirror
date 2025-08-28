@@ -24,8 +24,8 @@ Essential application settings required for running Gitea Mirror.
 | `PORT` | Server port | `4321` | No |
 | `DATABASE_URL` | Database connection URL | `sqlite://data/gitea-mirror.db` | No |
 | `BETTER_AUTH_SECRET` | Secret key for session signing (generate with: `openssl rand -base64 32`) | - | Yes |
-| `BETTER_AUTH_URL` | Base URL for authentication | `http://localhost:4321` | No |
-| `BETTER_AUTH_TRUSTED_ORIGINS` | Comma-separated list of trusted origins for OIDC | - | No |
+| `BETTER_AUTH_URL` | Primary base URL for authentication. This should be the main URL where your application is accessed. | `http://localhost:4321` | No |
+| `BETTER_AUTH_TRUSTED_ORIGINS` | Trusted origins for authentication requests. Comma-separated list of URLs. Use this to specify additional access URLs (e.g., local IP + domain: `http://10.10.20.45:4321,https://gitea-mirror.mydomain.tld`), SSO providers, reverse proxies, etc. | - | No |
 | `ENCRYPTION_SECRET` | Optional encryption key for tokens (generate with: `openssl rand -base64 48`) | - | No |
 
 ## GitHub Configuration
@@ -246,7 +246,10 @@ services:
       - NODE_ENV=production
       - DATABASE_URL=file:data/gitea-mirror.db
       - BETTER_AUTH_SECRET=your-secure-secret-here
-      - BETTER_AUTH_URL=https://your-domain.com
+      # Primary access URL:
+      - BETTER_AUTH_URL=https://gitea-mirror.mydomain.tld
+      # Additional access URLs (local network + SSO providers):
+      # - BETTER_AUTH_TRUSTED_ORIGINS=http://10.10.20.45:4321,http://192.168.1.100:4321,https://auth.provider.com
       
       # GitHub Configuration
       - GITHUB_USERNAME=your-username
@@ -281,6 +284,53 @@ services:
     ports:
       - "4321:4321"
 ```
+
+## Authentication URL Configuration
+
+### Multiple Access URLs
+
+To allow access to Gitea Mirror through multiple URLs (e.g., local IP and public domain), use the `BETTER_AUTH_TRUSTED_ORIGINS` variable:
+
+**Example Configuration:**
+```bash
+# Primary URL (required) - typically your public domain
+BETTER_AUTH_URL=https://gitea-mirror.mydomain.tld
+
+# Additional access URLs (optional) - local IPs, alternate domains
+BETTER_AUTH_TRUSTED_ORIGINS=http://10.10.20.45:4321,http://192.168.1.100:4321
+```
+
+This setup allows you to:
+- Access via local network IP: `http://10.10.20.45:4321`
+- Access via public domain: `https://gitea-mirror.mydomain.tld`
+- Both URLs will work for authentication and session management
+
+### Trusted Origins
+
+The `BETTER_AUTH_TRUSTED_ORIGINS` variable serves multiple purposes:
+
+1. **SSO/OIDC Providers**: When using external authentication providers (Google, Authentik, Okta)
+2. **Reverse Proxies**: When running behind nginx, Traefik, or other proxies
+3. **Cross-Origin Requests**: When the frontend and backend are on different domains
+4. **Development**: When testing from different URLs
+
+**Example Scenarios:**
+```bash
+# For Authentik SSO integration
+BETTER_AUTH_TRUSTED_ORIGINS=https://authentik.company.com,https://auth.company.com
+
+# For reverse proxy setup
+BETTER_AUTH_TRUSTED_ORIGINS=https://proxy.internal,https://public.domain.com
+
+# For development with multiple environments
+BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000,http://192.168.1.100:3000
+```
+
+**Important Notes:**
+- All URLs from `BETTER_AUTH_URL` are automatically trusted
+- URLs must be complete with protocol (http/https)
+- Multiple origins are separated by commas
+- No trailing slashes needed
 
 ## Notes
 
