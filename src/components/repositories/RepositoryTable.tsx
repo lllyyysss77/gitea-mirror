@@ -220,10 +220,19 @@ export default function RepositoryTable({
 
               {/* Status & Last Mirrored */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className={`h-2.5 w-2.5 rounded-full ${getStatusColor(repo.status)}`} />
-                  <span className="text-sm font-medium capitalize">{repo.status}</span>
-                </div>
+                <Badge 
+                  className={`capitalize
+                    ${repo.status === 'imported' ? 'bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20 dark:text-yellow-400' :
+                      repo.status === 'mirrored' || repo.status === 'synced' ? 'bg-green-500/10 text-green-600 hover:bg-green-500/20 dark:text-green-400' :
+                      repo.status === 'mirroring' || repo.status === 'syncing' ? 'bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 dark:text-blue-400' :
+                      repo.status === 'failed' ? 'bg-red-500/10 text-red-600 hover:bg-red-500/20 dark:text-red-400' :
+                      repo.status === 'ignored' ? 'bg-gray-500/10 text-gray-600 hover:bg-gray-500/20 dark:text-gray-400' :
+                      repo.status === 'skipped' ? 'bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 dark:text-orange-400' :
+                      'bg-muted hover:bg-muted/80'}`}
+                  variant="secondary"
+                >
+                  {repo.status}
+                </Badge>
                 <span className="text-xs text-muted-foreground">
                   {repo.lastMirrored ? formatDate(repo.lastMirrored) : "Never mirrored"}
                 </span>
@@ -595,15 +604,17 @@ export default function RepositoryTable({
                       </div>
 
                       {/* Status */}
-                      <div className="h-full p-3 flex items-center gap-x-2 flex-[1]">
+                      <div className="h-full p-3 flex items-center flex-[1]">
                         {repo.status === "failed" && repo.errorMessage ? (
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <div className="flex items-center gap-x-2 cursor-help">
-                                  <div className={`h-2 w-2 rounded-full ${getStatusColor(repo.status)}`} />
-                                  <span className="text-sm capitalize underline decoration-dotted">{repo.status}</span>
-                                </div>
+                                <Badge 
+                                  variant="destructive"
+                                  className="cursor-help capitalize"
+                                >
+                                  {repo.status}
+                                </Badge>
                               </TooltipTrigger>
                               <TooltipContent className="max-w-xs">
                                 <p className="text-sm">{repo.errorMessage}</p>
@@ -611,10 +622,19 @@ export default function RepositoryTable({
                             </Tooltip>
                           </TooltipProvider>
                         ) : (
-                          <>
-                            <div className={`h-2 w-2 rounded-full ${getStatusColor(repo.status)}`} />
-                            <span className="text-sm capitalize">{repo.status}</span>
-                          </>
+                          <Badge 
+                            className={`capitalize
+                              ${repo.status === 'imported' ? 'bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20 dark:text-yellow-400' :
+                                repo.status === 'mirrored' || repo.status === 'synced' ? 'bg-green-500/10 text-green-600 hover:bg-green-500/20 dark:text-green-400' :
+                                repo.status === 'mirroring' || repo.status === 'syncing' ? 'bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 dark:text-blue-400' :
+                                repo.status === 'failed' ? 'bg-red-500/10 text-red-600 hover:bg-red-500/20 dark:text-red-400' :
+                                repo.status === 'ignored' ? 'bg-gray-500/10 text-gray-600 hover:bg-gray-500/20 dark:text-gray-400' :
+                                repo.status === 'skipped' ? 'bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 dark:text-orange-400' :
+                                'bg-muted hover:bg-muted/80'}`}
+                            variant="secondary"
+                          >
+                            {repo.status}
+                          </Badge>
                         )}
                       </div>
                       {/* Actions */}
