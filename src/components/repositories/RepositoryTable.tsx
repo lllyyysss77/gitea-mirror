@@ -588,8 +588,7 @@ export default function RepositoryTable({
                       </div>
 
                       {/* Repository */}
-                      <div className="h-full p-3 flex items-center gap-2 flex-[2.5]">
-                        {/* <GitFork className="h-4 w-4 text-muted-foreground" /> */}
+                      <div className="h-full py-3 flex items-center gap-2 flex-[2.5]">
                         <div className="flex-1">
                           <div className="font-medium flex items-center gap-1">
                             {repo.name}
