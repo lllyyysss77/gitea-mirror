@@ -204,16 +204,18 @@ export function mapDbScheduleToUi(dbSchedule: DbScheduleConfig): any {
   let intervalSeconds = 86400; // Default to daily (24 hours)
   
   if (dbSchedule.interval) {
-    // Check if it's a cron expression
-    const cronMatch = dbSchedule.interval.match(/0 \*\/(\d+) \* \* \*/);
-    if (cronMatch) {
-      intervalSeconds = parseInt(cronMatch[1]) * 3600;
-    } else if (typeof dbSchedule.interval === 'number') {
-      // If it's already a number (seconds), use it directly
+    // Check if it's already a number (seconds), use it directly
+    if (typeof dbSchedule.interval === 'number') {
       intervalSeconds = dbSchedule.interval;
-    } else if (dbSchedule.interval === "0 2 * * *") {
-      // Daily at 2 AM
-      intervalSeconds = 86400;
+    } else if (typeof dbSchedule.interval === 'string') {
+      // Check if it's a cron expression
+      const cronMatch = dbSchedule.interval.match(/0 \*\/(\d+) \* \* \*/);
+      if (cronMatch) {
+        intervalSeconds = parseInt(cronMatch[1]) * 3600;
+      } else if (dbSchedule.interval === "0 2 * * *") {
+        // Daily at 2 AM
+        intervalSeconds = 86400;
+      }
     }
   }
 
