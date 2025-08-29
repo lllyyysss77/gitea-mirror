@@ -57,7 +57,7 @@ http://<container-ip>:4321
 
 ```bash
 git clone https://github.com/RayLabsHQ/gitea-mirror.git   # if not already
-curl -fsSL https://raw.githubusercontent.com/arunavo4/gitea-mirror/main/scripts/gitea-mirror-lxc-local.sh -o gitea-mirror-lxc-local.sh
+curl -fsSL https://raw.githubusercontent.com/raylabshq/gitea-mirror:/main/scripts/gitea-mirror-lxc-local.sh -o gitea-mirror-lxc-local.sh
 chmod +x gitea-mirror-lxc-local.sh
 
 sudo LOCAL_REPO_DIR=~/Development/gitea-mirror \

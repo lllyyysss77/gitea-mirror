@@ -238,7 +238,7 @@ Settings specific to Docker deployments.
 | Variable | Description | Default | Options |
 |----------|-------------|---------|---------|
 | `DOCKER_REGISTRY` | Docker registry URL | `ghcr.io` | Registry URL |
-| `DOCKER_IMAGE` | Docker image name | `arunavo4/gitea-mirror` | Image name |
+| `DOCKER_IMAGE` | Docker image name | `raylabshq/gitea-mirror:` | Image name |
 | `DOCKER_TAG` | Docker image tag | `latest` | Tag name |
 
 ## Example Docker Compose Configuration
