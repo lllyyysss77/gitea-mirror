@@ -1583,21 +1583,41 @@ export async function mirrorGitRepoPullRequestsToGitea({
   // Pull requests are typically created through Git operations
   // For now, we'll create them as issues with a special label
   
-  // Get or create a PR label
-  try {
-    await httpPost(
-      `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repository.name}/labels`,
-      { 
-        name: "pull-request",
-        color: "#0366d6",
-        description: "Mirrored from GitHub Pull Request"
-      },
-      {
-        Authorization: `token ${decryptedConfig.giteaConfig.token}`,
-      }
-    );
-  } catch (error) {
-    // Label might already exist, continue
+  // Get existing labels from Gitea and ensure "pull-request" label exists
+  const giteaLabelsRes = await httpGet(
+    `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repository.name}/labels`,
+    {
+      Authorization: `token ${decryptedConfig.giteaConfig.token}`,
+    }
+  );
+
+  const giteaLabels = giteaLabelsRes.data;
+  const labelMap = new Map<string, number>(
+    giteaLabels.map((label: any) => [label.name, label.id])
+  );
+
+  // Ensure "pull-request" label exists
+  let pullRequestLabelId: number | null = null;
+  if (labelMap.has("pull-request")) {
+    pullRequestLabelId = labelMap.get("pull-request")!;
+  } else {
+    try {
+      const created = await httpPost(
+        `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repository.name}/labels`,
+        { 
+          name: "pull-request",
+          color: "#0366d6",
+          description: "Mirrored from GitHub Pull Request"
+        },
+        {
+          Authorization: `token ${decryptedConfig.giteaConfig.token}`,
+        }
+      );
+      pullRequestLabelId = created.data.id;
+    } catch (error) {
+      console.error(`Failed to create "pull-request" label in Gitea: ${error}`);
+      // Continue without labels if creation fails
+    }
   }
 
   const { processWithRetry } = await import("@/lib/utils/concurrency");
@@ -1681,7 +1701,7 @@ export async function mirrorGitRepoPullRequestsToGitea({
         const issueData = {
           title: issueTitle,
           body: richBody,
-          labels: [{ name: "pull-request" }],
+          labels: pullRequestLabelId ? [pullRequestLabelId] : [],
           state: pr.state === "closed" ? "closed" : "open",
         };
 
@@ -1701,7 +1721,7 @@ export async function mirrorGitRepoPullRequestsToGitea({
         const basicIssueData = {
           title: `[PR #${pr.number}] ${pr.title}`,
           body: `**Original Pull Request:** ${pr.html_url}\n\n**State:** ${pr.state}\n**Merged:** ${pr.merged_at ? 'Yes' : 'No'}\n\n---\n\n${pr.body || 'No description provided'}`,
-          labels: [{ name: "pull-request" }],
+          labels: pullRequestLabelId ? [pullRequestLabelId] : [],
           state: pr.state === "closed" ? "closed" : "open",
         };
         
