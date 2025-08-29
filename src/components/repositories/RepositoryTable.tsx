@@ -5,7 +5,7 @@ import { FlipHorizontal, GitFork, RefreshCw, RotateCcw, Star, Lock, Ban, Check, 
 import { SiGithub, SiGitea } from "react-icons/si";
 import type { Repository } from "@/lib/db/schema";
 import { Button } from "@/components/ui/button";
-import { formatDate, getStatusColor } from "@/lib/utils";
+import { formatDate, formatLastSyncTime, getStatusColor } from "@/lib/utils";
 import type { FilterParams } from "@/types/filter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useGiteaConfig } from "@/hooks/useGiteaConfig";
@@ -242,7 +242,7 @@ export default function RepositoryTable({
                   {repo.status}
                 </Badge>
                 <span className="text-xs text-muted-foreground">
-                  {repo.lastMirrored ? formatDate(repo.lastMirrored) : "Never mirrored"}
+                  {formatLastSyncTime(repo.lastMirrored)}
                 </span>
               </div>
             </div>
@@ -410,7 +410,7 @@ export default function RepositoryTable({
           <div className="h-full p-3 flex items-center justify-center flex-[0.3]">
             <Skeleton className="h-4 w-4" />
           </div>
-          <div className="h-full p-3 text-sm font-medium flex-[2.5]">
+          <div className="h-full py-3 text-sm font-medium flex-[2.3]">
             Repository
           </div>
           <div className="h-full p-3 text-sm font-medium flex-[1]">Owner</div>
@@ -437,7 +437,7 @@ export default function RepositoryTable({
             <div className="h-full p-3 flex items-center justify-center flex-[0.3]">
               <Skeleton className="h-4 w-4" />
             </div>
-            <div className="h-full p-3 flex-[2.5]">
+            <div className="h-full p-3 flex-[2.3]">
               <Skeleton className="h-5 w-48" />
               <Skeleton className="h-3 w-24 mt-1" />
             </div>
@@ -530,7 +530,7 @@ export default function RepositoryTable({
                   aria-label="Select all repositories"
                 />
               </div>
-              <div className="h-full p-3 text-sm font-medium flex-[2.5]">
+              <div className="h-full py-3 text-sm font-medium flex-[2.3]">
                 Repository
               </div>
               <div className="h-full p-3 text-sm font-medium flex-[1]">Owner</div>
@@ -588,7 +588,7 @@ export default function RepositoryTable({
                       </div>
 
                       {/* Repository */}
-                      <div className="h-full py-3 flex items-center gap-2 flex-[2.5]">
+                      <div className="h-full py-3 flex items-center gap-2 flex-[2.3]">
                         <div className="flex-1">
                           <div className="font-medium flex items-center gap-1">
                             {repo.name}
@@ -629,9 +629,7 @@ export default function RepositoryTable({
                       {/* Last Mirrored */}
                       <div className="h-full p-3 flex items-center flex-[1]">
                         <p className="text-sm">
-                          {repo.lastMirrored
-                            ? formatDate(new Date(repo.lastMirrored))
-                            : "Never"}
+                          {formatLastSyncTime(repo.lastMirrored)}
                         </p>
                       </div>
 

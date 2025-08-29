@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { useConfigStatus } from "@/hooks/useConfigStatus";
-import { Menu, LogOut } from "lucide-react";
+import { Menu, LogOut, PanelRightOpen, PanelRightClose } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,9 +19,12 @@ interface HeaderProps {
   currentPage?: "dashboard" | "repositories" | "organizations" | "configuration" | "activity-log";
   onNavigate?: (page: string) => void;
   onMenuClick: () => void;
+  onToggleCollapse?: () => void;
+  isSidebarCollapsed?: boolean;
+  isSidebarOpen?: boolean;
 }
 
-export function Header({ currentPage, onNavigate, onMenuClick }: HeaderProps) {
+export function Header({ currentPage, onNavigate, onMenuClick, onToggleCollapse, isSidebarCollapsed, isSidebarOpen }: HeaderProps) {
   const { user, logout, isLoading } = useAuth();
   const { isLiveEnabled, toggleLive } = useLiveRefresh();
   const { isFullyConfigured, isLoading: configLoading } = useConfigStatus();
@@ -63,16 +66,36 @@ export function Header({ currentPage, onNavigate, onMenuClick }: HeaderProps) {
   return (
     <header className="border-b bg-background">
       <div className="flex h-[4.5rem] items-center justify-between px-4 sm:px-6">
-        <div className="flex items-center gap-2">
-          {/* Hamburger Menu Button - Mobile Only */}
+        <div className="flex items-center gap-12">
+          {/* Sidebar Toggle - Mobile uses slide-in, Medium uses collapse */}
           <Button
-            variant="outline"
-            size="lg"
-            className="lg:hidden"
+            variant="ghost"
+            size="icon"
+            className="md:hidden h-10 w-10"
             onClick={onMenuClick}
           >
-            <Menu className="h-5 w-5" />
+            {isSidebarOpen ? (
+              <PanelRightOpen className="h-5 w-5" />
+            ) : (
+              <PanelRightClose className="h-5 w-5" />
+            )}
             <span className="sr-only">Toggle menu</span>
+          </Button>
+          
+          {/* Sidebar Collapse Toggle - Only on medium screens (768px - 1280px) */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hidden md:flex xl:hidden h-10 w-10"
+            onClick={onToggleCollapse}
+            title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {isSidebarCollapsed ? (
+              <PanelRightClose className="h-5 w-5" />
+            ) : (
+              <PanelRightOpen className="h-5 w-5" />
+            )}
+            <span className="sr-only">Toggle sidebar</span>
           </Button>
           
           <button
