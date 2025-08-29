@@ -36,6 +36,7 @@ Essential application settings required for running Gitea Mirror.
 | `DATABASE_URL` | Database connection URL | `sqlite://data/gitea-mirror.db` | No |
 | `BETTER_AUTH_SECRET` | Secret key for session signing (generate with: `openssl rand -base64 32`) | - | Yes |
 | `BETTER_AUTH_URL` | Primary base URL for authentication. This should be the main URL where your application is accessed. | `http://localhost:4321` | No |
+| `PUBLIC_BETTER_AUTH_URL` | Client-side auth URL for multi-origin access. Set this to your primary domain when you need to access the app from different origins (e.g., both IP and domain). The client will use this URL for all auth requests instead of the current browser origin. | - | No |
 | `BETTER_AUTH_TRUSTED_ORIGINS` | Trusted origins for authentication requests. Comma-separated list of URLs. Use this to specify additional access URLs (e.g., local IP + domain: `http://10.10.20.45:4321,https://gitea-mirror.mydomain.tld`), SSO providers, reverse proxies, etc. | - | No |
 | `ENCRYPTION_SECRET` | Optional encryption key for tokens (generate with: `openssl rand -base64 48`) | - | No |
 
@@ -300,21 +301,28 @@ services:
 
 ### Multiple Access URLs
 
-To allow access to Gitea Mirror through multiple URLs (e.g., local IP and public domain), use the `BETTER_AUTH_TRUSTED_ORIGINS` variable:
+To allow access to Gitea Mirror through multiple URLs (e.g., local IP and public domain), you need to configure both server and client settings:
 
 **Example Configuration:**
 ```bash
-# Primary URL (required) - typically your public domain
+# Primary URL (required) - where the auth server is hosted
 BETTER_AUTH_URL=https://gitea-mirror.mydomain.tld
 
-# Additional access URLs (optional) - local IPs, alternate domains
+# Client-side URL (optional) - tells the browser where to send auth requests
+# Set this to your primary domain when accessing from different origins
+PUBLIC_BETTER_AUTH_URL=https://gitea-mirror.mydomain.tld
+
+# Additional trusted origins (optional) - origins allowed to make auth requests
 BETTER_AUTH_TRUSTED_ORIGINS=http://10.10.20.45:4321,http://192.168.1.100:4321
 ```
 
 This setup allows you to:
 - Access via local network IP: `http://10.10.20.45:4321`
 - Access via public domain: `https://gitea-mirror.mydomain.tld`
-- Both URLs will work for authentication and session management
+- Auth requests from the IP will be sent to the domain (via `PUBLIC_BETTER_AUTH_URL`)
+- Each origin requires separate login due to browser cookie isolation
+
+**Important:** When accessing from different origins (IP vs domain), you'll need to log in separately on each origin as cookies cannot be shared across different origins for security reasons.
 
 ### Trusted Origins
 
