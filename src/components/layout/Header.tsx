@@ -66,10 +66,10 @@ export function Header({ currentPage, onNavigate, onMenuClick, onToggleCollapse,
   return (
     <header className="border-b bg-background">
       <div className="flex h-[4.5rem] items-center justify-between px-4 sm:px-6">
-        <div className="flex items-center gap-12">
+        <div className="flex items-center lg:gap-12 md:gap-6 gap-4">
           {/* Sidebar Toggle - Mobile uses slide-in, Medium uses collapse */}
           <Button
-            variant="ghost"
+            variant="outline"
             size="icon"
             className="md:hidden h-10 w-10"
             onClick={onMenuClick}
