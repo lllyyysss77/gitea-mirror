@@ -68,6 +68,111 @@ async function runScheduledSync(config: any): Promise<void> {
       updatedAt: currentTime,
     }).where(eq(configs.id, config.id));
     
+    // Auto-discovery: Check for new GitHub repositories
+    if (scheduleConfig.autoImport !== false) {
+      console.log(`[Scheduler] Checking for new GitHub repositories for user ${userId}...`);
+      try {
+        const { getGithubRepositories, getGithubStarredRepositories, getGithubOrganizations } = await import('@/lib/github');
+        const { v4: uuidv4 } = await import('uuid');
+        const { getDecryptedGitHubToken } = await import('@/lib/utils/config-encryption');
+        
+        // Create GitHub client
+        const decryptedToken = getDecryptedGitHubToken(config);
+        const { Octokit } = await import('@octokit/rest');
+        const octokit = new Octokit({ auth: decryptedToken });
+        
+        // Fetch GitHub data
+        const [basicAndForkedRepos, starredRepos, gitOrgs] = await Promise.all([
+          getGithubRepositories({ octokit, config }),
+          config.githubConfig?.includeStarred
+            ? getGithubStarredRepositories({ octokit, config })
+            : Promise.resolve([]),
+          getGithubOrganizations({ octokit, config }),
+        ]);
+        
+        const allGithubRepos = [...basicAndForkedRepos, ...starredRepos];
+        
+        // Check for new repositories
+        const existingRepos = await db
+          .select({ fullName: repositories.fullName })
+          .from(repositories)
+          .where(eq(repositories.userId, userId));
+        
+        const existingRepoNames = new Set(existingRepos.map(r => r.fullName));
+        const newRepos = allGithubRepos.filter(r => !existingRepoNames.has(r.fullName));
+        
+        if (newRepos.length > 0) {
+          console.log(`[Scheduler] Found ${newRepos.length} new repositories for user ${userId}`);
+          
+          // Insert new repositories
+          const reposToInsert = newRepos.map(repo => ({
+            id: uuidv4(),
+            userId,
+            configId: config.id,
+            name: repo.name,
+            fullName: repo.fullName,
+            url: repo.url,
+            cloneUrl: repo.cloneUrl,
+            owner: repo.owner,
+            organization: repo.organization,
+            isPrivate: repo.isPrivate,
+            isForked: repo.isForked,
+            forkedFrom: repo.forkedFrom,
+            hasIssues: repo.hasIssues,
+            isStarred: repo.isStarred,
+            isArchived: repo.isArchived,
+            size: repo.size,
+            hasLFS: repo.hasLFS,
+            hasSubmodules: repo.hasSubmodules,
+            defaultBranch: repo.defaultBranch,
+            visibility: repo.visibility,
+            status: 'imported',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }));
+          
+          await db.insert(repositories).values(reposToInsert);
+          console.log(`[Scheduler] Successfully imported ${newRepos.length} new repositories for user ${userId}`);
+        } else {
+          console.log(`[Scheduler] No new repositories found for user ${userId}`);
+        }
+      } catch (error) {
+        console.error(`[Scheduler] Failed to auto-import repositories for user ${userId}:`, error);
+      }
+    }
+    
+    // Auto-cleanup: Remove orphaned repositories (repos that no longer exist in GitHub)
+    if (config.cleanupConfig?.deleteIfNotInGitHub) {
+      console.log(`[Scheduler] Checking for orphaned repositories to cleanup for user ${userId}...`);
+      try {
+        const { identifyOrphanedRepositories, handleOrphanedRepository } = await import('@/lib/repository-cleanup-service');
+        
+        const orphanedRepos = await identifyOrphanedRepositories(config);
+        
+        if (orphanedRepos.length > 0) {
+          console.log(`[Scheduler] Found ${orphanedRepos.length} orphaned repositories for cleanup`);
+          
+          for (const repo of orphanedRepos) {
+            try {
+              await handleOrphanedRepository(
+                config,
+                repo,
+                config.cleanupConfig.orphanedRepoAction || 'archive',
+                config.cleanupConfig.dryRun ?? false
+              );
+              console.log(`[Scheduler] Handled orphaned repository: ${repo.fullName}`);
+            } catch (error) {
+              console.error(`[Scheduler] Failed to handle orphaned repository ${repo.fullName}:`, error);
+            }
+          }
+        } else {
+          console.log(`[Scheduler] No orphaned repositories found for cleanup`);
+        }
+      } catch (error) {
+        console.error(`[Scheduler] Failed to cleanup orphaned repositories for user ${userId}:`, error);
+      }
+    }
+    
     // Get repositories to sync
     let reposToSync = await db
       .select()

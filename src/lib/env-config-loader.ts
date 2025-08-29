@@ -299,6 +299,7 @@ export async function initializeConfigFromEnv(): Promise<void> {
       updateInterval: envConfig.schedule.updateInterval ?? existingConfig?.[0]?.scheduleConfig?.updateInterval ?? 86400000,
       skipRecentlyMirrored: envConfig.schedule.skipRecentlyMirrored ?? existingConfig?.[0]?.scheduleConfig?.skipRecentlyMirrored ?? true,
       recentThreshold: envConfig.schedule.recentThreshold ?? existingConfig?.[0]?.scheduleConfig?.recentThreshold ?? 3600000,
+      autoImport: process.env.AUTO_IMPORT_REPOS !== 'false', // New field for auto-importing new repositories
       lastRun: existingConfig?.[0]?.scheduleConfig?.lastRun || undefined,
       nextRun: existingConfig?.[0]?.scheduleConfig?.nextRun || undefined,
     };

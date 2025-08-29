@@ -417,6 +417,7 @@ export const mirrorGithubRepoToGitea = async ({
         clone_addr: cloneAddress,
         repo_name: repository.name,
         mirror: true,
+        mirror_interval: config.giteaConfig?.mirrorInterval || "8h", // Set mirror interval
         wiki: config.giteaConfig?.wiki || false, // will mirror wiki if it exists
         lfs: config.giteaConfig?.lfs || false, // Enable LFS mirroring if configured
         private: repository.isPrivate,
@@ -711,6 +712,7 @@ export async function mirrorGitHubRepoToGiteaOrg({
         uid: giteaOrgId,
         repo_name: repository.name,
         mirror: true,
+        mirror_interval: config.giteaConfig?.mirrorInterval || "8h", // Set mirror interval
         wiki: config.giteaConfig?.wiki || false, // will mirror wiki if it exists
         lfs: config.giteaConfig?.lfs || false, // Enable LFS mirroring if configured
         private: repository.isPrivate,

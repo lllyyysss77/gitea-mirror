@@ -348,6 +348,9 @@ export function isRepositoryCleanupServiceRunning(): boolean {
   return cleanupInterval !== null;
 }
 
+// Export functions for use by scheduler
+export { identifyOrphanedRepositories, handleOrphanedRepository };
+
 /**
  * Manually trigger repository cleanup for a specific user
  */

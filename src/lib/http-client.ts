@@ -179,6 +179,21 @@ export async function httpPut<T = any>(
 }
 
 /**
+ * PATCH request
+ */
+export async function httpPatch<T = any>(
+  url: string,
+  body?: any,
+  headers?: Record<string, string>
+): Promise<HttpResponse<T>> {
+  return httpRequest<T>(url, {
+    method: 'PATCH',
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+}
+
+/**
  * DELETE request
  */
 export async function httpDelete<T = any>(
@@ -218,6 +233,10 @@ export class GiteaHttpClient {
 
   async put<T = any>(endpoint: string, body?: any): Promise<HttpResponse<T>> {
     return httpPut<T>(`${this.baseUrl}${endpoint}`, body, this.getHeaders());
+  }
+
+  async patch<T = any>(endpoint: string, body?: any): Promise<HttpResponse<T>> {
+    return httpPatch<T>(`${this.baseUrl}${endpoint}`, body, this.getHeaders());
   }
 
   async delete<T = any>(endpoint: string): Promise<HttpResponse<T>> {

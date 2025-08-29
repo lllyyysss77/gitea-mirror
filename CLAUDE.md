@@ -208,6 +208,24 @@ Repositories can have the following statuses:
 - **deleting**: Repository being deleted
 - **deleted**: Repository deleted
 
+### Scheduling and Synchronization (Issue #72 Fixes)
+
+#### Fixed Issues
+1. **Mirror Interval Bug**: Added `mirror_interval` parameter to Gitea API calls when creating mirrors (previously defaulted to 24h)
+2. **Auto-Discovery**: Scheduler now automatically discovers and imports new GitHub repositories
+3. **Interval Updates**: Sync operations now update existing mirrors' intervals to match configuration
+4. **Repository Cleanup**: Integrated automatic cleanup of orphaned repositories (repos removed from GitHub)
+
+#### Environment Variables for Auto-Import
+- **AUTO_IMPORT_REPOS**: Set to `false` to disable automatic repository discovery (default: enabled)
+
+#### How Scheduling Works
+- **Scheduler Service**: Runs every minute to check for scheduled tasks
+- **Sync Interval**: Configured via `GITEA_MIRROR_INTERVAL` or UI (e.g., "8h", "30m", "1d")
+- **Auto-Import**: Checks GitHub for new repositories during each scheduled sync
+- **Auto-Cleanup**: Removes repositories that no longer exist in GitHub (if enabled)
+- **Mirror Interval Update**: Updates Gitea's internal mirror interval during sync operations
+
 ### Authentication Configuration
 
 #### SSO Provider Configuration

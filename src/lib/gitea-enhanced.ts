@@ -10,7 +10,7 @@ import type { Config } from "@/types/config";
 import type { Repository } from "./db/schema";
 import { createMirrorJob } from "./helpers";
 import { decryptConfigTokens } from "./utils/config-encryption";
-import { httpPost, httpGet, HttpError } from "./http-client";
+import { httpPost, httpGet, httpPatch, HttpError } from "./http-client";
 import { db, repositories } from "./db";
 import { eq } from "drizzle-orm";
 import { repoStatusEnum } from "@/types/Repository";
@@ -297,6 +297,23 @@ export async function syncGiteaRepoEnhanced({
       });
 
       throw new Error(`Repository ${repository.name} is not a mirror. Cannot sync.`);
+    }
+
+    // Update mirror interval if needed
+    if (config.giteaConfig?.mirrorInterval) {
+      try {
+        console.log(`[Sync] Updating mirror interval for ${repository.name} to ${config.giteaConfig.mirrorInterval}`);
+        const updateUrl = `${config.giteaConfig.url}/api/v1/repos/${repoOwner}/${repository.name}`;
+        await httpPatch(updateUrl, {
+          mirror_interval: config.giteaConfig.mirrorInterval,
+        }, {
+          Authorization: `token ${decryptedConfig.giteaConfig.token}`,
+        });
+        console.log(`[Sync] Successfully updated mirror interval for ${repository.name}`);
+      } catch (updateError) {
+        console.warn(`[Sync] Failed to update mirror interval for ${repository.name}:`, updateError);
+        // Continue with sync even if interval update fails
+      }
     }
 
     // Perform the sync
