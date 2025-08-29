@@ -1,5 +1,7 @@
-# Gitea Mirror alternate deployment configuration
-# Standard deployment with host path and minimal environments
+# Minimal Gitea Mirror deployment
+# Only includes what CANNOT be configured via the Web UI
+# Everything else can be set up through the web interface after deployment
+
 services:
   gitea-mirror:
     image: ghcr.io/raylabshq/gitea-mirror:latest
@@ -11,17 +13,43 @@ services:
     volumes:
       - ./data:/app/data
     environment:
-      # For a complete list of all supported environment variables, see:
-      # docs/ENVIRONMENT_VARIABLES.md or .env.example
+      # === ABSOLUTELY REQUIRED ===
+      # This MUST be set and CANNOT be changed via UI
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}  # Min 32 chars, required for sessions
+      
+      # === CORE SETTINGS ===
+      # These are technically required but have working defaults
       - NODE_ENV=production
       - DATABASE_URL=file:data/gitea-mirror.db
       - HOST=0.0.0.0
       - PORT=4321
-      - BETTER_AUTH_URL=http://localhost:4321
-      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-your-secret-key-change-this-in-production}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL:-http://localhost:4321}
+      
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=3", "--spider", "http://localhost:4321/api/health"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 15s
+
+# === QUICK START ===
+#
+# 1. Create a .env file with only ONE required variable:
+#    BETTER_AUTH_SECRET=your-32-character-minimum-secret-key-here
+#
+# 2. Run:
+#    docker-compose -f docker-compose.alt.yml up -d
+#
+# 3. Access at http://localhost:4321
+#
+# 4. Sign up for an account (first user becomes admin)
+#
+# 5. Configure everything else through the web UI:
+#    - GitHub credentials
+#    - Gitea credentials  
+#    - Mirror settings
+#    - Scheduling options
+#    - Auto-import settings
+#    - Cleanup preferences
+#
+# That's it! Everything else can be configured via the web interface.

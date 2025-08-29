@@ -40,7 +40,10 @@ First user signup becomes admin. Configure GitHub and Gitea through the web inte
 - 🚫 **Repository ignore** - Mark specific repos to skip
 - 🔐 Secure authentication with Better Auth (email/password, SSO, OIDC)
 - 📊 Real-time dashboard with activity logs
-- ⏱️ Scheduled automatic mirroring with flexible intervals
+- ⏱️ Scheduled automatic mirroring with configurable intervals
+- 🔄 **Auto-discovery** - Automatically import new GitHub repositories (v3.4.0+)
+- 🧹 **Repository cleanup** - Auto-remove repos deleted from GitHub (v3.4.0+)
+- 🎯 **Proper mirror intervals** - Respects configured sync intervals (v3.4.0+)
 - 🗑️ Automatic database cleanup with configurable retention
 - 🐳 Dockerized with multi-arch support (AMD64/ARM64)
 
@@ -204,25 +207,39 @@ Enable in Settings → Mirror Options → Mirror metadata
 - **Automatic Cleanup** - Configure retention period for activity logs
 - **Scheduled Sync** - Set custom intervals for automatic mirroring
 
-### Automatic Mirroring
+### Automatic Mirroring & Synchronization
 
-Gitea Mirror can automatically sync your repositories at regular intervals. There are two ways to configure this:
+Gitea Mirror provides powerful automatic synchronization features:
 
-#### Via Web Interface (Recommended)
-Navigate to the Configuration page and enable "Automatic Mirroring" with your preferred interval (e.g., every 6 hours, daily, etc.).
+#### Features (v3.4.0+)
+- **Auto-discovery**: Automatically discovers and imports new GitHub repositories
+- **Repository cleanup**: Removes repositories that no longer exist in GitHub
+- **Proper intervals**: Mirrors respect your configured sync intervals (not Gitea's default 24h)
+- **Smart scheduling**: Only syncs repositories that need updating
 
-#### Via Environment Variables
-Set `GITEA_MIRROR_INTERVAL` to automatically enable scheduled mirroring:
+#### Configuration via Web Interface (Recommended)
+Navigate to the Configuration page and enable "Automatic Mirroring" with your preferred interval.
+
+#### Configuration via Environment Variables
 
 ```bash
-# Examples of supported formats:
-GITEA_MIRROR_INTERVAL=8h     # Every 8 hours
-GITEA_MIRROR_INTERVAL=30m    # Every 30 minutes  
-GITEA_MIRROR_INTERVAL=1d     # Daily
-GITEA_MIRROR_INTERVAL=86400  # Every 86400 seconds (24 hours)
+# Enable automatic scheduling (required for auto features)
+SCHEDULE_ENABLED=true
+
+# Mirror interval (how often to sync)
+GITEA_MIRROR_INTERVAL=8h     # Every 8 hours (default)
+# Other examples: 5m, 30m, 1h, 24h, 1d, 7d
+
+# Auto-import new repositories (default: true)
+AUTO_IMPORT_REPOS=true
+
+# Auto-cleanup orphaned repositories
+CLEANUP_DELETE_IF_NOT_IN_GITHUB=true
+CLEANUP_ORPHANED_REPO_ACTION=archive  # or 'delete'
+CLEANUP_DRY_RUN=false                 # Set to true to test without changes
 ```
 
-When this variable is set, the scheduler automatically enables and runs at the specified interval. The timer starts from the last successful sync, not from container startup.
+**Important**: The scheduler checks every minute for tasks to run. The `GITEA_MIRROR_INTERVAL` determines how often each repository is actually synced. For example, with `8h`, each repo syncs every 8 hours from its last successful sync.
 
 ## Troubleshooting
 
