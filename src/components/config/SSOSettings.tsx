@@ -372,8 +372,8 @@ export function SSOSettings() {
                       Add Provider
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
-                    <DialogHeader>
+                  <DialogContent className="max-w-2xl max-h-[90vh] md:max-h-[85vh] lg:max-h-[90vh] overflow-hidden flex flex-col">
+                    <DialogHeader className="flex-shrink-0">
                       <DialogTitle>{editingProvider ? 'Edit SSO Provider' : 'Add SSO Provider'}</DialogTitle>
                       <DialogDescription>
                         {editingProvider 
@@ -381,14 +381,15 @@ export function SSOSettings() {
                           : 'Configure an external identity provider for user authentication'}
                       </DialogDescription>
                     </DialogHeader>
-                    <Tabs value={providerType} onValueChange={(value) => setProviderType(value as 'oidc' | 'saml')}>
-                      <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="oidc">OIDC / OAuth2</TabsTrigger>
-                        <TabsTrigger value="saml">SAML 2.0</TabsTrigger>
-                      </TabsList>
-                      
-                      {/* Common Fields */}
-                      <div className="space-y-4 mt-4">
+                    <div className="flex-1 overflow-y-auto px-1 -mx-1">
+                      <Tabs value={providerType} onValueChange={(value) => setProviderType(value as 'oidc' | 'saml')}>
+                        <TabsList className="grid w-full grid-cols-2 sticky top-0 z-10 bg-background">
+                          <TabsTrigger value="oidc">OIDC / OAuth2</TabsTrigger>
+                          <TabsTrigger value="saml">SAML 2.0</TabsTrigger>
+                        </TabsList>
+                        
+                        {/* Common Fields */}
+                        <div className="space-y-4 mt-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label htmlFor="providerId">Provider ID</Label>
@@ -569,7 +570,8 @@ export function SSOSettings() {
                         </Alert>
                       </TabsContent>
                     </Tabs>
-                    <DialogFooter>
+                    </div>
+                    <DialogFooter className="flex-shrink-0 pt-4 border-t">
                       <Button 
                         variant="outline" 
                         onClick={() => {
