@@ -1702,7 +1702,7 @@ export async function mirrorGitRepoPullRequestsToGitea({
           title: issueTitle,
           body: richBody,
           labels: pullRequestLabelId ? [pullRequestLabelId] : [],
-          state: pr.state === "closed" ? "closed" : "open",
+          closed: pr.state === "closed" || pr.merged_at !== null,
         };
 
         console.log(`[Pull Requests] Creating enriched issue for PR #${pr.number}: ${pr.title}`);
@@ -1722,7 +1722,7 @@ export async function mirrorGitRepoPullRequestsToGitea({
           title: `[PR #${pr.number}] ${pr.title}`,
           body: `**Original Pull Request:** ${pr.html_url}\n\n**State:** ${pr.state}\n**Merged:** ${pr.merged_at ? 'Yes' : 'No'}\n\n---\n\n${pr.body || 'No description provided'}`,
           labels: pullRequestLabelId ? [pullRequestLabelId] : [],
-          state: pr.state === "closed" ? "closed" : "open",
+          closed: pr.state === "closed" || pr.merged_at !== null,
         };
         
         try {
