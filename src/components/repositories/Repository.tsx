@@ -183,7 +183,9 @@ export default function Repository() {
       );
 
       if (response.success) {
-        toast.success(`Mirroring started for repository ID: ${repoId}`);
+        const repo = repositories.find(r => r.id === repoId);
+        const repoName = repo?.fullName || `repository ${repoId}`;
+        toast.success(`Mirroring started for ${repoName}`);
         setRepositories((prevRepos) =>
           prevRepos.map((repo) => {
             const updated = response.repositories.find((r) => r.id === repo.id);
@@ -496,7 +498,9 @@ export default function Repository() {
       });
 
       if (response.success) {
-        toast.success(`Syncing started for repository ID: ${repoId}`);
+        const repo = repositories.find(r => r.id === repoId);
+        const repoName = repo?.fullName || `repository ${repoId}`;
+        toast.success(`Syncing started for ${repoName}`);
         setRepositories((prevRepos) =>
           prevRepos.map((repo) => {
             const updated = response.repositories.find((r) => r.id === repo.id);
@@ -588,7 +592,9 @@ export default function Repository() {
       });
 
       if (response.success) {
-        toast.success(`Retrying job for repository ID: ${repoId}`);
+        const repo = repositories.find(r => r.id === repoId);
+        const repoName = repo?.fullName || `repository ${repoId}`;
+        toast.success(`Retrying job for ${repoName}`);
         setRepositories((prevRepos) =>
           prevRepos.map((repo) => {
             const updated = response.repositories.find((r) => r.id === repo.id);
