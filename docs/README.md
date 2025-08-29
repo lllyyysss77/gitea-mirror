@@ -60,7 +60,7 @@ bun run dev
 
 ## Key Features
 
-- 🔄 **Automatic Mirroring** - Keep repositories synchronized
+- 🔄 **Automatic Syncing** - Keep repositories synchronized
 - 🗂️ **Organization Support** - Mirror entire organizations
 - ⭐ **Starred Repos** - Mirror your starred repositories
 - 🔐 **Self-Hosted** - Full control over your data

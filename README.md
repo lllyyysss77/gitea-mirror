@@ -207,7 +207,7 @@ Enable in Settings → Mirror Options → Mirror metadata
 - **Automatic Cleanup** - Configure retention period for activity logs
 - **Scheduled Sync** - Set custom intervals for automatic mirroring
 
-### Automatic Mirroring & Synchronization
+### Automatic Syncing & Synchronization
 
 Gitea Mirror provides powerful automatic synchronization features:
 
@@ -218,7 +218,7 @@ Gitea Mirror provides powerful automatic synchronization features:
 - **Smart scheduling**: Only syncs repositories that need updating
 
 #### Configuration via Web Interface (Recommended)
-Navigate to the Configuration page and enable "Automatic Mirroring" with your preferred interval.
+Navigate to the Configuration page and enable "Automatic Syncing" with your preferred interval.
 
 #### Configuration via Environment Variables
 

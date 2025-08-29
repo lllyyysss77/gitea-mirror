@@ -83,7 +83,7 @@ export function ScheduleConfigForm({
               htmlFor="enabled"
               className="select-none ml-2 block text-sm font-medium"
             >
-              Enable Automatic Mirroring
+              Enable Automatic Syncing
             </label>
           </div>
 
