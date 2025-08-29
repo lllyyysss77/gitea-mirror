@@ -228,17 +228,17 @@ export function OrganizationList({
                     {(() => {
                       const parts = [];
                       if (org.publicRepositoryCount && org.publicRepositoryCount > 0) {
-                        parts.push(`${org.publicRepositoryCount}pub`);
+                        parts.push(`${org.publicRepositoryCount} pub`);
                       }
                       if (org.privateRepositoryCount && org.privateRepositoryCount > 0) {
-                        parts.push(`${org.privateRepositoryCount}priv`);
+                        parts.push(`${org.privateRepositoryCount} priv`);
                       }
                       if (org.forkRepositoryCount && org.forkRepositoryCount > 0) {
-                        parts.push(`${org.forkRepositoryCount}fork`);
+                        parts.push(`${org.forkRepositoryCount} fork`);
                       }
                       
                       return parts.length > 0 ? (
-                        <span className="ml-1">({parts.join('/')})</span>
+                        <span className="ml-1">({parts.join(' | ')})</span>
                       ) : null;
                     })()}
                   </div>
