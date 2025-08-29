@@ -50,12 +50,12 @@ export function ConfigTabs() {
       preserveOrgStructure: false,
     },
     scheduleConfig: {
-      enabled: true, // Default to enabled
-      interval: 86400, // Default to daily (24 hours)
+      enabled: false, // Don't set defaults here - will be loaded from API
+      interval: 0, // Will be replaced with actual value from API
     },
     cleanupConfig: {
-      enabled: true, // Default to enabled
-      retentionDays: 604800, // 7 days in seconds - Default retention period
+      enabled: false, // Don't set defaults here - will be loaded from API  
+      retentionDays: 0, // Will be replaced with actual value from API
     },
     mirrorOptions: {
       mirrorReleases: false,

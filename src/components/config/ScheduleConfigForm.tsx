@@ -93,7 +93,7 @@ export function ScheduleConfigForm({
                 htmlFor="interval"
                 className="block text-sm font-medium mb-1.5"
               >
-                Mirroring Interval
+                Sync Interval
               </label>
 
               <Select
@@ -122,7 +122,7 @@ export function ScheduleConfigForm({
               </Select>
 
               <p className="text-xs text-muted-foreground mt-1">
-                How often the mirroring process should run.
+                How often the sync process should run.
               </p>
               <div className="mt-2 p-2 bg-muted/50 rounded-md">
                 <p className="text-xs text-muted-foreground">
