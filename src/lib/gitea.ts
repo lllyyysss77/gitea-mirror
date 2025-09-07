@@ -1435,20 +1435,54 @@ export async function mirrorGitHubReleasesToGitea({
         }
       ).catch(() => null);
 
+      const releaseNote = release.body || "";
+      
       if (existingReleasesResponse) {
-        console.log(`[Releases] Release ${release.tag_name} already exists, skipping`);
-        skippedCount++;
+        // Update existing release if the changelog/body differs
+        const existingRelease = existingReleasesResponse.data;
+        const existingNote = existingRelease.body || "";
+        
+        if (existingNote !== releaseNote || existingRelease.name !== (release.name || release.tag_name)) {
+          console.log(`[Releases] Updating existing release ${release.tag_name} with new changelog/title`);
+          
+          await httpPut(
+            `${config.giteaConfig.url}/api/v1/repos/${repoOwner}/${repository.name}/releases/${existingRelease.id}`,
+            {
+              tag_name: release.tag_name,
+              target: release.target_commitish,
+              title: release.name || release.tag_name,
+              body: releaseNote,
+              draft: release.draft,
+              prerelease: release.prerelease,
+            },
+            {
+              Authorization: `token ${decryptedConfig.giteaConfig.token}`,
+            }
+          );
+          
+          if (releaseNote) {
+            console.log(`[Releases] Updated changelog for ${release.tag_name} (${releaseNote.length} characters)`);
+          }
+          mirroredCount++;
+        } else {
+          console.log(`[Releases] Release ${release.tag_name} already up-to-date, skipping`);
+          skippedCount++;
+        }
         continue;
       }
 
-      // Create the release
+      // Create new release with changelog/body content
+      if (releaseNote) {
+        console.log(`[Releases] Including changelog for ${release.tag_name} (${releaseNote.length} characters)`);
+      }
+      
       const createReleaseResponse = await httpPost(
         `${config.giteaConfig.url}/api/v1/repos/${repoOwner}/${repository.name}/releases`,
         {
           tag_name: release.tag_name,
           target: release.target_commitish,
           title: release.name || release.tag_name,
-          note: release.body || "",
+          body: releaseNote,
           draft: release.draft,
           prerelease: release.prerelease,
         },
@@ -1507,13 +1541,14 @@ export async function mirrorGitHubReleasesToGitea({
       }
       
       mirroredCount++;
-      console.log(`[Releases] Successfully mirrored release: ${release.tag_name}`);
+      const noteInfo = releaseNote ? ` with ${releaseNote.length} character changelog` : " without changelog";
+      console.log(`[Releases] Successfully mirrored release: ${release.tag_name}${noteInfo}`);
     } catch (error) {
       console.error(`[Releases] Failed to mirror release ${release.tag_name}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
-  console.log(`✅ Mirrored ${mirroredCount} new releases to Gitea (${skippedCount} already existed)`);
+  console.log(`✅ Mirrored/Updated ${mirroredCount} releases to Gitea (${skippedCount} already up-to-date)`);
 }
 
 export async function mirrorGitRepoPullRequestsToGitea({

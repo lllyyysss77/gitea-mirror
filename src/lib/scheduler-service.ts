@@ -41,6 +41,12 @@ async function runScheduledSync(config: any): Promise<void> {
   console.log(`[Scheduler] Running scheduled sync for user ${userId}`);
   
   try {
+    // Check if tokens are configured before proceeding
+    if (!config.githubConfig?.token || !config.giteaConfig?.token) {
+      console.log(`[Scheduler] Skipping sync for user ${userId}: GitHub or Gitea tokens not configured`);
+      return;
+    }
+    
     // Update lastRun timestamp
     const currentTime = new Date();
     const scheduleConfig = config.scheduleConfig || {};
@@ -307,25 +313,41 @@ async function schedulerLoop(): Promise<void> {
       config.scheduleConfig?.enabled === true
     );
     
-    if (enabledConfigs.length === 0) {
-      console.log(`[Scheduler] No configurations with scheduling enabled (found ${activeConfigs.length} active configs)`);
+    // Further filter configs that have valid tokens
+    const validConfigs = enabledConfigs.filter(config => {
+      const hasGitHubToken = !!config.githubConfig?.token;
+      const hasGiteaToken = !!config.giteaConfig?.token;
       
-      // Show details about why configs are not enabled
-      activeConfigs.forEach(config => {
-        const scheduleEnabled = config.scheduleConfig?.enabled;
-        const mirrorInterval = config.giteaConfig?.mirrorInterval;
-        console.log(`[Scheduler] User ${config.userId}: scheduleEnabled=${scheduleEnabled}, mirrorInterval=${mirrorInterval}`);
-      });
+      if (!hasGitHubToken || !hasGiteaToken) {
+        console.log(`[Scheduler] User ${config.userId}: Scheduling enabled but tokens missing (GitHub: ${hasGitHubToken}, Gitea: ${hasGiteaToken})`);
+        return false;
+      }
+      return true;
+    });
+    
+    if (validConfigs.length === 0) {
+      if (enabledConfigs.length > 0) {
+        console.log(`[Scheduler] ${enabledConfigs.length} config(s) have scheduling enabled but lack required tokens`);
+      } else {
+        console.log(`[Scheduler] No configurations with scheduling enabled (found ${activeConfigs.length} active configs)`);
+        
+        // Show details about why configs are not enabled
+        activeConfigs.forEach(config => {
+          const scheduleEnabled = config.scheduleConfig?.enabled;
+          const mirrorInterval = config.giteaConfig?.mirrorInterval;
+          console.log(`[Scheduler] User ${config.userId}: scheduleEnabled=${scheduleEnabled}, mirrorInterval=${mirrorInterval}`);
+        });
+      }
       
       return;
     }
     
-    console.log(`[Scheduler] Processing ${enabledConfigs.length} configurations with scheduling enabled (out of ${activeConfigs.length} total active configs)`);
+    console.log(`[Scheduler] Processing ${validConfigs.length} valid configurations (out of ${enabledConfigs.length} with scheduling enabled)`);
     
     // Check each configuration to see if it's time to run
     const currentTime = new Date();
     
-    for (const config of enabledConfigs) {
+    for (const config of validConfigs) {
       const scheduleConfig = config.scheduleConfig || {};
       
       // Check if it's time to run based on nextRun
