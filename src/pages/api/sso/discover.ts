@@ -10,26 +10,71 @@ export async function POST(context: APIContext) {
 
     const { issuer } = await context.request.json();
 
-    if (!issuer) {
-      return new Response(JSON.stringify({ error: "Issuer URL is required" }), {
+    if (!issuer || typeof issuer !== 'string' || issuer.trim() === '') {
+      return new Response(JSON.stringify({ error: "Issuer URL is required and must be a valid string" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    // Ensure issuer URL ends without trailing slash for well-known discovery
-    const cleanIssuer = issuer.replace(/\/$/, "");
+    // Validate issuer URL format
+    let cleanIssuer: string;
+    try {
+      const issuerUrl = new URL(issuer.trim());
+      cleanIssuer = issuerUrl.toString().replace(/\/$/, ""); // Remove trailing slash
+    } catch (e) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid issuer URL format",
+          details: `The provided URL "${issuer}" is not a valid URL. For Authentik, use format: https://your-authentik-domain/application/o/<app-slug>/`
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
     const discoveryUrl = `${cleanIssuer}/.well-known/openid-configuration`;
 
     try {
-      // Fetch OIDC discovery document
-      const response = await fetch(discoveryUrl);
+      // Fetch OIDC discovery document with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      let response: Response;
+      try {
+        response = await fetch(discoveryUrl, {
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+          }
+        });
+      } catch (fetchError) {
+        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+          throw new Error(`Request timeout: The OIDC provider at ${cleanIssuer} did not respond within 10 seconds`);
+        }
+        throw new Error(`Network error: Could not connect to ${cleanIssuer}. Please verify the URL is correct and accessible.`);
+      } finally {
+        clearTimeout(timeoutId);
+      }
       
       if (!response.ok) {
-        throw new Error(`Failed to fetch discovery document: ${response.status}`);
+        if (response.status === 404) {
+          throw new Error(`OIDC discovery document not found at ${discoveryUrl}. For Authentik, ensure you're using the correct application slug in the URL.`);
+        } else if (response.status >= 500) {
+          throw new Error(`OIDC provider error (${response.status}): The server at ${cleanIssuer} returned an error.`);
+        } else {
+          throw new Error(`Failed to fetch discovery document (${response.status}): ${response.statusText}`);
+        }
       }
 
-      const config = await response.json();
+      let config: any;
+      try {
+        config = await response.json();
+      } catch (parseError) {
+        throw new Error(`Invalid response: The discovery document from ${cleanIssuer} is not valid JSON.`);
+      }
 
       // Extract the essential endpoints
       const discoveredConfig = {

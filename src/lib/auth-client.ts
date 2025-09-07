@@ -7,15 +7,30 @@ export const authClient = createAuthClient({
   // Use PUBLIC_BETTER_AUTH_URL if set (for multi-origin access), otherwise use current origin
   // This allows the client to connect to the auth server even when accessed from different origins
   baseURL: (() => {
+    let url: string | undefined;
+    
     // Check for public environment variable first (for client-side access)
     if (typeof import.meta !== 'undefined' && import.meta.env?.PUBLIC_BETTER_AUTH_URL) {
-      return import.meta.env.PUBLIC_BETTER_AUTH_URL;
+      url = import.meta.env.PUBLIC_BETTER_AUTH_URL;
     }
+    
+    // Validate and clean the URL if provided
+    if (url && typeof url === 'string' && url.trim() !== '') {
+      try {
+        // Validate URL format and remove trailing slash
+        const validatedUrl = new URL(url.trim());
+        return validatedUrl.origin; // Use origin to ensure clean URL without path
+      } catch (e) {
+        console.warn(`Invalid PUBLIC_BETTER_AUTH_URL: ${url}, falling back to default`);
+      }
+    }
+    
     // Fall back to current origin if running in browser
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && window.location?.origin) {
       return window.location.origin;
     }
-    // Default for SSR
+    
+    // Default for SSR - always return a valid URL
     return 'http://localhost:4321';
   })(),
   basePath: '/api/auth', // Explicitly set the base path

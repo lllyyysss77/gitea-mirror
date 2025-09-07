@@ -25,9 +25,34 @@ export async function POST(context: APIContext) {
       );
     }
 
+    // Validate issuer URL format
+    let validatedIssuer = issuer;
+    if (issuer && typeof issuer === 'string' && issuer.trim() !== '') {
+      try {
+        const issuerUrl = new URL(issuer.trim());
+        validatedIssuer = issuerUrl.toString().replace(/\/$/, ''); // Remove trailing slash
+      } catch (e) {
+        return new Response(
+          JSON.stringify({ error: `Invalid issuer URL format: ${issuer}` }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+    } else {
+      return new Response(
+        JSON.stringify({ error: "Issuer URL cannot be empty" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
     let registrationBody: any = {
       providerId,
-      issuer,
+      issuer: validatedIssuer,
       domain,
       organizationId,
     };
@@ -91,14 +116,27 @@ export async function POST(context: APIContext) {
       // Use provided scopes or default if not specified
       const finalScopes = scopes || ["openid", "email", "profile"];
 
+      // Validate endpoint URLs if provided
+      const validateUrl = (url: string | undefined, name: string): string | undefined => {
+        if (!url) return undefined;
+        if (typeof url !== 'string' || url.trim() === '') return undefined;
+        try {
+          const validatedUrl = new URL(url.trim());
+          return validatedUrl.toString();
+        } catch (e) {
+          console.warn(`Invalid ${name} URL: ${url}, skipping`);
+          return undefined;
+        }
+      };
+
       registrationBody.oidcConfig = {
-        clientId,
-        clientSecret,
-        authorizationEndpoint,
-        tokenEndpoint,
-        jwksEndpoint,
-        discoveryEndpoint,
-        userInfoEndpoint,
+        clientId: clientId || undefined,
+        clientSecret: clientSecret || undefined,
+        authorizationEndpoint: validateUrl(authorizationEndpoint, 'authorization endpoint'),
+        tokenEndpoint: validateUrl(tokenEndpoint, 'token endpoint'),
+        jwksEndpoint: validateUrl(jwksEndpoint, 'JWKS endpoint'),
+        discoveryEndpoint: validateUrl(discoveryEndpoint, 'discovery endpoint'),
+        userInfoEndpoint: validateUrl(userInfoEndpoint, 'userinfo endpoint'),
         scopes: finalScopes,
         pkce,
       };
