@@ -7,7 +7,7 @@ import { membershipRoleEnum } from "@/types/organizations";
 import { Octokit } from "@octokit/rest";
 import type { Config } from "@/types/config";
 import type { Organization, Repository } from "./db/schema";
-import { httpPost, httpGet, httpDelete, httpPut } from "./http-client";
+import { httpPost, httpGet, httpDelete, httpPut, httpPatch } from "./http-client";
 import { createMirrorJob } from "./helpers";
 import { db, organizations, repositories } from "./db";
 import { eq, and } from "drizzle-orm";
@@ -2016,6 +2016,12 @@ export async function deleteGiteaRepo(
 
 /**
  * Archive a repository in Gitea
+ * 
+ * IMPORTANT: This function NEVER deletes data. It only marks repositories as archived.
+ * - For regular repos: Uses Gitea's archive feature (makes read-only)
+ * - For mirror repos: Renames with [ARCHIVED] prefix (Gitea doesn't allow archiving mirrors)
+ * 
+ * This ensures backups are preserved even when the GitHub source disappears.
  */
 export async function archiveGiteaRepo(
   client: { url: string; token: string },
@@ -2023,24 +2029,115 @@ export async function archiveGiteaRepo(
   repo: string
 ): Promise<void> {
   try {
-    const response = await httpPut(
+    // First, check if this is a mirror repository
+    const repoResponse = await httpGet(
       `${client.url}/api/v1/repos/${owner}/${repo}`,
       {
-        archived: true,
-      },
-      {
         Authorization: `token ${client.token}`,
-        'Content-Type': 'application/json',
       }
     );
     
-    if (response.status >= 400) {
-      throw new Error(`Failed to archive repository ${owner}/${repo}: ${response.status} ${response.statusText}`);
+    if (!repoResponse.data) {
+      console.warn(`[Archive] Repository ${owner}/${repo} not found in Gitea. Skipping.`);
+      return;
     }
     
-    console.log(`Successfully archived repository ${owner}/${repo} in Gitea`);
+    if (repoResponse.data?.mirror) {
+      console.log(`[Archive] Repository ${owner}/${repo} is a mirror. Using safe rename strategy.`);
+      
+      // IMPORTANT: Gitea API doesn't allow archiving mirror repositories
+      // According to Gitea source code, attempting to archive a mirror returns:
+      // "repo is a mirror, cannot archive/un-archive" (422 Unprocessable Entity)
+      // 
+      // Our solution: Rename the repo to clearly mark it as orphaned
+      // This preserves all data while indicating the repo is no longer actively synced
+      
+      const currentName = repoResponse.data.name;
+      
+      // Skip if already marked as archived
+      if (currentName.startsWith('[ARCHIVED]')) {
+        console.log(`[Archive] Repository ${owner}/${repo} already marked as archived. Skipping.`);
+        return;
+      }
+      
+      const archivedName = `[ARCHIVED] ${currentName}`;
+      const currentDesc = repoResponse.data.description || '';
+      const archiveNotice = `\n\n⚠️ ARCHIVED: Original GitHub repository no longer exists. Preserved as backup on ${new Date().toISOString()}`;
+      
+      // Only add notice if not already present
+      const newDescription = currentDesc.includes('⚠️ ARCHIVED:') 
+        ? currentDesc 
+        : currentDesc + archiveNotice;
+      
+      const renameResponse = await httpPatch(
+        `${client.url}/api/v1/repos/${owner}/${repo}`,
+        {
+          name: archivedName,
+          description: newDescription,
+        },
+        {
+          Authorization: `token ${client.token}`,
+          'Content-Type': 'application/json',
+        }
+      );
+      
+      if (renameResponse.status >= 400) {
+        // If rename fails, log but don't throw - data is still preserved
+        console.error(`[Archive] Failed to rename mirror repository ${owner}/${repo}: ${renameResponse.status}`);
+        console.log(`[Archive] Repository ${owner}/${repo} remains accessible but not marked as archived`);
+        return;
+      }
+      
+      console.log(`[Archive] Successfully marked mirror repository ${owner}/${repo} as archived (renamed to ${archivedName})`);
+      
+      // Also try to reduce sync frequency to prevent unnecessary API calls
+      // This is optional - if it fails, the repo is still preserved
+      try {
+        await httpPatch(
+          `${client.url}/api/v1/repos/${owner}/${archivedName}`,
+          {
+            mirror_interval: "8760h", // 1 year - minimizes sync attempts
+          },
+          {
+            Authorization: `token ${client.token}`,
+            'Content-Type': 'application/json',
+          }
+        );
+        console.log(`[Archive] Reduced sync frequency for ${owner}/${archivedName} to yearly`);
+      } catch (intervalError) {
+        // Non-critical - repo is still preserved even if we can't change interval
+        console.debug(`[Archive] Could not update mirror interval (non-critical):`, intervalError);
+      }
+    } else {
+      // For non-mirror repositories, use Gitea's native archive feature
+      // This makes the repository read-only but preserves all data
+      console.log(`[Archive] Archiving regular repository ${owner}/${repo}`);
+      
+      const response = await httpPatch(
+        `${client.url}/api/v1/repos/${owner}/${repo}`,
+        {
+          archived: true,
+        },
+        {
+          Authorization: `token ${client.token}`,
+          'Content-Type': 'application/json',
+        }
+      );
+      
+      if (response.status >= 400) {
+        // If archive fails, log but data is still preserved in Gitea
+        console.error(`[Archive] Failed to archive repository ${owner}/${repo}: ${response.status}`);
+        console.log(`[Archive] Repository ${owner}/${repo} remains accessible but not marked as archived`);
+        return;
+      }
+      
+      console.log(`[Archive] Successfully archived repository ${owner}/${repo} (now read-only)`);
+    }
   } catch (error) {
-    console.error(`Error archiving repository ${owner}/${repo}:`, error);
-    throw error;
+    // Even on error, the repository data is preserved in Gitea
+    // We just couldn't mark it as archived
+    console.error(`[Archive] Could not mark repository ${owner}/${repo} as archived:`, error);
+    console.log(`[Archive] Repository ${owner}/${repo} data is preserved but not marked as archived`);
+    // Don't throw - we want cleanup to continue for other repos
   }
 }

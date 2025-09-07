@@ -206,9 +206,24 @@ Configure automatic cleanup of old events and data.
 |----------|-------------|---------|---------|
 | `CLEANUP_DELETE_FROM_GITEA` | Delete repositories from Gitea | `false` | `true`, `false` |
 | `CLEANUP_DELETE_IF_NOT_IN_GITHUB` | Delete repos not found in GitHub (automatically enables cleanup) | `true` | `true`, `false` |
-| `CLEANUP_ORPHANED_REPO_ACTION` | Action for orphaned repositories | `archive` | `skip`, `archive`, `delete` |
+| `CLEANUP_ORPHANED_REPO_ACTION` | Action for orphaned repositories. **Note**: `archive` is recommended to preserve backups | `archive` | `skip`, `archive`, `delete` |
 | `CLEANUP_DRY_RUN` | Test mode without actual deletion | `true` | `true`, `false` |
 | `CLEANUP_PROTECTED_REPOS` | Comma-separated list of protected repository names | - | Comma-separated strings |
+
+**🛡️ Safety Features (Backup Protection)**:
+- **GitHub Failures Don't Delete Backups**: Cleanup is automatically skipped if GitHub API returns errors (404, 403, connection issues)
+- **Archive Never Deletes**: The `archive` action ALWAYS preserves repository data, it never deletes
+- **Graceful Degradation**: If marking as archived fails, the repository remains fully accessible in Gitea
+- **The Purpose of Backups**: Your mirrors are preserved even when GitHub sources disappear - that's the whole point!
+
+**Archive Behavior (Aligned with Gitea API)**:
+- **Regular repositories**: Uses Gitea's native archive feature (PATCH `/repos/{owner}/{repo}` with `archived: true`)
+  - Makes repository read-only while preserving all data
+- **Mirror repositories**: Uses rename strategy (Gitea API returns 422 for archiving mirrors)
+  - Renamed with `[ARCHIVED]` prefix for clear identification
+  - Description updated with preservation notice and timestamp
+  - Mirror interval set to 8760h (1 year) to minimize sync attempts
+  - Repository remains fully accessible and cloneable
 
 ### Execution Settings
 

@@ -235,11 +235,21 @@ AUTO_IMPORT_REPOS=true
 
 # Auto-cleanup orphaned repositories
 CLEANUP_DELETE_IF_NOT_IN_GITHUB=true
-CLEANUP_ORPHANED_REPO_ACTION=archive  # or 'delete'
+CLEANUP_ORPHANED_REPO_ACTION=archive  # 'archive' (recommended) or 'delete'
 CLEANUP_DRY_RUN=false                 # Set to true to test without changes
 ```
 
-**Important**: The scheduler checks every minute for tasks to run. The `GITEA_MIRROR_INTERVAL` determines how often each repository is actually synced. For example, with `8h`, each repo syncs every 8 hours from its last successful sync.
+**Important Notes**:
+- The scheduler checks every minute for tasks to run. The `GITEA_MIRROR_INTERVAL` determines how often each repository is actually synced. For example, with `8h`, each repo syncs every 8 hours from its last successful sync.
+
+**🛡️ Backup Protection Features**:
+- **No Accidental Deletions**: Repository cleanup is automatically skipped if GitHub is inaccessible (account deleted, banned, or API errors)
+- **Archive Never Deletes Data**: The `archive` action preserves all repository data:
+  - Regular repositories: Made read-only using Gitea's archive feature
+  - Mirror repositories: Renamed with `[ARCHIVED]` prefix (Gitea API limitation prevents archiving mirrors)
+  - Failed operations: Repository remains fully accessible even if marking as archived fails
+- **The Whole Point of Backups**: Your Gitea mirrors are preserved even when GitHub sources disappear - that's why you have backups!
+- **Strongly Recommended**: Always use `CLEANUP_ORPHANED_REPO_ACTION=archive` (default) instead of `delete`
 
 ## Troubleshooting
 
