@@ -151,15 +151,27 @@ Configure automatic scheduled mirroring.
 | Variable | Description | Default | Options |
 |----------|-------------|---------|---------|
 | `SCHEDULE_ENABLED` | Enable automatic mirroring. **When set to `true`, automatically imports and mirrors all repositories on startup** (v3.5.3+) | `false` | `true`, `false` |
-| `SCHEDULE_INTERVAL` | Interval in seconds or cron expression | `3600` | Number or cron string (e.g., `"0 2 * * *"`) |
+| `SCHEDULE_INTERVAL` | Interval in seconds or cron expression. **Supports cron syntax for scheduled runs** (e.g., `"0 2 * * *"` for 2 AM daily) | `3600` | Number (seconds) or cron string |
 | `DELAY` | Legacy: same as SCHEDULE_INTERVAL | `3600` | Number (seconds) |
 
-> **Note**: Setting either `SCHEDULE_ENABLED=true` or `GITEA_MIRROR_INTERVAL` triggers auto-start functionality where the service will:
-> 1. Import all GitHub repositories on startup
-> 2. Mirror them to Gitea immediately
-> 3. Continue syncing at the configured interval
-> 4. Auto-discover new repositories
-> 5. Clean up deleted repositories (if configured)
+> **🚀 Auto-Start Feature (v3.5.3+)**  
+> Setting either `SCHEDULE_ENABLED=true` or `GITEA_MIRROR_INTERVAL` triggers auto-start functionality where the service will:
+> 1. **Import** all GitHub repositories on startup
+> 2. **Mirror** them to Gitea immediately
+> 3. **Continue syncing** at the configured interval
+> 4. **Auto-discover** new repositories
+> 5. **Clean up** deleted repositories (if configured)
+> 
+> This eliminates the need for manual button clicks - perfect for Docker/Kubernetes deployments!
+
+> **⏰ Scheduling with Cron Expressions**  
+> Use cron expressions in `SCHEDULE_INTERVAL` to run at specific times:
+> - `"0 2 * * *"` - Daily at 2 AM
+> - `"0 */6 * * *"` - Every 6 hours
+> - `"0 0 * * 0"` - Weekly on Sunday at midnight
+> - `"0 3 * * 1-5"` - Weekdays at 3 AM (Monday-Friday)
+> 
+> This is useful for optimizing bandwidth usage during low-activity periods.
 
 ### Execution Settings
 

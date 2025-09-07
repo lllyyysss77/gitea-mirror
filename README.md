@@ -216,27 +216,31 @@ Gitea Mirror provides powerful automatic synchronization features:
 - **Repository cleanup**: Removes repositories that no longer exist in GitHub
 - **Proper intervals**: Mirrors respect your configured sync intervals (not Gitea's default 24h)
 - **Smart scheduling**: Only syncs repositories that need updating
-- **Auto-start on boot** (v3.5.3+): Automatically imports and mirrors all repositories when `SCHEDULE_ENABLED=true` or `GITEA_MIRROR_INTERVAL` is set
+- **Auto-start on boot** (v3.5.3+): Automatically imports and mirrors all repositories when `SCHEDULE_ENABLED=true` or `GITEA_MIRROR_INTERVAL` is set - no manual clicks required!
 
 #### Configuration via Web Interface (Recommended)
 Navigate to the Configuration page and enable "Automatic Syncing" with your preferred interval.
 
 #### Configuration via Environment Variables
 
-**Set it and forget it!** With these environment variables, Gitea Mirror will automatically:
-1. Import all your GitHub repositories on startup
-2. Mirror them to Gitea immediately  
-3. Keep them synchronized based on your interval
-4. Auto-discover new repos you create/star on GitHub
-5. Clean up repos you delete from GitHub
+**🚀 Set it and forget it!** With these environment variables, Gitea Mirror will automatically:
+1. **Import** all your GitHub repositories on startup (no manual import needed!)
+2. **Mirror** them to Gitea immediately  
+3. **Keep them synchronized** based on your interval
+4. **Auto-discover** new repos you create/star on GitHub
+5. **Clean up** repos you delete from GitHub
 
 ```bash
-# Enable automatic scheduling (required for auto features)
+# Option 1: Enable automatic scheduling (triggers auto-start)
 SCHEDULE_ENABLED=true
+SCHEDULE_INTERVAL=3600        # Check every hour (or use cron: "0 * * * *")
 
-# Mirror interval (how often to sync)
-GITEA_MIRROR_INTERVAL=8h     # Every 8 hours (default)
+# Option 2: Set mirror interval (also triggers auto-start)
+GITEA_MIRROR_INTERVAL=8h     # Every 8 hours
 # Other examples: 5m, 30m, 1h, 24h, 1d, 7d
+
+# Advanced: Use cron expressions for specific times
+SCHEDULE_INTERVAL="0 2 * * *"  # Daily at 2 AM (optimize bandwidth usage)
 
 # Auto-import new repositories (default: true)
 AUTO_IMPORT_REPOS=true
