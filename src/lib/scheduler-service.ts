@@ -5,9 +5,8 @@
  */
 
 import { db, configs, repositories } from '@/lib/db';
-import { eq, and, or, lt, gte } from 'drizzle-orm';
-import { syncGiteaRepo } from '@/lib/gitea';
-import { createGitHubClient } from '@/lib/github';
+import { eq, and, or } from 'drizzle-orm';
+import { syncGiteaRepo, mirrorGithubRepoToGitea } from '@/lib/gitea';
 import { getDecryptedGitHubToken } from '@/lib/utils/config-encryption';
 import { parseInterval, formatDuration } from '@/lib/utils/duration-parser';
 import type { Repository } from '@/lib/db/schema';
@@ -15,6 +14,7 @@ import { repoStatusEnum, repositoryVisibilityEnum } from '@/types/Repository';
 
 let schedulerInterval: NodeJS.Timeout | null = null;
 let isSchedulerRunning = false;
+let hasPerformedAutoStart = false; // Track if we've already done auto-start
 
 /**
  * Parse schedule interval with enhanced support for duration strings, cron, and numbers
@@ -78,7 +78,7 @@ async function runScheduledSync(config: any): Promise<void> {
     if (scheduleConfig.autoImport !== false) {
       console.log(`[Scheduler] Checking for new GitHub repositories for user ${userId}...`);
       try {
-        const { getGithubRepositories, getGithubStarredRepositories, getGithubOrganizations } = await import('@/lib/github');
+        const { getGithubRepositories, getGithubStarredRepositories } = await import('@/lib/github');
         const { v4: uuidv4 } = await import('uuid');
         const { getDecryptedGitHubToken } = await import('@/lib/utils/config-encryption');
         
@@ -88,12 +88,11 @@ async function runScheduledSync(config: any): Promise<void> {
         const octokit = new Octokit({ auth: decryptedToken });
         
         // Fetch GitHub data
-        const [basicAndForkedRepos, starredRepos, gitOrgs] = await Promise.all([
+        const [basicAndForkedRepos, starredRepos] = await Promise.all([
           getGithubRepositories({ octokit, config }),
           config.githubConfig?.includeStarred
             ? getGithubStarredRepositories({ octokit, config })
             : Promise.resolve([]),
-          getGithubOrganizations({ octokit, config }),
         ]);
         
         const allGithubRepos = [...basicAndForkedRepos, ...starredRepos];
@@ -288,6 +287,278 @@ async function syncSingleRepository(config: any, repo: any): Promise<void> {
 }
 
 /**
+ * Check if we should auto-start based on environment configuration
+ */
+async function checkAutoStartConfiguration(): Promise<boolean> {
+  // Don't auto-start more than once
+  if (hasPerformedAutoStart) {
+    return false;
+  }
+  
+  try {
+    // Check if any configuration has scheduling enabled or mirror interval set
+    const activeConfigs = await db
+      .select()
+      .from(configs)
+      .where(eq(configs.isActive, true));
+    
+    for (const config of activeConfigs) {
+      // Check if scheduling is enabled via environment
+      const scheduleEnabled = config.scheduleConfig?.enabled === true;
+      const hasMirrorInterval = !!config.giteaConfig?.mirrorInterval;
+      
+      // If either SCHEDULE_ENABLED=true or GITEA_MIRROR_INTERVAL is set, we should auto-start
+      if (scheduleEnabled || hasMirrorInterval) {
+        console.log(`[Scheduler] Auto-start conditions met for user ${config.userId} (scheduleEnabled=${scheduleEnabled}, hasMirrorInterval=${hasMirrorInterval})`);
+        return true;
+      }
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('[Scheduler] Error checking auto-start configuration:', error);
+    return false;
+  }
+}
+
+/**
+ * Perform initial auto-start: import repositories and trigger mirror
+ */
+async function performInitialAutoStart(): Promise<void> {
+  hasPerformedAutoStart = true;
+  
+  try {
+    console.log('[Scheduler] Performing initial auto-start...');
+    
+    // Get all active configurations
+    const activeConfigs = await db
+      .select()
+      .from(configs)
+      .where(eq(configs.isActive, true));
+    
+    for (const config of activeConfigs) {
+      // Skip if tokens are not configured
+      if (!config.githubConfig?.token || !config.giteaConfig?.token) {
+        console.log(`[Scheduler] Skipping auto-start for user ${config.userId}: tokens not configured`);
+        continue;
+      }
+      
+      const scheduleEnabled = config.scheduleConfig?.enabled === true;
+      const hasMirrorInterval = !!config.giteaConfig?.mirrorInterval;
+      
+      // Only process configs that have scheduling or mirror interval configured
+      if (!scheduleEnabled && !hasMirrorInterval) {
+        continue;
+      }
+      
+      console.log(`[Scheduler] Auto-starting for user ${config.userId}...`);
+      
+      try {
+        // Step 1: Import repositories from GitHub
+        console.log(`[Scheduler] Step 1: Importing repositories from GitHub for user ${config.userId}...`);
+        const { getGithubRepositories, getGithubStarredRepositories } = await import('@/lib/github');
+        const { v4: uuidv4 } = await import('uuid');
+        
+        // Create GitHub client
+        const decryptedToken = getDecryptedGitHubToken(config);
+        const { Octokit } = await import('@octokit/rest');
+        const octokit = new Octokit({ auth: decryptedToken });
+        
+        // Fetch GitHub data
+        const [basicAndForkedRepos, starredRepos] = await Promise.all([
+          getGithubRepositories({ octokit, config }),
+          config.githubConfig?.includeStarred
+            ? getGithubStarredRepositories({ octokit, config })
+            : Promise.resolve([]),
+        ]);
+        
+        const allGithubRepos = [...basicAndForkedRepos, ...starredRepos];
+        
+        // Check for new repositories
+        const existingRepos = await db
+          .select({ fullName: repositories.fullName })
+          .from(repositories)
+          .where(eq(repositories.userId, config.userId));
+        
+        const existingRepoNames = new Set(existingRepos.map(r => r.fullName));
+        const reposToImport = allGithubRepos.filter(r => !existingRepoNames.has(r.fullName));
+        
+        if (reposToImport.length > 0) {
+          console.log(`[Scheduler] Importing ${reposToImport.length} repositories for user ${config.userId}...`);
+          
+          // Insert new repositories
+          const reposToInsert = reposToImport.map(repo => ({
+            id: uuidv4(),
+            userId: config.userId,
+            configId: config.id,
+            name: repo.name,
+            fullName: repo.fullName,
+            url: repo.url,
+            cloneUrl: repo.cloneUrl,
+            owner: repo.owner,
+            organization: repo.organization,
+            isPrivate: repo.isPrivate,
+            isForked: repo.isForked,
+            forkedFrom: repo.forkedFrom,
+            hasIssues: repo.hasIssues,
+            isStarred: repo.isStarred,
+            isArchived: repo.isArchived,
+            size: repo.size,
+            hasLFS: repo.hasLFS,
+            hasSubmodules: repo.hasSubmodules,
+            defaultBranch: repo.defaultBranch,
+            visibility: repo.visibility,
+            status: 'imported',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }));
+          
+          await db.insert(repositories).values(reposToInsert);
+          console.log(`[Scheduler] Successfully imported ${reposToImport.length} repositories`);
+        } else {
+          console.log(`[Scheduler] No new repositories to import for user ${config.userId}`);
+        }
+        
+        // Check if we already have mirrored repositories (indicating this isn't first run)
+        const mirroredRepos = await db
+          .select()
+          .from(repositories)
+          .where(
+            and(
+              eq(repositories.userId, config.userId),
+              or(
+                eq(repositories.status, 'mirrored'),
+                eq(repositories.status, 'synced')
+              )
+            )
+          )
+          .limit(1);
+        
+        // If we already have mirrored repos, skip the initial mirror (let regular sync handle it)
+        if (mirroredRepos.length > 0) {
+          console.log(`[Scheduler] User ${config.userId} already has mirrored repositories, skipping initial mirror (let regular sync handle updates)`);
+          
+          // Still update the schedule config to indicate scheduling is active
+          const currentTime = new Date();
+          const intervalSource = config.scheduleConfig?.interval || 
+                                config.giteaConfig?.mirrorInterval || 
+                                '8h';
+          const interval = parseScheduleInterval(intervalSource);
+          const nextRun = new Date(currentTime.getTime() + interval);
+          
+          await db.update(configs).set({
+            scheduleConfig: {
+              ...config.scheduleConfig,
+              enabled: true,
+              lastRun: currentTime,
+              nextRun: nextRun,
+            },
+            updatedAt: currentTime,
+          }).where(eq(configs.id, config.id));
+          
+          console.log(`[Scheduler] Scheduling enabled for user ${config.userId}, next sync at ${nextRun.toISOString()}`);
+          continue;
+        }
+        
+        // Step 2: Trigger mirror for all repositories that need mirroring
+        console.log(`[Scheduler] Step 2: Triggering mirror for repositories that need mirroring...`);
+        const reposNeedingMirror = await db
+          .select()
+          .from(repositories)
+          .where(
+            and(
+              eq(repositories.userId, config.userId),
+              or(
+                eq(repositories.status, 'imported'),
+                eq(repositories.status, 'pending'),
+                eq(repositories.status, 'failed')
+              )
+            )
+          );
+        
+        if (reposNeedingMirror.length > 0) {
+          console.log(`[Scheduler] Found ${reposNeedingMirror.length} repositories that need mirroring`);
+          
+          // Reuse the octokit instance from above
+          // (octokit was already created in the import phase)
+          
+          // Process repositories in batches
+          const batchSize = config.scheduleConfig?.batchSize || 5;
+          for (let i = 0; i < reposNeedingMirror.length; i += batchSize) {
+            const batch = reposNeedingMirror.slice(i, Math.min(i + batchSize, reposNeedingMirror.length));
+            console.log(`[Scheduler] Processing batch ${Math.floor(i / batchSize) + 1} of ${Math.ceil(reposNeedingMirror.length / batchSize)} (${batch.length} repos)`);
+            
+            await Promise.all(
+              batch.map(async (repo) => {
+                try {
+                  const repository: Repository = {
+                    ...repo,
+                    status: repoStatusEnum.parse(repo.status),
+                    organization: repo.organization ?? undefined,
+                    lastMirrored: repo.lastMirrored ?? undefined,
+                    errorMessage: repo.errorMessage ?? undefined,
+                    mirroredLocation: repo.mirroredLocation || '',
+                    forkedFrom: repo.forkedFrom ?? undefined,
+                    visibility: repositoryVisibilityEnum.parse(repo.visibility),
+                  };
+                  
+                  await mirrorGithubRepoToGitea({ 
+                    octokit,
+                    repository,
+                    config
+                  });
+                  console.log(`[Scheduler] Successfully mirrored repository: ${repo.fullName}`);
+                } catch (error) {
+                  console.error(`[Scheduler] Failed to mirror repository ${repo.fullName}:`, error);
+                }
+              })
+            );
+            
+            // Pause between batches if configured
+            if (i + batchSize < reposNeedingMirror.length) {
+              const pauseTime = config.scheduleConfig?.pauseBetweenBatches || 2000;
+              console.log(`[Scheduler] Pausing for ${pauseTime}ms before next batch...`);
+              await new Promise(resolve => setTimeout(resolve, pauseTime));
+            }
+          }
+          
+          console.log(`[Scheduler] Completed initial mirror for ${reposNeedingMirror.length} repositories`);
+        } else {
+          console.log(`[Scheduler] No repositories need mirroring`);
+        }
+        
+        // Update the schedule config to indicate we've run
+        const currentTime = new Date();
+        const intervalSource = config.scheduleConfig?.interval || 
+                              config.giteaConfig?.mirrorInterval || 
+                              '8h';
+        const interval = parseScheduleInterval(intervalSource);
+        const nextRun = new Date(currentTime.getTime() + interval);
+        
+        await db.update(configs).set({
+          scheduleConfig: {
+            ...config.scheduleConfig,
+            enabled: true, // Ensure scheduling is enabled
+            lastRun: currentTime,
+            nextRun: nextRun,
+          },
+          updatedAt: currentTime,
+        }).where(eq(configs.id, config.id));
+        
+        console.log(`[Scheduler] Auto-start completed for user ${config.userId}, next sync at ${nextRun.toISOString()}`);
+        
+      } catch (error) {
+        console.error(`[Scheduler] Failed to auto-start for user ${config.userId}:`, error);
+      }
+    }
+    
+    console.log('[Scheduler] Initial auto-start completed');
+  } catch (error) {
+    console.error('[Scheduler] Failed to perform initial auto-start:', error);
+  }
+}
+
+/**
  * Main scheduler loop
  */
 async function schedulerLoop(): Promise<void> {
@@ -369,13 +640,21 @@ async function schedulerLoop(): Promise<void> {
 /**
  * Start the scheduler service
  */
-export function startSchedulerService(): void {
+export async function startSchedulerService(): Promise<void> {
   if (schedulerInterval) {
     console.log('[Scheduler] Scheduler service is already running');
     return;
   }
   
   console.log('[Scheduler] Starting scheduler service');
+  
+  // Check if we should auto-start mirroring based on environment variables
+  const shouldAutoStart = await checkAutoStartConfiguration();
+  
+  if (shouldAutoStart) {
+    console.log('[Scheduler] Auto-start detected from environment variables, triggering initial import and mirror...');
+    await performInitialAutoStart();
+  }
   
   // Run immediately on start
   schedulerLoop().catch(error => {

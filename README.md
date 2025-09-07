@@ -216,11 +216,19 @@ Gitea Mirror provides powerful automatic synchronization features:
 - **Repository cleanup**: Removes repositories that no longer exist in GitHub
 - **Proper intervals**: Mirrors respect your configured sync intervals (not Gitea's default 24h)
 - **Smart scheduling**: Only syncs repositories that need updating
+- **Auto-start on boot** (v3.5.3+): Automatically imports and mirrors all repositories when `SCHEDULE_ENABLED=true` or `GITEA_MIRROR_INTERVAL` is set
 
 #### Configuration via Web Interface (Recommended)
 Navigate to the Configuration page and enable "Automatic Syncing" with your preferred interval.
 
 #### Configuration via Environment Variables
+
+**Set it and forget it!** With these environment variables, Gitea Mirror will automatically:
+1. Import all your GitHub repositories on startup
+2. Mirror them to Gitea immediately  
+3. Keep them synchronized based on your interval
+4. Auto-discover new repos you create/star on GitHub
+5. Clean up repos you delete from GitHub
 
 ```bash
 # Enable automatic scheduling (required for auto features)
@@ -240,6 +248,7 @@ CLEANUP_DRY_RUN=false                 # Set to true to test without changes
 ```
 
 **Important Notes**:
+- **Auto-Start**: When `SCHEDULE_ENABLED=true` or `GITEA_MIRROR_INTERVAL` is set, the service automatically imports all GitHub repositories and mirrors them on startup. No manual "Import" or "Mirror" button clicks required!
 - The scheduler checks every minute for tasks to run. The `GITEA_MIRROR_INTERVAL` determines how often each repository is actually synced. For example, with `8h`, each repo syncs every 8 hours from its last successful sync.
 
 **🛡️ Backup Protection Features**:

@@ -150,9 +150,16 @@ Configure automatic scheduled mirroring.
 
 | Variable | Description | Default | Options |
 |----------|-------------|---------|---------|
-| `SCHEDULE_ENABLED` | Enable automatic mirroring | `false` | `true`, `false` |
+| `SCHEDULE_ENABLED` | Enable automatic mirroring. **When set to `true`, automatically imports and mirrors all repositories on startup** (v3.5.3+) | `false` | `true`, `false` |
 | `SCHEDULE_INTERVAL` | Interval in seconds or cron expression | `3600` | Number or cron string (e.g., `"0 2 * * *"`) |
 | `DELAY` | Legacy: same as SCHEDULE_INTERVAL | `3600` | Number (seconds) |
+
+> **Note**: Setting either `SCHEDULE_ENABLED=true` or `GITEA_MIRROR_INTERVAL` triggers auto-start functionality where the service will:
+> 1. Import all GitHub repositories on startup
+> 2. Mirror them to Gitea immediately
+> 3. Continue syncing at the configured interval
+> 4. Auto-discover new repositories
+> 5. Clean up deleted repositories (if configured)
 
 ### Execution Settings
 
@@ -175,6 +182,7 @@ Configure automatic scheduled mirroring.
 
 | Variable | Description | Default | Options |
 |----------|-------------|---------|---------|
+| `AUTO_IMPORT_REPOS` | Automatically discover and import new GitHub repositories during scheduled syncs | `true` | `true`, `false` |
 | `SCHEDULE_ONLY_MIRROR_UPDATED` | Only mirror repos with updates | `false` | `true`, `false` |
 | `SCHEDULE_UPDATE_INTERVAL` | Check for updates interval (milliseconds) | `86400000` | Number |
 | `SCHEDULE_SKIP_RECENTLY_MIRRORED` | Skip recently mirrored repos | `true` | `true`, `false` |

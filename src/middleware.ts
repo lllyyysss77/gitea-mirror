@@ -179,7 +179,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (recoveryInitialized && !schedulerServiceStarted) {
     try {
       console.log('Starting automatic mirror scheduler service...');
-      startSchedulerService();
+      // Start the scheduler service (now async)
+      startSchedulerService().catch(error => {
+        console.error('Error in scheduler service startup:', error);
+      });
 
       // Register scheduler service shutdown callback
       registerShutdownCallback(async () => {
