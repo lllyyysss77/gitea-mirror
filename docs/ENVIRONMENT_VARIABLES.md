@@ -134,6 +134,7 @@ Control what content gets mirrored from GitHub to Gitea.
 | Variable | Description | Default | Options |
 |----------|-------------|---------|---------|
 | `MIRROR_RELEASES` | Mirror GitHub releases | `false` | `true`, `false` |
+| `RELEASE_LIMIT` | Maximum number of releases to mirror per repository | `10` | Number (1-100) |
 | `MIRROR_WIKI` | Mirror wiki content | `false` | `true`, `false` |
 | `MIRROR_METADATA` | Master toggle for metadata mirroring | `false` | `true`, `false` |
 | `MIRROR_ISSUES` | Mirror issues (requires MIRROR_METADATA=true) | `false` | `true`, `false` |

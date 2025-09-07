@@ -133,6 +133,7 @@ function parseEnvConfig(): EnvConfig {
       mirrorLabels: process.env.MIRROR_LABELS === 'true',
       mirrorMilestones: process.env.MIRROR_MILESTONES === 'true',
       mirrorMetadata: process.env.MIRROR_METADATA === 'true',
+      releaseLimit: process.env.RELEASE_LIMIT ? parseInt(process.env.RELEASE_LIMIT, 10) : undefined,
     },
     schedule: {
       enabled: process.env.SCHEDULE_ENABLED === 'true' || 
@@ -271,6 +272,7 @@ export async function initializeConfigFromEnv(): Promise<void> {
       forkStrategy: envConfig.gitea.forkStrategy || existingConfig?.[0]?.giteaConfig?.forkStrategy || 'reference',
       // Mirror metadata options
       mirrorReleases: envConfig.mirror.mirrorReleases ?? existingConfig?.[0]?.giteaConfig?.mirrorReleases ?? false,
+      releaseLimit: envConfig.mirror.releaseLimit ?? existingConfig?.[0]?.giteaConfig?.releaseLimit ?? 10,
       mirrorMetadata: envConfig.mirror.mirrorMetadata ?? (envConfig.mirror.mirrorIssues || envConfig.mirror.mirrorPullRequests || envConfig.mirror.mirrorLabels || envConfig.mirror.mirrorMilestones) ?? existingConfig?.[0]?.giteaConfig?.mirrorMetadata ?? false,
       mirrorIssues: envConfig.mirror.mirrorIssues ?? existingConfig?.[0]?.giteaConfig?.mirrorIssues ?? false,
       mirrorPullRequests: envConfig.mirror.mirrorPullRequests ?? existingConfig?.[0]?.giteaConfig?.mirrorPullRequests ?? false,

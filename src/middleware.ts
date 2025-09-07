@@ -8,6 +8,7 @@ import { setupSignalHandlers } from './lib/signal-handlers';
 import { auth } from './lib/auth';
 import { isHeaderAuthEnabled, authenticateWithHeaders } from './lib/auth-header';
 import { initializeConfigFromEnv } from './lib/env-config-loader';
+import { db, users } from './lib/db';
 
 // Flag to track if recovery has been initialized
 let recoveryInitialized = false;
@@ -17,6 +18,7 @@ let schedulerServiceStarted = false;
 let repositoryCleanupServiceStarted = false;
 let shutdownManagerInitialized = false;
 let envConfigInitialized = false;
+let envConfigCheckCount = 0; // Track attempts to avoid excessive checking
 
 export const onRequest = defineMiddleware(async (context, next) => {
   // First, try Better Auth session (cookie-based)
@@ -79,14 +81,31 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
   }
 
-  // Initialize configuration from environment variables (only once)
-  if (!envConfigInitialized) {
-    envConfigInitialized = true;
-    try {
-      await initializeConfigFromEnv();
-    } catch (error) {
-      console.error('⚠️  Failed to initialize configuration from environment:', error);
-      // Continue anyway - environment config is optional
+  // Initialize configuration from environment variables
+  // Optimized to minimize performance impact:
+  // - Once initialized, no checks are performed (envConfigInitialized = true)
+  // - Limits checks to first 100 requests to avoid DB queries on every request if no users exist
+  // - After user creation, env vars load on next request and flag is set permanently
+  if (!envConfigInitialized && envConfigCheckCount < 100) {
+    envConfigCheckCount++;
+    
+    // Only check every 10th request after the first 10 to reduce DB load
+    const shouldCheck = envConfigCheckCount <= 10 || envConfigCheckCount % 10 === 0;
+    
+    if (shouldCheck) {
+      try {
+        const hasUsers = await db.select().from(users).limit(1).then(u => u.length > 0);
+        
+        if (hasUsers) {
+          // We have users now, try to initialize config
+          await initializeConfigFromEnv();
+          envConfigInitialized = true; // This ensures we never check again
+          console.log('✅ Environment configuration loaded after user creation');
+        }
+      } catch (error) {
+        console.error('⚠️  Failed to initialize configuration from environment:', error);
+        // Continue anyway - environment config is optional
+      }
     }
   }
 
