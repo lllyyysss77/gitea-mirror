@@ -43,7 +43,8 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Decrypt the GitHub token before using it
     const decryptedToken = getDecryptedGitHubToken(config);
-    const octokit = createGitHubClient(decryptedToken);
+    const githubUsername = config.githubConfig?.owner || undefined;
+    const octokit = createGitHubClient(decryptedToken, userId, githubUsername);
 
     // Fetch GitHub data in parallel
     const [basicAndForkedRepos, starredRepos, gitOrgs] = await Promise.all([

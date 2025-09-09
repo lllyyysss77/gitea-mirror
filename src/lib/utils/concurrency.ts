@@ -10,7 +10,7 @@
 export async function processInParallel<T, R>(
   items: T[],
   processItem: (item: T) => Promise<R>,
-  concurrencyLimit: number = 5,
+  concurrencyLimit: number = 5, // Safe default for GitHub API (max 100 concurrent, but 5-10 recommended)
   onProgress?: (completed: number, total: number, result?: R) => void
 ): Promise<R[]> {
   const results: R[] = [];

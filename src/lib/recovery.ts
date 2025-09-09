@@ -260,11 +260,13 @@ async function recoverMirrorJob(job: any, remainingItemIds: string[]) {
       throw new Error('GitHub token not found in configuration');
     }
 
-    // Create GitHub client with error handling
+    // Create GitHub client with error handling and rate limit tracking
     let octokit;
     try {
       const decryptedToken = getDecryptedGitHubToken(config);
-      octokit = createGitHubClient(decryptedToken);
+      const githubUsername = config.githubConfig?.owner || undefined;
+      const userId = config.userId || undefined;
+      octokit = createGitHubClient(decryptedToken, userId, githubUsername);
     } catch (error) {
       throw new Error(`Failed to create GitHub client: ${error instanceof Error ? error.message : String(error)}`);
     }

@@ -23,9 +23,10 @@ async function identifyOrphanedRepositories(config: any): Promise<any[]> {
   const userId = config.userId;
   
   try {
-    // Get current GitHub repositories
+    // Get current GitHub repositories with rate limit tracking
     const decryptedToken = getDecryptedGitHubToken(config);
-    const octokit = createGitHubClient(decryptedToken);
+    const githubUsername = config.githubConfig?.owner || undefined;
+    const octokit = createGitHubClient(decryptedToken, userId, githubUsername);
     
     let allGithubRepos = [];
     let githubApiAccessible = true;

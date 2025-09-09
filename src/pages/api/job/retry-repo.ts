@@ -71,12 +71,13 @@ export const POST: APIRoute = async ({ request }) => {
 
     // Start background retry with parallel processing
     setTimeout(async () => {
-      // Create a single Octokit instance to be reused if needed
+      // Create a single Octokit instance to be reused if needed with rate limit tracking
       const decryptedToken = config.githubConfig.token
         ? getDecryptedGitHubToken(config)
         : null;
+      const githubUsername = config.githubConfig?.owner || undefined;
       const octokit = decryptedToken
-        ? createGitHubClient(decryptedToken)
+        ? createGitHubClient(decryptedToken, userId, githubUsername)
         : null;
 
       // Define the concurrency limit - adjust based on API rate limits

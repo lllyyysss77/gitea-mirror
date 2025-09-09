@@ -82,5 +82,6 @@ export {
   oauthApplications,
   oauthAccessTokens,
   oauthConsent,
-  ssoProviders
+  ssoProviders,
+  rateLimits
 } from "./schema";

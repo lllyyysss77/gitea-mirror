@@ -9,6 +9,7 @@ import { apiRequest, showErrorToast } from "@/lib/utils";
 import type { DashboardApiResponse } from "@/types/dashboard";
 import { useSSE } from "@/hooks/useSEE";
 import { toast } from "sonner";
+import { useEffect as useEffectForToasts } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLiveRefresh } from "@/hooks/useLiveRefresh";
@@ -104,6 +105,51 @@ export function Dashboard() {
     userId: user?.id,
     onMessage: handleNewMessage,
   });
+
+  // Setup rate limit event listener for toast notifications
+  useEffectForToasts(() => {
+    if (!user?.id) return;
+
+    const eventSource = new EventSource(`/api/events?userId=${user.id}`);
+    
+    eventSource.addEventListener("rate-limit", (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        switch (data.type) {
+          case "warning":
+            // 80% threshold warning
+            toast.warning("GitHub API Rate Limit Warning", {
+              description: data.message,
+              duration: 8000,
+            });
+            break;
+            
+          case "exceeded":
+            // 100% rate limit exceeded
+            toast.error("GitHub API Rate Limit Exceeded", {
+              description: data.message,
+              duration: 10000,
+            });
+            break;
+            
+          case "resumed":
+            // Rate limit reset notification
+            toast.success("Rate Limit Reset", {
+              description: "API operations have resumed.",
+              duration: 5000,
+            });
+            break;
+        }
+      } catch (error) {
+        console.error("Error parsing rate limit event:", error);
+      }
+    });
+
+    return () => {
+      eventSource.close();
+    };
+  }, [user?.id]);
 
   // Extract fetchDashboardData as a stable callback
   const fetchDashboardData = useCallback(async (showToast = false) => {

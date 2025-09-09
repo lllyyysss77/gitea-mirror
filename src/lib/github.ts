@@ -1,15 +1,176 @@
 import type { GitOrg, MembershipRole } from "@/types/organizations";
 import type { GitRepo, RepoStatus } from "@/types/Repository";
 import { Octokit } from "@octokit/rest";
+import { throttling } from "@octokit/plugin-throttling";
 import type { Config } from "@/types/config";
+// Conditionally import rate limit manager (not available in test environment)
+let RateLimitManager: any = null;
+let publishEvent: any = null;
+
+if (process.env.NODE_ENV !== "test") {
+  try {
+    const rateLimitModule = await import("@/lib/rate-limit-manager");
+    RateLimitManager = rateLimitModule.RateLimitManager;
+    const eventsModule = await import("@/lib/events");
+    publishEvent = eventsModule.publishEvent;
+  } catch (error) {
+    console.warn("Rate limit manager not available:", error);
+  }
+}
+
+// Extend Octokit with throttling plugin
+const MyOctokit = Octokit.plugin(throttling);
 
 /**
- * Creates an authenticated Octokit instance
+ * Creates an authenticated Octokit instance with rate limit tracking and throttling
  */
-export function createGitHubClient(token: string): Octokit {
-  return new Octokit({
-    auth: token,
+export function createGitHubClient(token: string, userId?: string, username?: string): Octokit {
+  // Create a proper User-Agent to identify our application
+  // This helps GitHub understand our traffic patterns and can provide better rate limits
+  const userAgent = username 
+    ? `gitea-mirror/3.5.4 (user:${username})` 
+    : "gitea-mirror/3.5.4";
+  
+  const octokit = new MyOctokit({
+    auth: token, // Always use token for authentication (5000 req/hr vs 60 for unauthenticated)
+    userAgent, // Identify our application and user
+    baseUrl: "https://api.github.com", // Explicitly set the API endpoint
+    log: {
+      debug: () => {},
+      info: console.log,
+      warn: console.warn,
+      error: console.error,
+    },
+    request: {
+      // Add default headers for better identification
+      headers: {
+        accept: "application/vnd.github.v3+json",
+        "x-github-api-version": "2022-11-28", // Use a stable API version
+      },
+    },
+    throttle: {
+      onRateLimit: async (retryAfter: number, options: any, octokit: any, retryCount: number) => {
+        const isSearch = options.url.includes("/search/");
+        const maxRetries = isSearch ? 5 : 3; // Search endpoints get more retries
+        
+        console.warn(
+          `[GitHub] Rate limit hit for ${options.method} ${options.url}. Retry ${retryCount + 1}/${maxRetries}`
+        );
+        
+        // Update rate limit status and notify UI (if available)
+        if (userId && RateLimitManager) {
+          await RateLimitManager.updateFromResponse(userId, {
+            "retry-after": retryAfter.toString(),
+            "x-ratelimit-remaining": "0",
+            "x-ratelimit-reset": (Date.now() / 1000 + retryAfter).toString(),
+          });
+        }
+        
+        if (userId && publishEvent) {
+          await publishEvent({
+            userId,
+            channel: "rate-limit",
+            payload: {
+              type: "rate-limited",
+              provider: "github",
+              retryAfter,
+              retryCount,
+              endpoint: options.url,
+              message: `Rate limit hit. Waiting ${retryAfter}s before retry ${retryCount + 1}/${maxRetries}...`,
+            },
+          });
+        }
+        
+        // Retry with exponential backoff
+        if (retryCount < maxRetries) {
+          console.log(`[GitHub] Waiting ${retryAfter}s before retry...`);
+          return true;
+        }
+        
+        // Max retries reached
+        console.error(`[GitHub] Max retries (${maxRetries}) reached for ${options.url}`);
+        return false;
+      },
+      onSecondaryRateLimit: async (retryAfter: number, options: any, octokit: any, retryCount: number) => {
+        console.warn(
+          `[GitHub] Secondary rate limit hit for ${options.method} ${options.url}`
+        );
+        
+        // Update status and notify UI (if available)
+        if (userId && publishEvent) {
+          await publishEvent({
+            userId,
+            channel: "rate-limit",
+            payload: {
+              type: "secondary-limited",
+              provider: "github",
+              retryAfter,
+              retryCount,
+              endpoint: options.url,
+              message: `Secondary rate limit hit. Waiting ${retryAfter}s...`,
+            },
+          });
+        }
+        
+        // Retry up to 2 times for secondary rate limits
+        if (retryCount < 2) {
+          console.log(`[GitHub] Waiting ${retryAfter}s for secondary rate limit...`);
+          return true;
+        }
+        
+        return false;
+      },
+      // Throttle options to prevent hitting limits
+      fallbackSecondaryRateRetryAfter: 60, // Wait 60s on secondary rate limit
+      minimumSecondaryRateRetryAfter: 5, // Min 5s wait
+      retryAfterBaseValue: 1000, // Base retry in ms
+    },
   });
+  
+  // Add additional rate limit tracking if userId is provided and RateLimitManager is available
+  if (userId && RateLimitManager) {
+    octokit.hook.after("request", async (response: any, options: any) => {
+      // Update rate limit from response headers
+      if (response.headers) {
+        await RateLimitManager.updateFromResponse(userId, response.headers);
+      }
+    });
+    
+    octokit.hook.error("request", async (error: any, options: any) => {
+      // Handle rate limit errors
+      if (error.status === 403 || error.status === 429) {
+        const message = error.message || "";
+        
+        if (message.includes("rate limit") || message.includes("API rate limit")) {
+          console.error(`[GitHub] Rate limit error for user ${userId}: ${message}`);
+          
+          // Update rate limit status from error response (if available)
+          if (error.response?.headers && RateLimitManager) {
+            await RateLimitManager.updateFromResponse(userId, error.response.headers);
+          }
+          
+          // Create error event for UI (if available)
+          if (publishEvent) {
+            await publishEvent({
+              userId,
+            channel: "rate-limit",
+            payload: {
+              type: "error",
+              provider: "github",
+              error: message,
+              endpoint: options.url,
+              message: `Rate limit exceeded: ${message}`,
+            },
+          });
+          }
+        }
+      }
+      
+      throw error;
+    });
+  }
+  
+  return octokit;
 }
 
 /**

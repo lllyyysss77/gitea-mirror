@@ -69,8 +69,9 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
     
-    // Create authenticated Octokit instance
-    const octokit = createGitHubClient(decryptedConfig.githubConfig.token);
+    // Create authenticated Octokit instance with rate limit tracking
+    const githubUsername = decryptedConfig.githubConfig?.owner || undefined;
+    const octokit = createGitHubClient(decryptedConfig.githubConfig.token, userId, githubUsername);
 
     // Fetch org metadata
     const { data: orgData } = await octokit.orgs.get({ org });

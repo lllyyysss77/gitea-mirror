@@ -626,6 +626,47 @@ export const ssoProviders = sqliteTable("sso_providers", {
   index("idx_sso_providers_issuer").on(table.issuer),
 ]);
 
+// ===== Rate Limit Tracking =====
+
+export const rateLimitSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  provider: z.enum(["github", "gitea"]).default("github"),
+  limit: z.number(),
+  remaining: z.number(),
+  used: z.number(),
+  reset: z.coerce.date(),
+  retryAfter: z.number().optional(), // seconds to wait
+  status: z.enum(["ok", "warning", "limited", "exceeded"]).default("ok"),
+  lastChecked: z.coerce.date(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+});
+
+export const rateLimits = sqliteTable("rate_limits", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  provider: text("provider").notNull().default("github"),
+  limit: integer("limit").notNull(),
+  remaining: integer("remaining").notNull(),
+  used: integer("used").notNull(),
+  reset: integer("reset", { mode: "timestamp" }).notNull(),
+  retryAfter: integer("retry_after"), // seconds to wait
+  status: text("status").notNull().default("ok"),
+  lastChecked: integer("last_checked", { mode: "timestamp" }).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+}, (table) => [
+  index("idx_rate_limits_user_provider").on(table.userId, table.provider),
+  index("idx_rate_limits_status").on(table.status),
+]);
+
 // Export type definitions
 export type User = z.infer<typeof userSchema>;
 export type Config = z.infer<typeof configSchema>;
@@ -633,3 +674,4 @@ export type Repository = z.infer<typeof repositorySchema>;
 export type MirrorJob = z.infer<typeof mirrorJobSchema>;
 export type Organization = z.infer<typeof organizationSchema>;
 export type Event = z.infer<typeof eventSchema>;
+export type RateLimit = z.infer<typeof rateLimitSchema>;

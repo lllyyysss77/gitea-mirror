@@ -93,7 +93,7 @@ export async function createDefaultConfig({ userId, envOverrides = {} }: Default
       enabled: scheduleEnabled,
       interval: scheduleInterval,
       concurrent: false,
-      batchSize: 10,
+      batchSize: 5, // Reduced from 10 to be more conservative with GitHub API limits
       lastRun: null,
       nextRun: scheduleEnabled ? new Date(Date.now() + scheduleInterval * 1000) : null,
     },

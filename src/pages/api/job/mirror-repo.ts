@@ -73,9 +73,10 @@ export const POST: APIRoute = async ({ request }) => {
         throw new Error("GitHub token is missing.");
       }
 
-      // Create a single Octokit instance to be reused
+      // Create a single Octokit instance to be reused with rate limit tracking
       const decryptedToken = getDecryptedGitHubToken(config);
-      const octokit = createGitHubClient(decryptedToken);
+      const githubUsername = config.githubConfig?.owner || undefined;
+      const octokit = createGitHubClient(decryptedToken, userId, githubUsername);
 
       // Define the concurrency limit - adjust based on API rate limits
       const CONCURRENCY_LIMIT = 3;
