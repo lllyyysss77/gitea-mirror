@@ -117,6 +117,8 @@ export const POST: APIRoute = async ({ request }) => {
       owner: repo.owner.login,
       organization:
         repo.owner.type === "Organization" ? repo.owner.login : null,
+      mirroredLocation: "",
+      destinationOrg: null,
       isPrivate: repo.private,
       isForked: repo.fork,
       forkedFrom: undefined,
@@ -126,6 +128,8 @@ export const POST: APIRoute = async ({ request }) => {
       size: repo.size,
       hasLFS: false,
       hasSubmodules: false,
+      language: repo.language || null,
+      description: repo.description || null,
       defaultBranch: repo.default_branch ?? "main",
       visibility: (repo.visibility ?? "public") as RepositoryVisibility,
       status: "imported" as RepoStatus,

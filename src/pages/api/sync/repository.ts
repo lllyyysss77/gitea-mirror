@@ -92,12 +92,15 @@ export const POST: APIRoute = async ({ request }) => {
       size: repoData.size,
       hasLFS: false,
       hasSubmodules: false,
+      language: repoData.language || null,
+      description: repoData.description || null,
       defaultBranch: repoData.default_branch,
       visibility: (repoData.visibility ?? "public") as RepositoryVisibility,
       status: "imported" as Repository["status"],
       lastMirrored: undefined,
       errorMessage: undefined,
       mirroredLocation: "",
+      destinationOrg: null,
       createdAt: repoData.created_at
         ? new Date(repoData.created_at)
         : new Date(),

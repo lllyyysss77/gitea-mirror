@@ -445,6 +445,9 @@ export const organizations = sqliteTable("organizations", {
   errorMessage: text("error_message"),
 
   repositoryCount: integer("repository_count").notNull().default(0),
+  publicRepositoryCount: integer("public_repository_count"),
+  privateRepositoryCount: integer("private_repository_count"),
+  forkRepositoryCount: integer("fork_repository_count"),
 
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()

@@ -68,6 +68,8 @@ export async function getGithubRepositories({
       owner: repo.owner.login,
       organization:
         repo.owner.type === "Organization" ? repo.owner.login : undefined,
+      mirroredLocation: "",
+      destinationOrg: null,
 
       isPrivate: repo.private,
       isForked: repo.fork,
@@ -82,6 +84,8 @@ export async function getGithubRepositories({
       hasLFS: false,
       hasSubmodules: false,
 
+      language: repo.language,
+      description: repo.description,
       defaultBranch: repo.default_branch,
       visibility: (repo.visibility ?? "public") as GitRepo["visibility"],
 
@@ -125,6 +129,8 @@ export async function getGithubStarredRepositories({
       owner: repo.owner.login,
       organization:
         repo.owner.type === "Organization" ? repo.owner.login : undefined,
+      mirroredLocation: "",
+      destinationOrg: null,
 
       isPrivate: repo.private,
       isForked: repo.fork,
@@ -138,6 +144,8 @@ export async function getGithubStarredRepositories({
       hasLFS: false, // Placeholder
       hasSubmodules: false, // Placeholder
 
+      language: repo.language,
+      description: repo.description,
       defaultBranch: repo.default_branch,
       visibility: (repo.visibility ?? "public") as GitRepo["visibility"],
 
@@ -244,6 +252,8 @@ export async function getGithubOrganizationRepositories({
 
       owner: repo.owner.login,
       organization: repo.owner.login,
+      mirroredLocation: "",
+      destinationOrg: null,
 
       isPrivate: repo.private,
       isForked: repo.fork,
@@ -258,6 +268,8 @@ export async function getGithubOrganizationRepositories({
       hasLFS: false,
       hasSubmodules: false,
 
+      language: repo.language,
+      description: repo.description,
       defaultBranch: repo.default_branch ?? "main",
       visibility: (repo.visibility ?? "public") as GitRepo["visibility"],
 

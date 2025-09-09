@@ -48,6 +48,8 @@ export interface GitRepo {
 
   owner: string;
   organization?: string;
+  mirroredLocation?: string;
+  destinationOrg?: string | null;
 
   isPrivate: boolean;
   isForked: boolean;
@@ -61,6 +63,8 @@ export interface GitRepo {
   hasLFS: boolean;
   hasSubmodules: boolean;
 
+  language?: string | null;
+  description?: string | null;
   defaultBranch: string;
   visibility: RepositoryVisibility;
 
