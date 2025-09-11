@@ -67,8 +67,35 @@ export function Hero() {
           </div>
         </div>
 
+         {/* Product Hunt Badge */}
+        <div className="mt-6 sm:mt-8 flex items-center justify-center px-4 z-20">
+          <a 
+            href="https://www.producthunt.com/products/gitea-mirror?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-gitea-mirror" 
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block transition-transform hover:scale-105"
+          >
+            <img 
+              src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1013721&theme=light&t=1757620787136" 
+              alt="Gitea Mirror - Automated github to gitea repository mirroring & backup | Product Hunt" 
+              style={{ width: '250px', height: '54px' }}
+              width="250" 
+              height="54" 
+              className="dark:hidden"
+            />
+            <img 
+              src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1013721&theme=dark&t=1757620890723" 
+              alt="Gitea Mirror - Automated github to gitea repository mirroring & backup | Product Hunt" 
+              style={{ width: '250px', height: '54px' }}
+              width="250" 
+              height="54" 
+              className="hidden dark:block"
+            />
+          </a>
+        </div>
+
         {/* Call to action buttons */}
-        <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-4 z-20">
+        {/* <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-4 z-20">
           <Button
             size="lg"
             className="relative group w-full sm:w-auto min-h-[48px] text-base bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300"
@@ -91,7 +118,7 @@ export function Hero() {
           >
             <a href="#features">View Features</a>
           </Button>
-        </div>
+        </div> */}
       </div>
     </section>
   );
