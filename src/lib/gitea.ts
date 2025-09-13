@@ -460,6 +460,8 @@ export const mirrorGithubRepoToGitea = async ({
           config,
           octokit,
           repository,
+          giteaOwner: repoOwner,
+          giteaRepoName: targetRepoName,
         });
         console.log(`[Metadata] Successfully mirrored releases for ${repository.name}`);
       } catch (error) {
@@ -852,6 +854,8 @@ export async function mirrorGitHubRepoToGiteaOrg({
           config,
           octokit,
           repository,
+          giteaOwner: orgName,
+          giteaRepoName: targetRepoName,
         });
         console.log(`[Metadata] Successfully mirrored releases for ${repository.name}`);
       } catch (error) {
@@ -1378,9 +1382,7 @@ export const mirrorGitRepoIssuesToGitea = async ({
         } else {
           try {
             const created = await httpPost(
-              `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${
-                repository.name
-              }/labels`,
+              `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/labels`,
               { name, color: "#ededed" }, // Default color
               {
                 Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
@@ -1415,9 +1417,7 @@ export const mirrorGitRepoIssuesToGitea = async ({
 
       // Create the issue in Gitea
       const createdIssue = await httpPost(
-        `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${
-          repository.name
-        }/issues`,
+        `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues`,
         issuePayload,
         {
           Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
@@ -1442,9 +1442,7 @@ export const mirrorGitRepoIssuesToGitea = async ({
           comments,
           async (comment) => {
             await httpPost(
-              `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${
-                repository.name
-              }/issues/${createdIssue.data.number}/comments`,
+              `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues/${createdIssue.data.number}/comments`,
               {
                 body: `@${comment.user?.login} commented on GitHub:\n\n${comment.body}`,
               },
@@ -1498,10 +1496,14 @@ export async function mirrorGitHubReleasesToGitea({
   octokit,
   repository,
   config,
+  giteaOwner,
+  giteaRepoName,
 }: {
   octokit: Octokit;
   repository: Repository;
   config: Partial<Config>;
+  giteaOwner?: string;
+  giteaRepoName?: string;
 }) {
   if (
     !config.giteaConfig?.defaultOwner ||
@@ -1514,17 +1516,16 @@ export async function mirrorGitHubReleasesToGitea({
   // Decrypt config tokens for API usage
   const decryptedConfig = decryptConfigTokens(config as Config);
 
-  const repoOwner = await getGiteaRepoOwnerAsync({
-    config,
-    repository,
-  });
+  // Determine target owner/repo in Gitea (supports renamed repos)
+  const repoOwner = giteaOwner || (await getGiteaRepoOwnerAsync({ config, repository }));
+  const repoName = giteaRepoName || repository.name;
 
   // Verify the repository exists in Gitea before attempting to mirror releases
-  console.log(`[Releases] Verifying repository ${repository.name} exists at ${repoOwner}`);
+  console.log(`[Releases] Verifying repository ${repoName} exists at ${repoOwner}`);
   const repoExists = await isRepoPresentInGitea({
     config,
     owner: repoOwner,
-    repoName: repository.name,
+    repoName: repoName,
   });
   
   if (!repoExists) {
@@ -1560,7 +1561,7 @@ export async function mirrorGitHubReleasesToGitea({
     try {
       // Check if release already exists
       const existingReleasesResponse = await httpGet(
-        `${config.giteaConfig.url}/api/v1/repos/${repoOwner}/${repository.name}/releases/tags/${release.tag_name}`,
+        `${config.giteaConfig.url}/api/v1/repos/${repoOwner}/${repoName}/releases/tags/${release.tag_name}`,
         {
           Authorization: `token ${decryptedConfig.giteaConfig.token}`,
         }
@@ -1577,7 +1578,7 @@ export async function mirrorGitHubReleasesToGitea({
           console.log(`[Releases] Updating existing release ${release.tag_name} with new changelog/title`);
           
           await httpPut(
-            `${config.giteaConfig.url}/api/v1/repos/${repoOwner}/${repository.name}/releases/${existingRelease.id}`,
+            `${config.giteaConfig.url}/api/v1/repos/${repoOwner}/${repoName}/releases/${existingRelease.id}`,
             {
               tag_name: release.tag_name,
               target: release.target_commitish,
@@ -1608,7 +1609,7 @@ export async function mirrorGitHubReleasesToGitea({
       }
       
       const createReleaseResponse = await httpPost(
-        `${config.giteaConfig.url}/api/v1/repos/${repoOwner}/${repository.name}/releases`,
+        `${config.giteaConfig.url}/api/v1/repos/${repoOwner}/${repoName}/releases`,
         {
           tag_name: release.tag_name,
           target: release.target_commitish,
@@ -1649,7 +1650,7 @@ export async function mirrorGitHubReleasesToGitea({
             formData.append('attachment', new Blob([assetData]), asset.name);
             
             const uploadResponse = await fetch(
-              `${config.giteaConfig.url}/api/v1/repos/${repoOwner}/${repository.name}/releases/${createReleaseResponse.data.id}/assets?name=${encodeURIComponent(asset.name)}`,
+              `${config.giteaConfig.url}/api/v1/repos/${repoOwner}/${repoName}/releases/${createReleaseResponse.data.id}/assets?name=${encodeURIComponent(asset.name)}`,
               {
                 method: 'POST',
                 headers: {
