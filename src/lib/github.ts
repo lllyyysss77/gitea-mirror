@@ -18,8 +18,11 @@ if (process.env.NODE_ENV !== "test") {
   }
 }
 
-// Extend Octokit with throttling plugin
-const MyOctokit = Octokit.plugin(throttling);
+// Extend Octokit with throttling plugin when available (tests may stub Octokit)
+// Fallback to base Octokit if .plugin is not present
+const MyOctokit: any = (Octokit as any)?.plugin?.call
+  ? (Octokit as any).plugin(throttling)
+  : Octokit as any;
 
 /**
  * Creates an authenticated Octokit instance with rate limit tracking and throttling

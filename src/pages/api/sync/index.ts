@@ -10,6 +10,7 @@ import {
   getGithubStarredRepositories,
 } from "@/lib/github";
 import { jsonResponse, createSecureErrorResponse } from "@/lib/utils";
+import { mergeGitReposPreferStarred, calcBatchSizeForInsert } from "@/lib/repo-utils";
 import { getDecryptedGitHubToken } from "@/lib/utils/config-encryption";
 
 export const POST: APIRoute = async ({ request }) => {
@@ -55,7 +56,8 @@ export const POST: APIRoute = async ({ request }) => {
       getGithubOrganizations({ octokit, config }),
     ]);
 
-    const allGithubRepos = [...basicAndForkedRepos, ...starredRepos];
+    // Merge and de-duplicate by fullName, preferring starred variant when duplicated
+    const allGithubRepos = mergeGitReposPreferStarred(basicAndForkedRepos, starredRepos);
 
     // Prepare full list of repos and orgs
     const newRepos = allGithubRepos.map((repo) => ({
@@ -67,25 +69,25 @@ export const POST: APIRoute = async ({ request }) => {
       url: repo.url,
       cloneUrl: repo.cloneUrl,
       owner: repo.owner,
-      organization: repo.organization,
+      organization: repo.organization ?? null,
       mirroredLocation: repo.mirroredLocation || "",
       destinationOrg: repo.destinationOrg || null,
       isPrivate: repo.isPrivate,
       isForked: repo.isForked,
-      forkedFrom: repo.forkedFrom,
+      forkedFrom: repo.forkedFrom ?? null,
       hasIssues: repo.hasIssues,
       isStarred: repo.isStarred,
       isArchived: repo.isArchived,
       size: repo.size,
       hasLFS: repo.hasLFS,
       hasSubmodules: repo.hasSubmodules,
-      language: repo.language || null,
-      description: repo.description || null,
+      language: repo.language ?? null,
+      description: repo.description ?? null,
       defaultBranch: repo.defaultBranch,
       visibility: repo.visibility,
       status: repo.status,
-      lastMirrored: repo.lastMirrored,
-      errorMessage: repo.errorMessage,
+      lastMirrored: repo.lastMirrored ?? null,
+      errorMessage: repo.errorMessage ?? null,
       createdAt: repo.createdAt,
       updatedAt: repo.updatedAt,
     }));
@@ -128,12 +130,27 @@ export const POST: APIRoute = async ({ request }) => {
       );
       insertedOrgs = newOrgs.filter((o) => !existingOrgNames.has(o.name));
 
+      // Batch insert repositories to avoid SQLite parameter limit (dynamic by column count)
+      const sample = newRepos[0];
+      const columnCount = Object.keys(sample ?? {}).length || 1;
+      const REPO_BATCH_SIZE = calcBatchSizeForInsert(columnCount);
       if (insertedRepos.length > 0) {
-        await tx.insert(repositories).values(insertedRepos);
+        for (let i = 0; i < insertedRepos.length; i += REPO_BATCH_SIZE) {
+          const batch = insertedRepos.slice(i, i + REPO_BATCH_SIZE);
+          await tx
+            .insert(repositories)
+            .values(batch)
+            .onConflictDoNothing({ target: [repositories.userId, repositories.fullName] });
+        }
       }
 
+      // Batch insert organizations (they have fewer fields, so we can use larger batches)
+      const ORG_BATCH_SIZE = 100;
       if (insertedOrgs.length > 0) {
-        await tx.insert(organizations).values(insertedOrgs);
+        for (let i = 0; i < insertedOrgs.length; i += ORG_BATCH_SIZE) {
+          const batch = insertedOrgs.slice(i, i + ORG_BATCH_SIZE);
+          await tx.insert(organizations).values(batch);
+        }
       }
     });
 

@@ -29,11 +29,14 @@ export interface DatabaseCleanupConfig {
   nextRun?: Date;
 }
 
+export type DuplicateNameStrategy = "suffix" | "prefix" | "owner-org";
+
 export interface GitHubConfig {
   username: string;
   token: string;
   privateRepositories: boolean;
   mirrorStarred: boolean;
+  starredDuplicateStrategy?: DuplicateNameStrategy;
 }
 
 export interface MirrorOptions {

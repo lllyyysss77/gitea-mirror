@@ -11,6 +11,7 @@ import { getDecryptedGitHubToken } from '@/lib/utils/config-encryption';
 import { parseInterval, formatDuration } from '@/lib/utils/duration-parser';
 import type { Repository } from '@/lib/db/schema';
 import { repoStatusEnum, repositoryVisibilityEnum } from '@/types/Repository';
+import { mergeGitReposPreferStarred, normalizeGitRepoToInsert, calcBatchSizeForInsert } from '@/lib/repo-utils';
 
 let schedulerInterval: NodeJS.Timeout | null = null;
 let isSchedulerRunning = false;
@@ -94,8 +95,7 @@ async function runScheduledSync(config: any): Promise<void> {
             ? getGithubStarredRepositories({ octokit, config })
             : Promise.resolve([]),
         ]);
-        
-        const allGithubRepos = [...basicAndForkedRepos, ...starredRepos];
+        const allGithubRepos = mergeGitReposPreferStarred(basicAndForkedRepos, starredRepos);
         
         // Check for new repositories
         const existingRepos = await db
@@ -110,37 +110,21 @@ async function runScheduledSync(config: any): Promise<void> {
           console.log(`[Scheduler] Found ${newRepos.length} new repositories for user ${userId}`);
           
           // Insert new repositories
-          const reposToInsert = newRepos.map(repo => ({
-            id: uuidv4(),
-            userId,
-            configId: config.id,
-            name: repo.name,
-            fullName: repo.fullName,
-            url: repo.url,
-            cloneUrl: repo.cloneUrl,
-            owner: repo.owner,
-            organization: repo.organization,
-            mirroredLocation: repo.mirroredLocation || "",
-            destinationOrg: repo.destinationOrg || null,
-            isPrivate: repo.isPrivate,
-            isForked: repo.isForked,
-            forkedFrom: repo.forkedFrom,
-            hasIssues: repo.hasIssues,
-            isStarred: repo.isStarred,
-            isArchived: repo.isArchived,
-            size: repo.size,
-            hasLFS: repo.hasLFS,
-            hasSubmodules: repo.hasSubmodules,
-            language: repo.language || null,
-            description: repo.description || null,
-            defaultBranch: repo.defaultBranch,
-            visibility: repo.visibility,
-            status: 'imported',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          }));
+          const reposToInsert = newRepos.map(repo => 
+            normalizeGitRepoToInsert(repo, { userId, configId: config.id })
+          );
           
-          await db.insert(repositories).values(reposToInsert);
+          // Batch insert to avoid SQLite parameter limit
+          const sample = reposToInsert[0];
+          const columnCount = Object.keys(sample ?? {}).length || 1;
+          const BATCH_SIZE = calcBatchSizeForInsert(columnCount);
+          for (let i = 0; i < reposToInsert.length; i += BATCH_SIZE) {
+            const batch = reposToInsert.slice(i, i + BATCH_SIZE);
+            await db
+              .insert(repositories)
+              .values(batch)
+              .onConflictDoNothing({ target: [repositories.userId, repositories.fullName] });
+          }
           console.log(`[Scheduler] Successfully imported ${newRepos.length} new repositories for user ${userId}`);
         } else {
           console.log(`[Scheduler] No new repositories found for user ${userId}`);
@@ -375,8 +359,7 @@ async function performInitialAutoStart(): Promise<void> {
             ? getGithubStarredRepositories({ octokit, config })
             : Promise.resolve([]),
         ]);
-        
-        const allGithubRepos = [...basicAndForkedRepos, ...starredRepos];
+        const allGithubRepos = mergeGitReposPreferStarred(basicAndForkedRepos, starredRepos);
         
         // Check for new repositories
         const existingRepos = await db
@@ -391,37 +374,21 @@ async function performInitialAutoStart(): Promise<void> {
           console.log(`[Scheduler] Importing ${reposToImport.length} repositories for user ${config.userId}...`);
           
           // Insert new repositories
-          const reposToInsert = reposToImport.map(repo => ({
-            id: uuidv4(),
-            userId: config.userId,
-            configId: config.id,
-            name: repo.name,
-            fullName: repo.fullName,
-            url: repo.url,
-            cloneUrl: repo.cloneUrl,
-            owner: repo.owner,
-            organization: repo.organization,
-            mirroredLocation: repo.mirroredLocation || "",
-            destinationOrg: repo.destinationOrg || null,
-            isPrivate: repo.isPrivate,
-            isForked: repo.isForked,
-            forkedFrom: repo.forkedFrom,
-            hasIssues: repo.hasIssues,
-            isStarred: repo.isStarred,
-            isArchived: repo.isArchived,
-            size: repo.size,
-            hasLFS: repo.hasLFS,
-            hasSubmodules: repo.hasSubmodules,
-            language: repo.language || null,
-            description: repo.description || null,
-            defaultBranch: repo.defaultBranch,
-            visibility: repo.visibility,
-            status: 'imported',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          }));
+          const reposToInsert = reposToImport.map(repo => 
+            normalizeGitRepoToInsert(repo, { userId: config.userId, configId: config.id })
+          );
           
-          await db.insert(repositories).values(reposToInsert);
+          // Batch insert to avoid SQLite parameter limit
+          const sample = reposToInsert[0];
+          const columnCount = Object.keys(sample ?? {}).length || 1;
+          const BATCH_SIZE = calcBatchSizeForInsert(columnCount);
+          for (let i = 0; i < reposToInsert.length; i += BATCH_SIZE) {
+            const batch = reposToInsert.slice(i, i + BATCH_SIZE);
+            await db
+              .insert(repositories)
+              .values(batch)
+              .onConflictDoNothing({ target: [repositories.userId, repositories.fullName] });
+          }
           console.log(`[Scheduler] Successfully imported ${reposToImport.length} repositories`);
         } else {
           console.log(`[Scheduler] No new repositories to import for user ${config.userId}`);

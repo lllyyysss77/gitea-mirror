@@ -32,7 +32,14 @@ import {
   Funnel,
   HardDrive
 } from "lucide-react";
-import type { GitHubConfig, MirrorOptions, AdvancedOptions } from "@/types/config";
+import type { GitHubConfig, MirrorOptions, AdvancedOptions, DuplicateNameStrategy } from "@/types/config";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 interface GitHubMirrorSettingsProps {
@@ -53,7 +60,7 @@ export function GitHubMirrorSettings({
   onAdvancedOptionsChange,
 }: GitHubMirrorSettingsProps) {
   
-  const handleGitHubChange = (field: keyof GitHubConfig, value: boolean) => {
+  const handleGitHubChange = (field: keyof GitHubConfig, value: boolean | string) => {
     onGitHubConfigChange({ ...githubConfig, [field]: value });
   };
 
@@ -278,6 +285,34 @@ export function GitHubMirrorSettings({
               </Popover>
             </div>
           </div>
+
+          {/* Duplicate name handling for starred repos */}
+          {githubConfig.mirrorStarred && (
+            <div className="mt-4 space-y-2">
+              <Label htmlFor="duplicate-strategy" className="text-sm">
+                Duplicate name handling
+              </Label>
+              <Select
+                value={githubConfig.starredDuplicateStrategy || "suffix"}
+                onValueChange={(value) => handleGitHubChange('starredDuplicateStrategy', value as DuplicateNameStrategy)}
+              >
+                <SelectTrigger id="duplicate-strategy" className="w-full">
+                  <SelectValue placeholder="Select duplicate handling strategy" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="suffix">
+                    Add owner as suffix (awesome-project-user1)
+                  </SelectItem>
+                  <SelectItem value="prefix">
+                    Add owner as prefix (user1-awesome-project)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Handle starred repos with duplicate names from different owners. Currently supports suffix and prefix strategies.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

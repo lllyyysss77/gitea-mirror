@@ -80,25 +80,23 @@ export const POST: APIRoute = async ({ request }) => {
       cloneUrl: repoData.clone_url,
       owner: repoData.owner.login,
       organization:
-        repoData.owner.type === "Organization"
-          ? repoData.owner.login
-          : undefined,
+        repoData.owner.type === "Organization" ? repoData.owner.login : null,
       isPrivate: repoData.private,
       isForked: repoData.fork,
-      forkedFrom: undefined,
+      forkedFrom: null,
       hasIssues: repoData.has_issues,
       isStarred: false,
       isArchived: repoData.archived,
       size: repoData.size,
       hasLFS: false,
       hasSubmodules: false,
-      language: repoData.language || null,
-      description: repoData.description || null,
+      language: repoData.language ?? null,
+      description: repoData.description ?? null,
       defaultBranch: repoData.default_branch,
       visibility: (repoData.visibility ?? "public") as RepositoryVisibility,
       status: "imported" as Repository["status"],
-      lastMirrored: undefined,
-      errorMessage: undefined,
+      lastMirrored: null,
+      errorMessage: null,
       mirroredLocation: "",
       destinationOrg: null,
       createdAt: repoData.created_at
@@ -109,7 +107,10 @@ export const POST: APIRoute = async ({ request }) => {
         : new Date(),
     };
 
-    await db.insert(repositories).values(metadata);
+    await db
+      .insert(repositories)
+      .values(metadata)
+      .onConflictDoNothing({ target: [repositories.userId, repositories.fullName] });
 
     createMirrorJob({
       userId,

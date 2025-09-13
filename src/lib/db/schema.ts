@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 // ===== Zod Validation Schemas =====
@@ -28,6 +28,7 @@ export const githubConfigSchema = z.object({
   mirrorStrategy: z.enum(["preserve", "single-org", "flat-user", "mixed"]).default("preserve"),
   defaultOrg: z.string().optional(),
   skipStarredIssues: z.boolean().default(false),
+  starredDuplicateStrategy: z.enum(["suffix", "prefix", "owner-org"]).default("suffix").optional(),
 });
 
 export const giteaConfigSchema = z.object({
@@ -379,6 +380,7 @@ export const repositories = sqliteTable("repositories", {
   index("idx_repositories_organization").on(table.organization),
   index("idx_repositories_is_fork").on(table.isForked),
   index("idx_repositories_is_starred").on(table.isStarred),
+  uniqueIndex("uniq_repositories_user_full_name").on(table.userId, table.fullName),
 ]);
 
 export const mirrorJobs = sqliteTable("mirror_jobs", {

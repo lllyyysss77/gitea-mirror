@@ -274,15 +274,37 @@ export const mirrorGithubRepoToGitea = async ({
     // Get the correct owner based on the strategy (with organization overrides)
     let repoOwner = await getGiteaRepoOwnerAsync({ config, repository });
 
+    // Determine the actual repository name to use (handle duplicates for starred repos)
+    let targetRepoName = repository.name;
+    
+    if (repository.isStarred && config.githubConfig) {
+      // Extract GitHub owner from full_name (format: owner/repo)
+      const githubOwner = repository.fullName.split('/')[0];
+      
+      targetRepoName = await generateUniqueRepoName({
+        config,
+        orgName: repoOwner,
+        baseName: repository.name,
+        githubOwner,
+        strategy: config.githubConfig.starredDuplicateStrategy,
+      });
+      
+      if (targetRepoName !== repository.name) {
+        console.log(
+          `Starred repo ${repository.fullName} will be mirrored as ${repoOwner}/${targetRepoName} to avoid naming conflict`
+        );
+      }
+    }
+
     const isExisting = await isRepoPresentInGitea({
       config,
       owner: repoOwner,
-      repoName: repository.name,
+      repoName: targetRepoName,
     });
 
     if (isExisting) {
       console.log(
-        `Repository ${repository.name} already exists in Gitea under ${repoOwner}. Updating database status.`
+        `Repository ${targetRepoName} already exists in Gitea under ${repoOwner}. Updating database status.`
       );
 
       // Update database to reflect that the repository is already mirrored
@@ -293,7 +315,7 @@ export const mirrorGithubRepoToGitea = async ({
           updatedAt: new Date(),
           lastMirrored: new Date(),
           errorMessage: null,
-          mirroredLocation: `${repoOwner}/${repository.name}`,
+          mirroredLocation: `${repoOwner}/${targetRepoName}`,
         })
         .where(eq(repositories.id, repository.id!));
 
@@ -393,11 +415,11 @@ export const mirrorGithubRepoToGitea = async ({
     const existingRepo = await getGiteaRepoInfo({
       config,
       owner: repoOwner,
-      repoName: repository.name,
+      repoName: targetRepoName,
     });
 
     if (existingRepo && !existingRepo.mirror) {
-      console.log(`Repository ${repository.name} exists but is not a mirror. Handling...`);
+      console.log(`Repository ${targetRepoName} exists but is not a mirror. Handling...`);
       
       // Handle the existing non-mirror repository
       await handleExistingNonMirrorRepo({
@@ -408,14 +430,14 @@ export const mirrorGithubRepoToGitea = async ({
       });
       
       // After handling, proceed with mirror creation
-      console.log(`Proceeding with mirror creation for ${repository.name}`);
+      console.log(`Proceeding with mirror creation for ${targetRepoName}`);
     }
 
     const response = await httpPost(
       apiUrl,
       {
         clone_addr: cloneAddress,
-        repo_name: repository.name,
+        repo_name: targetRepoName,
         mirror: true,
         mirror_interval: config.giteaConfig?.mirrorInterval || "8h", // Set mirror interval
         wiki: config.giteaConfig?.wiki || false, // will mirror wiki if it exists
@@ -460,6 +482,7 @@ export const mirrorGithubRepoToGitea = async ({
           octokit,
           repository,
           giteaOwner: repoOwner,
+          giteaRepoName: targetRepoName,
         });
         console.log(`[Metadata] Successfully mirrored issues for ${repository.name}`);
       } catch (error) {
@@ -477,6 +500,7 @@ export const mirrorGithubRepoToGitea = async ({
           octokit,
           repository,
           giteaOwner: repoOwner,
+          giteaRepoName: targetRepoName,
         });
         console.log(`[Metadata] Successfully mirrored pull requests for ${repository.name}`);
       } catch (error) {
@@ -494,6 +518,7 @@ export const mirrorGithubRepoToGitea = async ({
           octokit,
           repository,
           giteaOwner: repoOwner,
+          giteaRepoName: targetRepoName,
         });
         console.log(`[Metadata] Successfully mirrored labels for ${repository.name}`);
       } catch (error) {
@@ -511,6 +536,7 @@ export const mirrorGithubRepoToGitea = async ({
           octokit,
           repository,
           giteaOwner: repoOwner,
+          giteaRepoName: targetRepoName,
         });
         console.log(`[Metadata] Successfully mirrored milestones for ${repository.name}`);
       } catch (error) {
@@ -519,7 +545,7 @@ export const mirrorGithubRepoToGitea = async ({
       }
     }
 
-    console.log(`Repository ${repository.name} mirrored successfully`);
+    console.log(`Repository ${repository.name} mirrored successfully as ${targetRepoName}`);
 
     // Mark repos as "mirrored" in DB
     await db
@@ -529,7 +555,7 @@ export const mirrorGithubRepoToGitea = async ({
         updatedAt: new Date(),
         lastMirrored: new Date(),
         errorMessage: null,
-        mirroredLocation: `${repoOwner}/${repository.name}`,
+        mirroredLocation: `${repoOwner}/${targetRepoName}`,
       })
       .where(eq(repositories.id, repository.id!));
 
@@ -538,8 +564,8 @@ export const mirrorGithubRepoToGitea = async ({
       userId: config.userId,
       repositoryId: repository.id,
       repositoryName: repository.name,
-      message: `Successfully mirrored repository: ${repository.name}`,
-      details: `Repository ${repository.name} was mirrored to Gitea.`,
+      message: `Successfully mirrored repository: ${repository.name}${targetRepoName !== repository.name ? ` as ${targetRepoName}` : ''}`,
+      details: `Repository ${repository.fullName} was mirrored to Gitea at ${repoOwner}/${targetRepoName}.`,
       status: "mirrored",
     });
 
@@ -608,6 +634,80 @@ export async function getOrCreateGiteaOrg({
   }
 }
 
+/**
+ * Generate a unique repository name for starred repos with duplicate names
+ */
+async function generateUniqueRepoName({
+  config,
+  orgName,
+  baseName,
+  githubOwner,
+  strategy,
+}: {
+  config: Partial<Config>;
+  orgName: string;
+  baseName: string;
+  githubOwner: string;
+  strategy?: string;
+}): Promise<string> {
+  const duplicateStrategy = strategy || "suffix";
+  
+  // First check if base name is available
+  const baseExists = await isRepoPresentInGitea({
+    config,
+    owner: orgName,
+    repoName: baseName,
+  });
+  
+  if (!baseExists) {
+    return baseName;
+  }
+  
+  // Generate name based on strategy
+  let candidateName: string;
+  let attempt = 0;
+  const maxAttempts = 10;
+  
+  while (attempt < maxAttempts) {
+    switch (duplicateStrategy) {
+      case "prefix":
+        // Prefix with owner: owner-reponame
+        candidateName = attempt === 0 
+          ? `${githubOwner}-${baseName}`
+          : `${githubOwner}-${baseName}-${attempt}`;
+        break;
+        
+      case "owner-org":
+        // This would require creating sub-organizations, not supported in this PR
+        // Fall back to suffix strategy
+      case "suffix":
+      default:
+        // Suffix with owner: reponame-owner
+        candidateName = attempt === 0
+          ? `${baseName}-${githubOwner}`
+          : `${baseName}-${githubOwner}-${attempt}`;
+        break;
+    }
+    
+    const exists = await isRepoPresentInGitea({
+      config,
+      owner: orgName,
+      repoName: candidateName,
+    });
+    
+    if (!exists) {
+      console.log(`Found unique name for duplicate starred repo: ${candidateName}`);
+      return candidateName;
+    }
+    
+    attempt++;
+  }
+  
+  // If all attempts failed, use timestamp as last resort
+  const timestamp = Date.now();
+  return `${baseName}-${githubOwner}-${timestamp}`;
+}
+
 export async function mirrorGitHubRepoToGiteaOrg({
   octokit,
   config,
@@ -633,15 +733,37 @@ export async function mirrorGitHubRepoToGiteaOrg({
     // Decrypt config tokens for API usage
     const decryptedConfig = decryptConfigTokens(config as Config);
 
+    // Determine the actual repository name to use (handle duplicates for starred repos)
+    let targetRepoName = repository.name;
+    
+    if (repository.isStarred && config.githubConfig) {
+      // Extract GitHub owner from full_name (format: owner/repo)
+      const githubOwner = repository.fullName.split('/')[0];
+      
+      targetRepoName = await generateUniqueRepoName({
+        config,
+        orgName,
+        baseName: repository.name,
+        githubOwner,
+        strategy: config.githubConfig.starredDuplicateStrategy,
+      });
+      
+      if (targetRepoName !== repository.name) {
+        console.log(
+          `Starred repo ${repository.fullName} will be mirrored as ${orgName}/${targetRepoName} to avoid naming conflict`
+        );
+      }
+    }
+
     const isExisting = await isRepoPresentInGitea({
       config,
       owner: orgName,
-      repoName: repository.name,
+      repoName: targetRepoName,
     });
 
     if (isExisting) {
       console.log(
-        `Repository ${repository.name} already exists in Gitea organization ${orgName}. Updating database status.`
+        `Repository ${targetRepoName} already exists in Gitea organization ${orgName}. Updating database status.`
       );
 
       // Update database to reflect that the repository is already mirrored
@@ -652,7 +774,7 @@ export async function mirrorGitHubRepoToGiteaOrg({
           updatedAt: new Date(),
           lastMirrored: new Date(),
           errorMessage: null,
-          mirroredLocation: `${orgName}/${repository.name}`,
+          mirroredLocation: `${orgName}/${targetRepoName}`,
         })
         .where(eq(repositories.id, repository.id!));
 
@@ -661,19 +783,19 @@ export async function mirrorGitHubRepoToGiteaOrg({
         userId: config.userId,
         repositoryId: repository.id,
         repositoryName: repository.name,
-        message: `Repository ${repository.name} already exists in Gitea organization ${orgName}`,
-        details: `Repository ${repository.name} was found to already exist in Gitea organization ${orgName} and database status was updated.`,
+        message: `Repository ${targetRepoName} already exists in Gitea organization ${orgName}`,
+        details: `Repository ${targetRepoName} was found to already exist in Gitea organization ${orgName} and database status was updated.`,
         status: "mirrored",
       });
 
       console.log(
-        `Repository ${repository.name} database status updated to mirrored in organization ${orgName}`
+        `Repository ${targetRepoName} database status updated to mirrored in organization ${orgName}`
       );
       return;
     }
 
     console.log(
-      `Mirroring repository ${repository.name} to organization ${orgName}`
+      `Mirroring repository ${repository.fullName} to organization ${orgName} as ${targetRepoName}`
     );
 
     let cloneAddress = repository.cloneUrl;
@@ -710,7 +832,7 @@ export async function mirrorGitHubRepoToGiteaOrg({
       {
         clone_addr: cloneAddress,
         uid: giteaOrgId,
-        repo_name: repository.name,
+        repo_name: targetRepoName,
         mirror: true,
         mirror_interval: config.giteaConfig?.mirrorInterval || "8h", // Set mirror interval
         wiki: config.giteaConfig?.wiki || false, // will mirror wiki if it exists
@@ -752,10 +874,11 @@ export async function mirrorGitHubRepoToGiteaOrg({
           octokit,
           repository,
           giteaOwner: orgName,
+          giteaRepoName: targetRepoName,
         });
-        console.log(`[Metadata] Successfully mirrored issues for ${repository.name} to org ${orgName}`);
+        console.log(`[Metadata] Successfully mirrored issues for ${repository.name} to org ${orgName}/${targetRepoName}`);
       } catch (error) {
-        console.error(`[Metadata] Failed to mirror issues for ${repository.name} to org ${orgName}: ${error instanceof Error ? error.message : String(error)}`);
+        console.error(`[Metadata] Failed to mirror issues for ${repository.name} to org ${orgName}/${targetRepoName}: ${error instanceof Error ? error.message : String(error)}`);
         // Continue with other metadata operations even if issues fail
       }
     }
@@ -769,10 +892,11 @@ export async function mirrorGitHubRepoToGiteaOrg({
           octokit,
           repository,
           giteaOwner: orgName,
+          giteaRepoName: targetRepoName,
         });
-        console.log(`[Metadata] Successfully mirrored pull requests for ${repository.name} to org ${orgName}`);
+        console.log(`[Metadata] Successfully mirrored pull requests for ${repository.name} to org ${orgName}/${targetRepoName}`);
       } catch (error) {
-        console.error(`[Metadata] Failed to mirror pull requests for ${repository.name} to org ${orgName}: ${error instanceof Error ? error.message : String(error)}`);
+        console.error(`[Metadata] Failed to mirror pull requests for ${repository.name} to org ${orgName}/${targetRepoName}: ${error instanceof Error ? error.message : String(error)}`);
         // Continue with other metadata operations even if PRs fail
       }
     }
@@ -786,10 +910,11 @@ export async function mirrorGitHubRepoToGiteaOrg({
           octokit,
           repository,
           giteaOwner: orgName,
+          giteaRepoName: targetRepoName,
         });
-        console.log(`[Metadata] Successfully mirrored labels for ${repository.name} to org ${orgName}`);
+        console.log(`[Metadata] Successfully mirrored labels for ${repository.name} to org ${orgName}/${targetRepoName}`);
       } catch (error) {
-        console.error(`[Metadata] Failed to mirror labels for ${repository.name} to org ${orgName}: ${error instanceof Error ? error.message : String(error)}`);
+        console.error(`[Metadata] Failed to mirror labels for ${repository.name} to org ${orgName}/${targetRepoName}: ${error instanceof Error ? error.message : String(error)}`);
         // Continue with other metadata operations even if labels fail
       }
     }
@@ -803,16 +928,17 @@ export async function mirrorGitHubRepoToGiteaOrg({
           octokit,
           repository,
           giteaOwner: orgName,
+          giteaRepoName: targetRepoName,
         });
-        console.log(`[Metadata] Successfully mirrored milestones for ${repository.name} to org ${orgName}`);
+        console.log(`[Metadata] Successfully mirrored milestones for ${repository.name} to org ${orgName}/${targetRepoName}`);
       } catch (error) {
-        console.error(`[Metadata] Failed to mirror milestones for ${repository.name} to org ${orgName}: ${error instanceof Error ? error.message : String(error)}`);
+        console.error(`[Metadata] Failed to mirror milestones for ${repository.name} to org ${orgName}/${targetRepoName}: ${error instanceof Error ? error.message : String(error)}`);
         // Continue with other metadata operations even if milestones fail
       }
     }
 
     console.log(
-      `Repository ${repository.name} mirrored successfully to organization ${orgName}`
+      `Repository ${repository.name} mirrored successfully to organization ${orgName} as ${targetRepoName}`
     );
 
     // Mark repos as "mirrored" in DB
@@ -823,7 +949,7 @@ export async function mirrorGitHubRepoToGiteaOrg({
         updatedAt: new Date(),
         lastMirrored: new Date(),
         errorMessage: null,
-        mirroredLocation: `${orgName}/${repository.name}`,
+        mirroredLocation: `${orgName}/${targetRepoName}`,
       })
       .where(eq(repositories.id, repository.id!));
 
@@ -832,8 +958,8 @@ export async function mirrorGitHubRepoToGiteaOrg({
       userId: config.userId,
       repositoryId: repository.id,
       repositoryName: repository.name,
-      message: `Repository ${repository.name} mirrored successfully`,
-      details: `Repository ${repository.name} was mirrored to Gitea`,
+      message: `Repository ${repository.name} mirrored successfully${targetRepoName !== repository.name ? ` as ${targetRepoName}` : ''}`,
+      details: `Repository ${repository.fullName} was mirrored to Gitea at ${orgName}/${targetRepoName}`,
       status: "mirrored",
     });
 
@@ -1149,11 +1275,13 @@ export const mirrorGitRepoIssuesToGitea = async ({
   octokit,
   repository,
   giteaOwner,
+  giteaRepoName,
 }: {
   config: Partial<Config>;
   octokit: Octokit;
   repository: Repository;
   giteaOwner: string;
+  giteaRepoName?: string;
 }) => {
   //things covered here are- issue, title, body, labels, comments and assignees
   if (
@@ -1168,23 +1296,26 @@ export const mirrorGitRepoIssuesToGitea = async ({
   // Decrypt config tokens for API usage
   const decryptedConfig = decryptConfigTokens(config as Config);
   
+  // Use provided giteaRepoName or fall back to repository.name
+  const repoName = giteaRepoName || repository.name;
+  
   // Log configuration details for debugging
-  console.log(`[Issues] Starting issue mirroring for repository ${repository.name}`);
+  console.log(`[Issues] Starting issue mirroring for repository ${repository.name} as ${repoName}`);
   console.log(`[Issues] Gitea URL: ${config.giteaConfig!.url}`);
   console.log(`[Issues] Gitea Owner: ${giteaOwner}`);
   console.log(`[Issues] Gitea Default Owner: ${config.giteaConfig!.defaultOwner}`);
   
   // Verify the repository exists in Gitea before attempting to mirror metadata
-  console.log(`[Issues] Verifying repository ${repository.name} exists at ${giteaOwner}`);
+  console.log(`[Issues] Verifying repository ${repoName} exists at ${giteaOwner}`);
   const repoExists = await isRepoPresentInGitea({
     config,
     owner: giteaOwner,
-    repoName: repository.name,
+    repoName: repoName,
   });
   
   if (!repoExists) {
-    console.error(`[Issues] Repository ${repository.name} not found at ${giteaOwner}. Cannot mirror issues.`);
-    throw new Error(`Repository ${repository.name} does not exist in Gitea at ${giteaOwner}. Please ensure the repository is mirrored first.`);
+    console.error(`[Issues] Repository ${repoName} not found at ${giteaOwner}. Cannot mirror issues.`);
+    throw new Error(`Repository ${repoName} does not exist in Gitea at ${giteaOwner}. Please ensure the repository is mirrored first.`);
   }
 
   const [owner, repo] = repository.fullName.split("/");
@@ -1215,7 +1346,7 @@ export const mirrorGitRepoIssuesToGitea = async ({
 
   // Get existing labels from Gitea
   const giteaLabelsRes = await httpGet(
-    `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repository.name}/labels`,
+    `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repoName}/labels`,
     {
       Authorization: `token ${decryptedConfig.giteaConfig.token}`,
     }
@@ -1556,11 +1687,13 @@ export async function mirrorGitRepoPullRequestsToGitea({
   octokit,
   repository,
   giteaOwner,
+  giteaRepoName,
 }: {
   config: Partial<Config>;
   octokit: Octokit;
   repository: Repository;
   giteaOwner: string;
+  giteaRepoName?: string;
 }) {
   if (
     !config.githubConfig?.token ||
@@ -1574,23 +1707,26 @@ export async function mirrorGitRepoPullRequestsToGitea({
   // Decrypt config tokens for API usage
   const decryptedConfig = decryptConfigTokens(config as Config);
   
+  // Use provided giteaRepoName or fall back to repository.name
+  const repoName = giteaRepoName || repository.name;
+  
   // Log configuration details for debugging
-  console.log(`[Pull Requests] Starting PR mirroring for repository ${repository.name}`);
+  console.log(`[Pull Requests] Starting PR mirroring for repository ${repository.name} as ${repoName}`);
   console.log(`[Pull Requests] Gitea URL: ${config.giteaConfig!.url}`);
   console.log(`[Pull Requests] Gitea Owner: ${giteaOwner}`);
   console.log(`[Pull Requests] Gitea Default Owner: ${config.giteaConfig!.defaultOwner}`);
   
   // Verify the repository exists in Gitea before attempting to mirror metadata
-  console.log(`[Pull Requests] Verifying repository ${repository.name} exists at ${giteaOwner}`);
+  console.log(`[Pull Requests] Verifying repository ${repoName} exists at ${giteaOwner}`);
   const repoExists = await isRepoPresentInGitea({
     config,
     owner: giteaOwner,
-    repoName: repository.name,
+    repoName: repoName,
   });
   
   if (!repoExists) {
-    console.error(`[Pull Requests] Repository ${repository.name} not found at ${giteaOwner}. Cannot mirror PRs.`);
-    throw new Error(`Repository ${repository.name} does not exist in Gitea at ${giteaOwner}. Please ensure the repository is mirrored first.`);
+    console.error(`[Pull Requests] Repository ${repoName} not found at ${giteaOwner}. Cannot mirror PRs.`);
+    throw new Error(`Repository ${repoName} does not exist in Gitea at ${giteaOwner}. Please ensure the repository is mirrored first.`);
   }
 
   const [owner, repo] = repository.fullName.split("/");
@@ -1622,7 +1758,7 @@ export async function mirrorGitRepoPullRequestsToGitea({
   
   // Get existing labels from Gitea and ensure "pull-request" label exists
   const giteaLabelsRes = await httpGet(
-    `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repository.name}/labels`,
+    `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repoName}/labels`,
     {
       Authorization: `token ${decryptedConfig.giteaConfig.token}`,
     }
@@ -1640,7 +1776,7 @@ export async function mirrorGitRepoPullRequestsToGitea({
   } else {
     try {
       const created = await httpPost(
-        `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repository.name}/labels`,
+        `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repoName}/labels`,
         { 
           name: "pull-request",
           color: "#0366d6",
@@ -1744,7 +1880,7 @@ export async function mirrorGitRepoPullRequestsToGitea({
 
         console.log(`[Pull Requests] Creating enriched issue for PR #${pr.number}: ${pr.title}`);
         await httpPost(
-          `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repository.name}/issues`,
+          `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues`,
           issueData,
           {
             Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
@@ -1764,7 +1900,7 @@ export async function mirrorGitRepoPullRequestsToGitea({
         
         try {
           await httpPost(
-            `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repository.name}/issues`,
+            `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues`,
             basicIssueData,
             {
               Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
@@ -1795,11 +1931,13 @@ export async function mirrorGitRepoLabelsToGitea({
   octokit,
   repository,
   giteaOwner,
+  giteaRepoName,
 }: {
   config: Partial<Config>;
   octokit: Octokit;
   repository: Repository;
   giteaOwner: string;
+  giteaRepoName?: string;
 }) {
   if (
     !config.githubConfig?.token ||
@@ -1812,17 +1950,20 @@ export async function mirrorGitRepoLabelsToGitea({
   // Decrypt config tokens for API usage
   const decryptedConfig = decryptConfigTokens(config as Config);
   
+  // Use provided giteaRepoName or fall back to repository.name
+  const repoName = giteaRepoName || repository.name;
+  
   // Verify the repository exists in Gitea before attempting to mirror metadata
-  console.log(`[Labels] Verifying repository ${repository.name} exists at ${giteaOwner}`);
+  console.log(`[Labels] Verifying repository ${repoName} exists at ${giteaOwner}`);
   const repoExists = await isRepoPresentInGitea({
     config,
     owner: giteaOwner,
-    repoName: repository.name,
+    repoName: repoName,
   });
   
   if (!repoExists) {
-    console.error(`[Labels] Repository ${repository.name} not found at ${giteaOwner}. Cannot mirror labels.`);
-    throw new Error(`Repository ${repository.name} does not exist in Gitea at ${giteaOwner}. Please ensure the repository is mirrored first.`);
+    console.error(`[Labels] Repository ${repoName} not found at ${giteaOwner}. Cannot mirror labels.`);
+    throw new Error(`Repository ${repoName} does not exist in Gitea at ${giteaOwner}. Please ensure the repository is mirrored first.`);
   }
 
   const [owner, repo] = repository.fullName.split("/");
@@ -1847,7 +1988,7 @@ export async function mirrorGitRepoLabelsToGitea({
 
   // Get existing labels from Gitea
   const giteaLabelsRes = await httpGet(
-    `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repository.name}/labels`,
+    `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repoName}/labels`,
     {
       Authorization: `token ${decryptedConfig.giteaConfig.token}`,
     }
@@ -1862,7 +2003,7 @@ export async function mirrorGitRepoLabelsToGitea({
     if (!existingLabels.has(label.name)) {
       try {
         await httpPost(
-          `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repository.name}/labels`,
+          `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repoName}/labels`,
           {
             name: label.name,
             color: `#${label.color}`,
@@ -1889,11 +2030,13 @@ export async function mirrorGitRepoMilestonesToGitea({
   octokit,
   repository,
   giteaOwner,
+  giteaRepoName,
 }: {
   config: Partial<Config>;
   octokit: Octokit;
   repository: Repository;
   giteaOwner: string;
+  giteaRepoName?: string;
 }) {
   if (
     !config.githubConfig?.token ||
@@ -1906,17 +2049,20 @@ export async function mirrorGitRepoMilestonesToGitea({
   // Decrypt config tokens for API usage
   const decryptedConfig = decryptConfigTokens(config as Config);
   
+  // Use provided giteaRepoName or fall back to repository.name
+  const repoName = giteaRepoName || repository.name;
+  
   // Verify the repository exists in Gitea before attempting to mirror metadata
-  console.log(`[Milestones] Verifying repository ${repository.name} exists at ${giteaOwner}`);
+  console.log(`[Milestones] Verifying repository ${repoName} exists at ${giteaOwner}`);
   const repoExists = await isRepoPresentInGitea({
     config,
     owner: giteaOwner,
-    repoName: repository.name,
+    repoName: repoName,
   });
   
   if (!repoExists) {
-    console.error(`[Milestones] Repository ${repository.name} not found at ${giteaOwner}. Cannot mirror milestones.`);
-    throw new Error(`Repository ${repository.name} does not exist in Gitea at ${giteaOwner}. Please ensure the repository is mirrored first.`);
+    console.error(`[Milestones] Repository ${repoName} not found at ${giteaOwner}. Cannot mirror milestones.`);
+    throw new Error(`Repository ${repoName} does not exist in Gitea at ${giteaOwner}. Please ensure the repository is mirrored first.`);
   }
 
   const [owner, repo] = repository.fullName.split("/");
@@ -1942,7 +2088,7 @@ export async function mirrorGitRepoMilestonesToGitea({
 
   // Get existing milestones from Gitea
   const giteaMilestonesRes = await httpGet(
-    `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repository.name}/milestones`,
+    `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repoName}/milestones`,
     {
       Authorization: `token ${decryptedConfig.giteaConfig.token}`,
     }
@@ -1957,7 +2103,7 @@ export async function mirrorGitRepoMilestonesToGitea({
     if (!existingMilestones.has(milestone.title)) {
       try {
         await httpPost(
-          `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repository.name}/milestones`,
+          `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repoName}/milestones`,
           {
             title: milestone.title,
             description: milestone.description || "",

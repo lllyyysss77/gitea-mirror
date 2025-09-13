@@ -122,25 +122,36 @@ export const POST: APIRoute = async ({ request }) => {
       destinationOrg: null,
       isPrivate: repo.private,
       isForked: repo.fork,
-      forkedFrom: undefined,
+      forkedFrom: null,
       hasIssues: repo.has_issues,
       isStarred: false,
       isArchived: repo.archived,
       size: repo.size,
       hasLFS: false,
       hasSubmodules: false,
-      language: repo.language || null,
-      description: repo.description || null,
+      language: repo.language ?? null,
+      description: repo.description ?? null,
       defaultBranch: repo.default_branch ?? "main",
       visibility: (repo.visibility ?? "public") as RepositoryVisibility,
       status: "imported" as RepoStatus,
-      lastMirrored: undefined,
-      errorMessage: undefined,
+      lastMirrored: null,
+      errorMessage: null,
       createdAt: repo.created_at ? new Date(repo.created_at) : new Date(),
       updatedAt: repo.updated_at ? new Date(repo.updated_at) : new Date(),
     }));
 
-    await db.insert(repositories).values(repoRecords);
+    // Batch insert repositories to avoid SQLite parameter limit
+    // Compute batch size based on column count
+    const sample = repoRecords[0];
+    const columnCount = Object.keys(sample ?? {}).length || 1;
+    const BATCH_SIZE = Math.max(1, Math.floor(999 / columnCount));
+    for (let i = 0; i < repoRecords.length; i += BATCH_SIZE) {
+      const batch = repoRecords.slice(i, i + BATCH_SIZE);
+      await db
+        .insert(repositories)
+        .values(batch)
+        .onConflictDoNothing({ target: [repositories.userId, repositories.fullName] });
+    }
 
     // Insert organization metadata
     const organizationRecord = {

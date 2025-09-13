@@ -172,6 +172,7 @@ if [ ! -f "/app/data/gitea-mirror.db" ]; then
       owner TEXT NOT NULL,
       organization TEXT,
       mirrored_location TEXT DEFAULT '',
+      destination_org TEXT,
       is_private INTEGER NOT NULL DEFAULT 0,
       is_fork INTEGER NOT NULL DEFAULT 0,
       forked_from TEXT,
@@ -181,6 +182,8 @@ if [ ! -f "/app/data/gitea-mirror.db" ]; then
       size INTEGER NOT NULL DEFAULT 0,
       has_lfs INTEGER NOT NULL DEFAULT 0,
       has_submodules INTEGER NOT NULL DEFAULT 0,
+      language TEXT,
+      description TEXT,
       default_branch TEXT NOT NULL,
       visibility TEXT NOT NULL DEFAULT 'public',
       status TEXT NOT NULL DEFAULT 'imported',
@@ -191,6 +194,8 @@ if [ ! -f "/app/data/gitea-mirror.db" ]; then
       FOREIGN KEY (user_id) REFERENCES users(id),
       FOREIGN KEY (config_id) REFERENCES configs(id)
     );
+
+    -- Uniqueness of (user_id, full_name) for repositories is enforced via drizzle migrations
 
     CREATE TABLE IF NOT EXISTS organizations (
       id TEXT PRIMARY KEY,

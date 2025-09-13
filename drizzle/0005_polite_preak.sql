@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX `uniq_repositories_user_full_name` ON `repositories` (`user_id`,`full_name`);
