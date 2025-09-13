@@ -15,11 +15,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { 
-  Info, 
-  GitBranch, 
-  Star, 
-  Lock, 
+import {
+  Info,
+  GitBranch,
+  Star,
+  Lock,
   Archive,
   GitPullRequest,
   Tag,
@@ -30,7 +30,8 @@ import {
   GitFork,
   ChevronDown,
   Funnel,
-  HardDrive
+  HardDrive,
+  FileCode2
 } from "lucide-react";
 import type { GitHubConfig, MirrorOptions, AdvancedOptions, DuplicateNameStrategy } from "@/types/config";
 import {
@@ -289,28 +290,34 @@ export function GitHubMirrorSettings({
           {/* Duplicate name handling for starred repos */}
           {githubConfig.mirrorStarred && (
             <div className="mt-4 space-y-2">
-              <Label htmlFor="duplicate-strategy" className="text-sm">
+              <Label className="text-xs font-medium text-muted-foreground">
                 Duplicate name handling
               </Label>
-              <Select
-                value={githubConfig.starredDuplicateStrategy || "suffix"}
-                onValueChange={(value) => handleGitHubChange('starredDuplicateStrategy', value as DuplicateNameStrategy)}
-              >
-                <SelectTrigger id="duplicate-strategy" className="w-full">
-                  <SelectValue placeholder="Select duplicate handling strategy" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="suffix">
-                    Add owner as suffix (awesome-project-user1)
-                  </SelectItem>
-                  <SelectItem value="prefix">
-                    Add owner as prefix (user1-awesome-project)
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Handle starred repos with duplicate names from different owners. Currently supports suffix and prefix strategies.
-              </p>
+              <div className="flex items-center gap-3">
+                <FileCode2 className="h-4 w-4 text-muted-foreground" />
+                <div className="flex-1">
+                  <p className="text-sm">Name collision strategy</p>
+                  <p className="text-xs text-muted-foreground">
+                    How to handle repos with the same name from different owners
+                  </p>
+                </div>
+                <Select
+                  value={githubConfig.starredDuplicateStrategy || "suffix"}
+                  onValueChange={(value) => handleGitHubChange('starredDuplicateStrategy', value as DuplicateNameStrategy)}
+                >
+                  <SelectTrigger className="w-[180px] h-8 text-xs">
+                    <SelectValue placeholder="Select strategy" />
+                  </SelectTrigger>
+                  <SelectContent align="end">
+                    <SelectItem value="suffix" className="text-xs">
+                      <span className="font-mono">repo-owner</span>
+                    </SelectItem>
+                    <SelectItem value="prefix" className="text-xs">
+                      <span className="font-mono">owner-repo</span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
         </div>
