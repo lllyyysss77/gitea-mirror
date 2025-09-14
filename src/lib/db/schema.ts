@@ -152,6 +152,7 @@ export const repositorySchema = z.object({
       "deleted",
       "syncing",
       "synced",
+      "archived",
     ])
     .default("imported"),
   lastMirrored: z.coerce.date().optional().nullable(),
@@ -181,6 +182,7 @@ export const mirrorJobSchema = z.object({
       "deleted",
       "syncing",
       "synced",
+      "archived",
     ])
     .default("imported"),
   message: z.string(),

@@ -2176,6 +2176,14 @@ export async function archiveGiteaRepo(
   repo: string
 ): Promise<void> {
   try {
+    // Helper: sanitize to Gitea's AlphaDashDot rule
+    const sanitizeRepoNameAlphaDashDot = (name: string): string => {
+      // Replace anything that's not [A-Za-z0-9.-] with '-'
+      const base = name.replace(/[^A-Za-z0-9.-]+/g, "-").replace(/-+/g, "-");
+      // Trim leading/trailing separators and dots for safety
+      return base.replace(/^[.-]+/, "").replace(/[.-]+$/, "");
+    };
+
     // First, check if this is a mirror repository
     const repoResponse = await httpGet(
       `${client.url}/api/v1/repos/${owner}/${repo}`,
@@ -2207,7 +2215,8 @@ export async function archiveGiteaRepo(
         return;
       }
       
-      const archivedName = `[ARCHIVED] ${currentName}`;
+      // Use a safe prefix and sanitize the name to satisfy AlphaDashDot rule
+      let archivedName = `archived-${sanitizeRepoNameAlphaDashDot(currentName)}`;
       const currentDesc = repoResponse.data.description || '';
       const archiveNotice = `\n\n⚠️ ARCHIVED: Original GitHub repository no longer exists. Preserved as backup on ${new Date().toISOString()}`;
       
@@ -2216,23 +2225,40 @@ export async function archiveGiteaRepo(
         ? currentDesc 
         : currentDesc + archiveNotice;
       
-      const renameResponse = await httpPatch(
-        `${client.url}/api/v1/repos/${owner}/${repo}`,
-        {
-          name: archivedName,
-          description: newDescription,
-        },
-        {
-          Authorization: `token ${client.token}`,
-          'Content-Type': 'application/json',
+      try {
+        await httpPatch(
+          `${client.url}/api/v1/repos/${owner}/${repo}`,
+          {
+            name: archivedName,
+            description: newDescription,
+          },
+          {
+            Authorization: `token ${client.token}`,
+            'Content-Type': 'application/json',
+          }
+        );
+      } catch (e: any) {
+        // If rename fails (e.g., 422 AlphaDashDot or name conflict), attempt a timestamped fallback
+        const ts = new Date().toISOString().replace(/[-:T.]/g, "").slice(0, 14);
+        archivedName = `archived-${ts}-${sanitizeRepoNameAlphaDashDot(currentName)}`;
+        try {
+          await httpPatch(
+            `${client.url}/api/v1/repos/${owner}/${repo}`,
+            {
+              name: archivedName,
+              description: newDescription,
+            },
+            {
+              Authorization: `token ${client.token}`,
+              'Content-Type': 'application/json',
+            }
+          );
+        } catch (e2) {
+          // If this also fails, log but don't throw - data remains preserved
+          console.error(`[Archive] Failed to rename mirror repository ${owner}/${repo}:`, e2);
+          console.log(`[Archive] Repository ${owner}/${repo} remains accessible but not marked as archived`);
+          return;
         }
-      );
-      
-      if (renameResponse.status >= 400) {
-        // If rename fails, log but don't throw - data is still preserved
-        console.error(`[Archive] Failed to rename mirror repository ${owner}/${repo}: ${renameResponse.status}`);
-        console.log(`[Archive] Repository ${owner}/${repo} remains accessible but not marked as archived`);
-        return;
       }
       
       console.log(`[Archive] Successfully marked mirror repository ${owner}/${repo} as archived (renamed to ${archivedName})`);
