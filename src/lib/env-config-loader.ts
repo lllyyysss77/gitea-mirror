@@ -69,6 +69,8 @@ interface EnvConfig {
     updateInterval?: number;
     skipRecentlyMirrored?: boolean;
     recentThreshold?: number;
+    autoImport?: boolean;
+    autoMirror?: boolean;
   };
   cleanup: {
     enabled?: boolean;
@@ -157,6 +159,8 @@ function parseEnvConfig(): EnvConfig {
       updateInterval: process.env.SCHEDULE_UPDATE_INTERVAL ? parseInt(process.env.SCHEDULE_UPDATE_INTERVAL, 10) : undefined,
       skipRecentlyMirrored: process.env.SCHEDULE_SKIP_RECENTLY_MIRRORED === 'true',
       recentThreshold: process.env.SCHEDULE_RECENT_THRESHOLD ? parseInt(process.env.SCHEDULE_RECENT_THRESHOLD, 10) : undefined,
+      autoImport: process.env.AUTO_IMPORT_REPOS !== 'false',
+      autoMirror: process.env.AUTO_MIRROR_REPOS === 'true',
     },
     cleanup: {
       enabled: process.env.CLEANUP_ENABLED === 'true' || 
@@ -301,7 +305,8 @@ export async function initializeConfigFromEnv(): Promise<void> {
       updateInterval: envConfig.schedule.updateInterval ?? existingConfig?.[0]?.scheduleConfig?.updateInterval ?? 86400000,
       skipRecentlyMirrored: envConfig.schedule.skipRecentlyMirrored ?? existingConfig?.[0]?.scheduleConfig?.skipRecentlyMirrored ?? true,
       recentThreshold: envConfig.schedule.recentThreshold ?? existingConfig?.[0]?.scheduleConfig?.recentThreshold ?? 3600000,
-      autoImport: process.env.AUTO_IMPORT_REPOS !== 'false', // New field for auto-importing new repositories
+      autoImport: envConfig.schedule.autoImport ?? existingConfig?.[0]?.scheduleConfig?.autoImport ?? true,
+      autoMirror: envConfig.schedule.autoMirror ?? existingConfig?.[0]?.scheduleConfig?.autoMirror ?? false,
       lastRun: existingConfig?.[0]?.scheduleConfig?.lastRun || undefined,
       nextRun: existingConfig?.[0]?.scheduleConfig?.nextRun || undefined,
     };

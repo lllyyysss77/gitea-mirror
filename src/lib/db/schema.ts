@@ -81,6 +81,8 @@ export const scheduleConfigSchema = z.object({
   updateInterval: z.number().default(86400000),
   skipRecentlyMirrored: z.boolean().default(true),
   recentThreshold: z.number().default(3600000),
+  autoImport: z.boolean().default(true),
+  autoMirror: z.boolean().default(false),
   lastRun: z.coerce.date().optional(),
   nextRun: z.coerce.date().optional(),
 });
