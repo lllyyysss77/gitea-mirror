@@ -1,0 +1,92 @@
+{{- $gm := index .Values "gitea-mirror" -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "gitea-mirror.fullname" . }}
+  annotations:
+    {{- if .Values.deployment.annotations }}
+    {{- toYaml .Values.deployment.annotations | nindent 4 }}
+    {{- end }}
+  labels:
+    {{- include "gitea-mirror.labels" . | nindent 4 }}
+    {{- if .Values.deployment.labels }}
+    {{- toYaml .Values.deployment.labels | nindent 4 }}
+    {{- end }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: {{ .Values.deployment.strategy.type }}
+    {{- if eq .Values.deployment.strategy.type "RollingUpdate" }}
+    rollingUpdate:
+      maxUnavailable: {{ .Values.deployment.strategy.rollingUpdate.maxUnavailable }}
+      maxSurge: {{ .Values.deployment.strategy.rollingUpdate.maxSurge }}
+    {{- end }}
+  selector:
+    matchLabels:
+      {{- include "gitea-mirror.selectorLabels" . | nindent 6 }}
+      {{- if .Values.deployment.labels }}
+      {{- toYaml .Values.deployment.labels | nindent 6 }}
+      {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "gitea-mirror.labels" . | nindent 8 }}
+        {{- if .Values.deployment.labels }}
+        {{- toYaml .Values.deployment.labels | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- if (or .Values.serviceAccount.create .Values.serviceAccount.name) }}
+      serviceAccountName: {{ include "gitea-mirror.serviceAccountName" . }}
+      {{- end }}
+      {{- if .Values.priorityClassName }}
+      priorityClassName: "{{ .Values.priorityClassName }}"
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: {{ .Values.deployment.terminationGracePeriodSeconds }}
+      containers:
+        - name: gitea-mirror
+          image: {{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion | toString }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "gitea-mirror.fullname" . }}
+            {{- if $gm.existingSecret }}
+            - secretRef:
+                name: {{ $gm.existingSecret }}
+            {{- else }}
+            - secretRef:
+                name: {{ include "gitea-mirror.fullname" . }}
+            {{- end }}
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "{{ .Values.deployment.port }}"
+            {{- if .Values.deployment.env }}
+            {{- toYaml .Values.deployment.env | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.deployment.port }}
+          resources:
+            {{- toYaml .Values.deployment.resources | nindent 12 }}
+      {{- range $key, $value := .Values.nodeSelector }}
+      nodeSelector:
+        {{ $key }}: {{ $value | quote }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}

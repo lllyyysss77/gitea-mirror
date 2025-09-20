@@ -1,0 +1,35 @@
+{{- $gm := index .Values "gitea-mirror" -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "gitea-mirror.fullname" . }}
+  labels:
+    {{- include "gitea-mirror.labels" . | nindent 4 }}
+data:
+  # Core configuration
+  DATABASE_URL: {{ $gm.core.databaseUrl }}
+  BETTER_AUTH_SECRET: {{ $gm.core.be }}
+  BETTER_AUTH_URL: {{ $gm.betterAuthSecret }}
+  # GitHub Config
+  GITHUB_USERNAME: {{ $gm.github.username }}
+  PRIVATE_REPOSITORIES: {{ $gm.privateRepositories }}
+  MIRROR_STARRED: {{ $gm.mirror.starred }}
+  SKIP_FORKS: {{ $gm.github.skipForks }}
+  SKIP_STARRED_ISSUES: {{ $gm.github.skipStarredIssues }}
+  # Gitea Config
+  GITEA_URL: {{ $gm.gitea.url }}
+  GITEA_USERNAME: {{ $gm.gitea.username }}
+  GITEA_ORGANIZATION: {{ $gm.gitea.organization }}
+  GITEA_ORG_VISIBILITY: {{ $gm.gitea.visibility }}
+  # Mirror Options
+  MIRROR_RELEASES: {{ $gm.mirror.releases }}
+  MIRROR_WIKI: {{ $gm.mirror.wiki }}
+  MIRROR_METADATA: {{ $gm.mirror.metadata }}
+  MIRROR_ISSUES: {{ $gm.mirror.issues }}
+  MIRROR_PULL_REQUESTS: {{ $gm.mirror.pullRequests }}
+  # Automation
+  SCHEDULE_ENABLED: {{ $gm.automation.schedule_enabled }}
+  SCHEDULE_INTERVAL: {{ $gm.automation.schedule_interval }}
+  # Cleanup
+  CLEANUP_ENABLED: {{ $gm.cleanup.enabled }}
+  CLEANUP_INTERVAL: {{ $gm.cleanup.interval }}
