@@ -59,7 +59,6 @@ deployment:
   annotations: {}
   resources: {}
 
-
 livenessProbe:
   enabled: true
   initialDelaySeconds: 60
