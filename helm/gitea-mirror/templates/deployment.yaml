@@ -3,10 +3,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "gitea-mirror.fullname" . }}
+  {{- with .Values.deployment.annotations }}
   annotations:
-    {{- if .Values.deployment.annotations }}
     {{- toYaml .Values.deployment.annotations | nindent 4 }}
-    {{- end }}
+  {{- end }}
   labels:
     {{- include "gitea-mirror.labels" . | nindent 4 }}
     {{- if .Values.deployment.labels }}
@@ -24,9 +24,6 @@ spec:
   selector:
     matchLabels:
       {{- include "gitea-mirror.selectorLabels" . | nindent 6 }}
-      {{- if .Values.deployment.labels }}
-      {{- toYaml .Values.deployment.labels | nindent 6 }}
-      {{- end }}
   template:
     metadata:
       labels:
@@ -42,10 +39,13 @@ spec:
       priorityClassName: "{{ .Values.priorityClassName }}"
       {{- end }}
       {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- with .Values.podSecurityContext }}
       securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       terminationGracePeriodSeconds: {{ .Values.deployment.terminationGracePeriodSeconds }}
       containers:
         - name: gitea-mirror
@@ -72,21 +72,56 @@ spec:
           ports:
             - name: http
               containerPort: {{ .Values.deployment.port }}
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: "http"
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+            successThreshold: {{ .Values.livenessProbe.successThreshold }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: "http"
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+            successThreshold: {{ .Values.readinessProbe.successThreshold }}
+          {{- end }}
+          {{- if .Values.startupProbe.enabled }}
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: "http"
+            initialDelaySeconds: {{ .Values.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.startupProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.startupProbe.failureThreshold }}
+            successThreshold: {{ .Values.startupProbe.successThreshold }}
+          {{- end }}
+          {{- with .Values.deployment.resources }}
           resources:
             {{- toYaml .Values.deployment.resources | nindent 12 }}
-      {{- range $key, $value := .Values.nodeSelector }}
-      nodeSelector:
-        {{ $key }}: {{ $value | quote }}
-      {{- end }}
-    {{- with .Values.affinity }}
+          {{- end }}
+      {{- with .Values.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
-    {{- end }}
-    {{- with .Values.topologySpreadConstraints }}
-      topologySpreadConstraints:
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
         {{- toYaml . | nindent 8 }}
-    {{- end }}
-    {{- with .Values.tolerations }}
+      {{- end }}
+      {{- with .Values.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
-    {{- end }}
+      {{- end }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
