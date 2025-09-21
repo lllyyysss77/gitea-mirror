@@ -81,10 +81,20 @@ startupProbe:
   failureThreshold: 6
   successThreshold: 1
 
+persistence:
+  enabled: true
+  create: true
+  claimName: gitea-mirror-storage
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 1Gi
+
 affinity: {}
 nodeSelector: {}
 tolerations: []
 topologySpreadConstraints: []
+extraVolumes: []
+extraVolumeMounts: []
 
 serviceAccount:
   create: false

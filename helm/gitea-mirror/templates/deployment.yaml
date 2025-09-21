@@ -103,6 +103,12 @@ spec:
             failureThreshold: {{ .Values.startupProbe.failureThreshold }}
             successThreshold: {{ .Values.startupProbe.successThreshold }}
           {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            {{- if .Values.extraVolumeMounts }}
+              {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+            {{- end }}
           {{- with .Values.deployment.resources }}
           resources:
             {{- toYaml .Values.deployment.resources | nindent 12 }}
@@ -122,4 +128,18 @@ spec:
       {{- with .Values.topologySpreadConstraints }}
       topologySpreadConstraints:
         {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+      {{- if .Values.persistence.enabled }}
+        {{- if .Values.persistence.mount }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.claimName }}
+        {{- end }}
+      {{- else if not .Values.persistence.enabled }}
+          - name: data
+            emptyDir: {}
+      {{- end }}
+      {{- if .Values.extraVolumes }}
+        {{- toYaml .Values.extraVolumes | nindent 8 }}
       {{- end }}
