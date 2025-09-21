@@ -95,6 +95,7 @@ serviceAccount:
 
 gitea-mirror:
   existingSecret: ""
+  nodeEnv: production
   core:
     databaseUrl: file:data/gitea-mirror.db
     encryptionSecret: ""
