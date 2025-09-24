@@ -9,11 +9,12 @@ data:
   NODE_ENV: {{ $gm.nodeEnv | quote }}
   # Core configuration
   DATABASE_URL: {{ $gm.core.databaseUrl | quote }}
-  BETTER_AUTH_SECRET: {{ $gm.core.be | quote }}
-  BETTER_AUTH_URL: {{ $gm.betterAuthSecret | quote }}
+  BETTER_AUTH_SECRET: {{ $gm.core.betterAuthSecret | quote }}
+  BETTER_AUTH_URL: {{ $gm.core.betterAuthUrl | quote }}
+  BETTER_AUTH_TRUSTED_ORIGINS: {{ $gm.core.betterAuthTrustedOrigins | quote }}
   # GitHub Config
   GITHUB_USERNAME: {{ $gm.github.username | quote }}
-  PRIVATE_REPOSITORIES: {{ $gm.privateRepositories | quote }}
+  PRIVATE_REPOSITORIES: {{ $gm.github.privateRepositories | quote }}
   MIRROR_STARRED: {{ $gm.mirror.starred | quote }}
   SKIP_FORKS: {{ $gm.github.skipForks | quote }}
   SKIP_STARRED_ISSUES: {{ $gm.github.skipStarredIssues | quote }}

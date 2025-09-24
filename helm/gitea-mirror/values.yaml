@@ -117,6 +117,7 @@ gitea-mirror:
     encryptionSecret: ""
     betterAuthSecret: ""
     betterAuthUrl: "http://localhost:4321"
+    betterAuthTrustedOrigins: "http://localhost:4321"
 
   github:
     username: ""
