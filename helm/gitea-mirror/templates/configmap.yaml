@@ -14,6 +14,7 @@ data:
   BETTER_AUTH_TRUSTED_ORIGINS: {{ $gm.core.betterAuthTrustedOrigins | quote }}
   # GitHub Config
   GITHUB_USERNAME: {{ $gm.github.username | quote }}
+  GITHUB_TYPE: {{ $gm.github.type | quote }}
   PRIVATE_REPOSITORIES: {{ $gm.github.privateRepositories | quote }}
   MIRROR_STARRED: {{ $gm.mirror.starred | quote }}
   SKIP_FORKS: {{ $gm.github.skipForks | quote }}

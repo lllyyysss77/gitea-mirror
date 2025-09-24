@@ -122,6 +122,7 @@ gitea-mirror:
   github:
     username: ""
     token: ""
+    type: personal
     privateRepositories: true
     mirrorStarred: false
     skipForks: false
