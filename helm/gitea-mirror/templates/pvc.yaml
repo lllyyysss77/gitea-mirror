@@ -12,9 +12,9 @@ metadata:
   {{- end }}
 spec:
   accessModes:
-    - {{ .Values.persistence.accessModes }}
+    {{- toYaml .Values.persistence.accessModes | nindent 4 }}
   {{- with .Values.persistence.storageClass }}
-  storageClass: {{ . }}
+  storageClassName: {{ . }}
   {{- end }}
   volumeMode: Filesystem
   {{- with .Values.persistence.volumeName }}

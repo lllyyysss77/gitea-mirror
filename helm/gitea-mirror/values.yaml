@@ -86,7 +86,8 @@ persistence:
   create: true
   claimName: gitea-mirror-storage
   storageClass: ""
-  accessMode: ReadWriteOnce
+  accessModes:
+    - ReadWriteOnce
   size: 1Gi
 
 affinity: {}

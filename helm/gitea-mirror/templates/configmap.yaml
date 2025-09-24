@@ -6,31 +6,31 @@ metadata:
   labels:
     {{- include "gitea-mirror.labels" . | nindent 4 }}
 data:
-  NODE_ENV: {{ $gm.nodeEnv }}
+  NODE_ENV: {{ $gm.nodeEnv | quote }}
   # Core configuration
-  DATABASE_URL: {{ $gm.core.databaseUrl }}
-  BETTER_AUTH_SECRET: {{ $gm.core.be }}
-  BETTER_AUTH_URL: {{ $gm.betterAuthSecret }}
+  DATABASE_URL: {{ $gm.core.databaseUrl | quote }}
+  BETTER_AUTH_SECRET: {{ $gm.core.be | quote }}
+  BETTER_AUTH_URL: {{ $gm.betterAuthSecret | quote }}
   # GitHub Config
-  GITHUB_USERNAME: {{ $gm.github.username }}
-  PRIVATE_REPOSITORIES: {{ $gm.privateRepositories }}
-  MIRROR_STARRED: {{ $gm.mirror.starred }}
-  SKIP_FORKS: {{ $gm.github.skipForks }}
-  SKIP_STARRED_ISSUES: {{ $gm.github.skipStarredIssues }}
+  GITHUB_USERNAME: {{ $gm.github.username | quote }}
+  PRIVATE_REPOSITORIES: {{ $gm.privateRepositories | quote }}
+  MIRROR_STARRED: {{ $gm.mirror.starred | quote }}
+  SKIP_FORKS: {{ $gm.github.skipForks | quote }}
+  SKIP_STARRED_ISSUES: {{ $gm.github.skipStarredIssues | quote }}
   # Gitea Config
-  GITEA_URL: {{ $gm.gitea.url }}
-  GITEA_USERNAME: {{ $gm.gitea.username }}
-  GITEA_ORGANIZATION: {{ $gm.gitea.organization }}
-  GITEA_ORG_VISIBILITY: {{ $gm.gitea.visibility }}
+  GITEA_URL: {{ $gm.gitea.url | quote }}
+  GITEA_USERNAME: {{ $gm.gitea.username | quote }}
+  GITEA_ORGANIZATION: {{ $gm.gitea.organization | quote }}
+  GITEA_ORG_VISIBILITY: {{ $gm.gitea.visibility | quote }}
   # Mirror Options
-  MIRROR_RELEASES: {{ $gm.mirror.releases }}
-  MIRROR_WIKI: {{ $gm.mirror.wiki }}
-  MIRROR_METADATA: {{ $gm.mirror.metadata }}
-  MIRROR_ISSUES: {{ $gm.mirror.issues }}
-  MIRROR_PULL_REQUESTS: {{ $gm.mirror.pullRequests }}
+  MIRROR_RELEASES: {{ $gm.mirror.releases | quote }}
+  MIRROR_WIKI: {{ $gm.mirror.wiki | quote }}
+  MIRROR_METADATA: {{ $gm.mirror.metadata | quote }}
+  MIRROR_ISSUES: {{ $gm.mirror.issues | quote }}
+  MIRROR_PULL_REQUESTS: {{ $gm.mirror.pullRequests | quote }}
   # Automation
-  SCHEDULE_ENABLED: {{ $gm.automation.schedule_enabled }}
-  SCHEDULE_INTERVAL: {{ $gm.automation.schedule_interval }}
+  SCHEDULE_ENABLED: {{ $gm.automation.schedule_enabled| quote  }}
+  SCHEDULE_INTERVAL: {{ $gm.automation.schedule_interval | quote }}
   # Cleanup
-  CLEANUP_ENABLED: {{ $gm.cleanup.enabled }}
-  CLEANUP_INTERVAL: {{ $gm.cleanup.interval }}
+  CLEANUP_ENABLED: {{ $gm.cleanup.enabled | quote }}
+  CLEANUP_INTERVAL: {{ $gm.cleanup.interval | quote }}
