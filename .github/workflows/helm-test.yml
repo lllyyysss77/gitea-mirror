@@ -4,6 +4,10 @@ on:
   pull_request:
   push:
     branches: [ main ]
+    paths:
+      - 'helm-charts/gitea-mirror/**'
+      - '.github/workflows/helm-test.yml'
+      - '.github/ci/values-ci.yaml'
   workflow_dispatch:
 
 jobs:
