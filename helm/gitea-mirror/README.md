@@ -206,7 +206,7 @@ These values populate a **ConfigMap** (non-secret) and a **Secret** (for tokens 
 | `gitea-mirror.automation.schedule_enabled` | `true` | `SCHEDULE_ENABLED` |
 | `gitea-mirror.automation.schedule_interval` | `3600` | `SCHEDULE_INTERVAL` (seconds) |
 | `gitea-mirror.cleanup.enabled` | `true` | `CLEANUP_ENABLED` |
-| `gitea-mirror.cleanup.retentionDays` | `30` | `CLEANUP_INTERVAL` |
+| `gitea-mirror.cleanup.retentionDays` | `30` | `CLEANUP_RETENTION_DAYS` |
 
 > **Secrets:** If you set `gitea-mirror.existingSecret` (name of an existing Secret), the chart will **not** create its own Secret and will reference yours instead. Otherwise it creates a Secret with `GITHUB_TOKEN`, `GITEA_TOKEN`, `ENCRYPTION_SECRET`.
 

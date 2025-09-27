@@ -35,4 +35,4 @@ data:
   SCHEDULE_INTERVAL: {{ $gm.automation.schedule_interval | quote }}
   # Cleanup
   CLEANUP_ENABLED: {{ $gm.cleanup.enabled | quote }}
-  CLEANUP_INTERVAL: {{ $gm.cleanup.interval | quote }}
+  CLEANUP_RETENTION_DAYS: {{ $gm.cleanup.retentionDays | quote }}
