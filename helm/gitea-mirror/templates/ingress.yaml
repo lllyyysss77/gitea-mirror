@@ -28,8 +28,8 @@ spec:
     - host: {{ tpl .host $ | quote }}
       http:
         paths:
-          - path: "/"
-            pathType: "Prefix"
+          - path: {{ .path | default "/" }}
+            pathType: {{ .pathType | default "Prefix" }}
             backend:
               service:
                 name: {{ include "gitea-mirror.fullname" $ }}

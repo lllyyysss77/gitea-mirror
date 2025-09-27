@@ -15,12 +15,12 @@ podSecurityContext:
 ingress:
   enabled: false
   className: ""
-  pathType: Prefix
   annotations: {}
   hosts:
     - host: mirror.example.com
       paths:
         - path: /
+          pathType: Prefix
   tls: []
   #  - secretName: chart-example-tls
   #    hosts:
