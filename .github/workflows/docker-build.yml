@@ -129,7 +129,7 @@ jobs:
           script: |
             const prNumber = context.payload.pull_request.number;
             const imageTag = `pr-${prNumber}`;
-            const imagePath = `${{ env.REGISTRY }}/${{ env.IMAGE }}:${imageTag}`;
+            const imagePath = `${{ env.REGISTRY }}/${{ env.IMAGE }}:${imageTag}`.toLowerCase();
 
             const comment = `## 🐳 Docker Image Built Successfully
 
