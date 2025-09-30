@@ -3,13 +3,13 @@ name: Helm Chart CI
 on:
   pull_request:
     paths:
-      - 'helm-charts/gitea-mirror/**'
+      - 'helm/gitea-mirror/**'
       - '.github/workflows/helm-test.yml'
       - '.github/ci/values-ci.yaml'
   push:
     branches: [ main ]
     paths:
-      - 'helm-charts/gitea-mirror/**'
+      - 'helm/gitea-mirror/**'
       - '.github/workflows/helm-test.yml'
       - '.github/ci/values-ci.yaml'
   workflow_dispatch:
