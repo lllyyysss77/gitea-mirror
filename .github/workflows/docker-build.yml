@@ -10,6 +10,10 @@ on:
       - 'package.json'
       - 'bun.lock*'
       - '.github/workflows/docker-build.yml'
+      - 'docker-entrypoint.sh'
+      - 'drizzle/**'
+      - 'scripts/**'
+      - 'src/**'
   pull_request:
     paths:
       - 'Dockerfile'
@@ -17,6 +21,10 @@ on:
       - 'package.json'
       - 'bun.lock*'
       - '.github/workflows/docker-build.yml'
+      - 'docker-entrypoint.sh'
+      - 'drizzle/**'
+      - 'scripts/**'
+      - 'src/**'
   schedule:
     - cron: '0 0 * * 0'  # Weekly security scan on Sunday at midnight
 
