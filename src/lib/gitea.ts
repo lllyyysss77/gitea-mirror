@@ -356,21 +356,8 @@ export const mirrorGithubRepoToGitea = async ({
       status: "mirroring",
     });
 
-    let cloneAddress = repository.cloneUrl;
-
-    // If the repository is private, inject the GitHub token into the clone URL
-    if (repository.isPrivate) {
-      if (!config.githubConfig.token) {
-        throw new Error(
-          "GitHub token is required to mirror private repositories."
-        );
-      }
-
-      cloneAddress = repository.cloneUrl.replace(
-        "https://",
-        `https://${decryptedConfig.githubConfig.token}@`
-      );
-    }
+    // Use clean clone URL without embedded credentials (Forgejo 12+ security requirement)
+    const cloneAddress = repository.cloneUrl;
 
     const apiUrl = `${config.giteaConfig.url}/api/v1/repos/migrate`;
 
@@ -384,17 +371,17 @@ export const mirrorGithubRepoToGitea = async ({
         });
       } catch (orgError) {
         console.error(`Failed to create/access organization ${repoOwner}: ${orgError instanceof Error ? orgError.message : String(orgError)}`);
-        
+
         // Check if we should fallback to user account
-        if (orgError instanceof Error && 
-            (orgError.message.includes('Permission denied') || 
+        if (orgError instanceof Error &&
+            (orgError.message.includes('Permission denied') ||
              orgError.message.includes('Authentication failed') ||
              orgError.message.includes('does not have permission'))) {
           console.warn(`[Fallback] Organization creation/access failed. Attempting to mirror to user account instead.`);
-          
+
           // Update the repository owner to use the user account
           repoOwner = config.giteaConfig.defaultOwner;
-          
+
           // Log this fallback in the database
           await db
             .update(repositories)
@@ -420,7 +407,7 @@ export const mirrorGithubRepoToGitea = async ({
 
     if (existingRepo && !existingRepo.mirror) {
       console.log(`Repository ${targetRepoName} exists but is not a mirror. Handling...`);
-      
+
       // Handle the existing non-mirror repository
       await handleExistingNonMirrorRepo({
         config,
@@ -428,25 +415,42 @@ export const mirrorGithubRepoToGitea = async ({
         repoInfo: existingRepo,
         strategy: "delete", // Can be configured: "skip", "delete", or "rename"
       });
-      
+
       // After handling, proceed with mirror creation
       console.log(`Proceeding with mirror creation for ${targetRepoName}`);
     }
 
+    // Prepare migration payload
+    // For private repos, use separate auth fields instead of embedding credentials in URL
+    // This is required for Forgejo 12+ which rejects URLs with embedded credentials
+    const migratePayload: any = {
+      clone_addr: cloneAddress,
+      repo_name: targetRepoName,
+      mirror: true,
+      mirror_interval: config.giteaConfig?.mirrorInterval || "8h",
+      wiki: config.giteaConfig?.wiki || false,
+      lfs: config.giteaConfig?.lfs || false,
+      private: repository.isPrivate,
+      repo_owner: repoOwner,
+      description: "",
+      service: "git",
+    };
+
+    // Add authentication for private repositories
+    if (repository.isPrivate) {
+      if (!config.githubConfig.token) {
+        throw new Error(
+          "GitHub token is required to mirror private repositories."
+        );
+      }
+      // Use separate auth fields (required for Forgejo 12+ compatibility)
+      migratePayload.auth_username = "oauth2"; // GitHub tokens work with any username
+      migratePayload.auth_token = decryptedConfig.githubConfig.token;
+    }
+
     const response = await httpPost(
       apiUrl,
-      {
-        clone_addr: cloneAddress,
-        repo_name: targetRepoName,
-        mirror: true,
-        mirror_interval: config.giteaConfig?.mirrorInterval || "8h", // Set mirror interval
-        wiki: config.giteaConfig?.wiki || false, // will mirror wiki if it exists
-        lfs: config.giteaConfig?.lfs || false, // Enable LFS mirroring if configured
-        private: repository.isPrivate,
-        repo_owner: repoOwner,
-        description: "",
-        service: "git",
-      },
+      migratePayload,
       {
         Authorization: `token ${decryptedConfig.giteaConfig.token}`,
       }
@@ -800,20 +804,8 @@ export async function mirrorGitHubRepoToGiteaOrg({
       `Mirroring repository ${repository.fullName} to organization ${orgName} as ${targetRepoName}`
     );
 
-    let cloneAddress = repository.cloneUrl;
-
-    if (repository.isPrivate) {
-      if (!config.githubConfig?.token) {
-        throw new Error(
-          "GitHub token is required to mirror private repositories."
-        );
-      }
-
-      cloneAddress = repository.cloneUrl.replace(
-        "https://",
-        `https://${decryptedConfig.githubConfig.token}@`
-      );
-    }
+    // Use clean clone URL without embedded credentials (Forgejo 12+ security requirement)
+    const cloneAddress = repository.cloneUrl;
 
     // Mark repos as "mirroring" in DB
     await db
@@ -829,18 +821,35 @@ export async function mirrorGitHubRepoToGiteaOrg({
 
     const apiUrl = `${config.giteaConfig.url}/api/v1/repos/migrate`;
 
+    // Prepare migration payload
+    // For private repos, use separate auth fields instead of embedding credentials in URL
+    // This is required for Forgejo 12+ which rejects URLs with embedded credentials
+    const migratePayload: any = {
+      clone_addr: cloneAddress,
+      uid: giteaOrgId,
+      repo_name: targetRepoName,
+      mirror: true,
+      mirror_interval: config.giteaConfig?.mirrorInterval || "8h",
+      wiki: config.giteaConfig?.wiki || false,
+      lfs: config.giteaConfig?.lfs || false,
+      private: repository.isPrivate,
+    };
+
+    // Add authentication for private repositories
+    if (repository.isPrivate) {
+      if (!config.githubConfig?.token) {
+        throw new Error(
+          "GitHub token is required to mirror private repositories."
+        );
+      }
+      // Use separate auth fields (required for Forgejo 12+ compatibility)
+      migratePayload.auth_username = "oauth2"; // GitHub tokens work with any username
+      migratePayload.auth_token = decryptedConfig.githubConfig.token;
+    }
+
     const migrateRes = await httpPost(
       apiUrl,
-      {
-        clone_addr: cloneAddress,
-        uid: giteaOrgId,
-        repo_name: targetRepoName,
-        mirror: true,
-        mirror_interval: config.giteaConfig?.mirrorInterval || "8h", // Set mirror interval
-        wiki: config.giteaConfig?.wiki || false, // will mirror wiki if it exists
-        lfs: config.giteaConfig?.lfs || false, // Enable LFS mirroring if configured
-        private: repository.isPrivate,
-      },
+      migratePayload,
       {
         Authorization: `token ${decryptedConfig.giteaConfig.token}`,
       }
