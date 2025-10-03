@@ -21,7 +21,7 @@ interface EnvConfig {
     mirrorOrganizations?: boolean;
     preserveOrgStructure?: boolean;
     onlyMirrorOrgs?: boolean;
-    skipStarredIssues?: boolean;
+    starredCodeOnly?: boolean;
     starredReposOrg?: string;
     mirrorStrategy?: 'preserve' | 'single-org' | 'flat-user' | 'mixed';
   };
@@ -107,7 +107,7 @@ function parseEnvConfig(): EnvConfig {
       mirrorOrganizations: process.env.MIRROR_ORGANIZATIONS === 'true',
       preserveOrgStructure: process.env.PRESERVE_ORG_STRUCTURE === 'true',
       onlyMirrorOrgs: process.env.ONLY_MIRROR_ORGS === 'true',
-      skipStarredIssues: process.env.SKIP_STARRED_ISSUES === 'true',
+      starredCodeOnly: process.env.SKIP_STARRED_ISSUES === 'true',
       starredReposOrg: process.env.STARRED_REPOS_ORG,
       mirrorStrategy: process.env.MIRROR_STRATEGY as 'preserve' | 'single-org' | 'flat-user' | 'mixed',
     },
@@ -253,7 +253,7 @@ export async function initializeConfigFromEnv(): Promise<void> {
       starredReposOrg: envConfig.github.starredReposOrg || existingConfig?.[0]?.githubConfig?.starredReposOrg || 'starred',
       mirrorStrategy,
       defaultOrg: envConfig.gitea.organization || existingConfig?.[0]?.githubConfig?.defaultOrg || 'github-mirrors',
-      skipStarredIssues: envConfig.github.skipStarredIssues ?? existingConfig?.[0]?.githubConfig?.skipStarredIssues ?? false,
+      starredCodeOnly: envConfig.github.starredCodeOnly ?? existingConfig?.[0]?.githubConfig?.starredCodeOnly ?? false,
     };
 
     // Build Gitea config

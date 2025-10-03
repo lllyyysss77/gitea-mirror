@@ -126,7 +126,7 @@ gitea-mirror:
     privateRepositories: true
     mirrorStarred: false
     skipForks: false
-    skipStarredIssues: false
+    starredCodeOnly: false
 
   gitea:
     url: ""

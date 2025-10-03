@@ -175,7 +175,7 @@ These values populate a **ConfigMap** (non-secret) and a **Secret** (for tokens 
 | `gitea-mirror.github.type` | `personal` | `GITHUB_TYPE` |
 | `gitea-mirror.github.privateRepositories` | `true` | `PRIVATE_REPOSITORIES` |
 | `gitea-mirror.github.skipForks` | `false` | `SKIP_FORKS` |
-| `gitea-mirror.github.skipStarredIssues` | `false` | `SKIP_STARRED_ISSUES` |
+| `gitea-mirror.github.starredCodeOnly` | `false` | `SKIP_STARRED_ISSUES` |
 | `gitea-mirror.github.mirrorStarred` | `false` | `MIRROR_STARRED` |
 
 ### Gitea

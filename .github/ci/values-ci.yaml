@@ -37,7 +37,7 @@ gitea-mirror:
     type: "personal"
     privateRepositories: true
     skipForks: false
-    skipStarredIssues: false
+    starredCodeOnly: false
   gitea:
     url: "https://gitea.example.com"
     token: "not-used-in-template"

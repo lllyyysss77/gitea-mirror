@@ -18,7 +18,7 @@ data:
   PRIVATE_REPOSITORIES: {{ $gm.github.privateRepositories | quote }}
   MIRROR_STARRED: {{ $gm.github.mirrorStarred | quote }}
   SKIP_FORKS: {{ $gm.github.skipForks | quote }}
-  SKIP_STARRED_ISSUES: {{ $gm.github.skipStarredIssues | quote }}
+  SKIP_STARRED_ISSUES: {{ $gm.github.starredCodeOnly | quote }}
   # Gitea Config
   GITEA_URL: {{ $gm.gitea.url | quote }}
   GITEA_USERNAME: {{ $gm.gitea.username | quote }}
