@@ -461,8 +461,13 @@ export const mirrorGithubRepoToGitea = async ({
     );
 
     //mirror releases
-    console.log(`[Metadata] Release mirroring check: mirrorReleases=${config.giteaConfig?.mirrorReleases}`);
-    if (config.giteaConfig?.mirrorReleases) {
+    // Skip releases for starred repos if skipStarredIssues is enabled
+    const shouldMirrorReleases = config.giteaConfig?.mirrorReleases &&
+      !(repository.isStarred && config.githubConfig?.skipStarredIssues);
+
+    console.log(`[Metadata] Release mirroring check: mirrorReleases=${config.giteaConfig?.mirrorReleases}, isStarred=${repository.isStarred}, skipStarredIssues=${config.githubConfig?.skipStarredIssues}, shouldMirrorReleases=${shouldMirrorReleases}`);
+
+    if (shouldMirrorReleases) {
       try {
         await mirrorGitHubReleasesToGitea({
           config,
@@ -879,8 +884,13 @@ export async function mirrorGitHubRepoToGiteaOrg({
     );
 
     //mirror releases
-    console.log(`[Metadata] Release mirroring check: mirrorReleases=${config.giteaConfig?.mirrorReleases}`);
-    if (config.giteaConfig?.mirrorReleases) {
+    // Skip releases for starred repos if skipStarredIssues is enabled
+    const shouldMirrorReleases = config.giteaConfig?.mirrorReleases &&
+      !(repository.isStarred && config.githubConfig?.skipStarredIssues);
+
+    console.log(`[Metadata] Release mirroring check: mirrorReleases=${config.giteaConfig?.mirrorReleases}, isStarred=${repository.isStarred}, skipStarredIssues=${config.githubConfig?.skipStarredIssues}, shouldMirrorReleases=${shouldMirrorReleases}`);
+
+    if (shouldMirrorReleases) {
       try {
         await mirrorGitHubReleasesToGitea({
           config,
