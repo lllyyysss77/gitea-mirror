@@ -19,7 +19,7 @@ import { useCases } from '@/lib/use-cases';
     </div>
 
     <div class="grid gap-4 sm:gap-6 lg:gap-8 lg:grid-cols-3">
-      {useCases.map((useCase) => (
+      {useCases.slice(0, 3).map((useCase) => (
         <article class="group relative flex flex-col rounded-2xl border bg-background/80 p-6 sm:p-8 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
           <div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/5 via-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           <div class="relative flex flex-col h-full">
@@ -59,6 +59,16 @@ import { useCases } from '@/lib/use-cases';
           </div>
         </article>
       ))}
+    </div>
+
+    <div class="mt-10 text-center">
+      <a
+        href="/use-cases/"
+        class="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-6 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary/15"
+      >
+        View more use cases
+        <ArrowRight class="h-4 w-4" />
+      </a>
     </div>
   </div>
 </section>
