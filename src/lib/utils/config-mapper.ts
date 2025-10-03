@@ -152,7 +152,8 @@ export function mapDbToUiConfig(dbConfig: any): {
   // Map advanced options
   const advancedOptions: AdvancedOptions = {
     skipForks: !(dbConfig.githubConfig?.includeForks ?? true), // Invert includeForks to get skipForks
-    starredCodeOnly: dbConfig.githubConfig?.starredCodeOnly || false,
+    // Support both old (skipStarredIssues) and new (starredCodeOnly) field names for backward compatibility
+    starredCodeOnly: dbConfig.githubConfig?.starredCodeOnly ?? (dbConfig.githubConfig as any)?.skipStarredIssues ?? false,
   };
 
   return {
