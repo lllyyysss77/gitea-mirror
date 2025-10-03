@@ -423,12 +423,16 @@ export const mirrorGithubRepoToGitea = async ({
     // Prepare migration payload
     // For private repos, use separate auth fields instead of embedding credentials in URL
     // This is required for Forgejo 12+ which rejects URLs with embedded credentials
+    // Skip wiki for starred repos if skipStarredIssues is enabled
+    const shouldMirrorWiki = config.giteaConfig?.wiki &&
+      !(repository.isStarred && config.githubConfig?.skipStarredIssues);
+
     const migratePayload: any = {
       clone_addr: cloneAddress,
       repo_name: targetRepoName,
       mirror: true,
       mirror_interval: config.giteaConfig?.mirrorInterval || "8h",
-      wiki: config.giteaConfig?.wiki || false,
+      wiki: shouldMirrorWiki || false,
       lfs: config.giteaConfig?.lfs || false,
       private: repository.isPrivate,
       repo_owner: repoOwner,
@@ -498,8 +502,13 @@ export const mirrorGithubRepoToGitea = async ({
     }
 
     // Mirror pull requests if enabled
-    console.log(`[Metadata] Pull request mirroring check: mirrorPullRequests=${config.giteaConfig?.mirrorPullRequests}`);
-    if (config.giteaConfig?.mirrorPullRequests) {
+    // Skip pull requests for starred repos if skipStarredIssues is enabled
+    const shouldMirrorPullRequests = config.giteaConfig?.mirrorPullRequests &&
+      !(repository.isStarred && config.githubConfig?.skipStarredIssues);
+
+    console.log(`[Metadata] Pull request mirroring check: mirrorPullRequests=${config.giteaConfig?.mirrorPullRequests}, isStarred=${repository.isStarred}, skipStarredIssues=${config.githubConfig?.skipStarredIssues}, shouldMirrorPullRequests=${shouldMirrorPullRequests}`);
+
+    if (shouldMirrorPullRequests) {
       try {
         await mirrorGitRepoPullRequestsToGitea({
           config,
@@ -516,8 +525,13 @@ export const mirrorGithubRepoToGitea = async ({
     }
 
     // Mirror labels if enabled (and not already done via issues)
-    console.log(`[Metadata] Label mirroring check: mirrorLabels=${config.giteaConfig?.mirrorLabels}, shouldMirrorIssues=${shouldMirrorIssues}`);
-    if (config.giteaConfig?.mirrorLabels && !shouldMirrorIssues) {
+    // Skip labels for starred repos if skipStarredIssues is enabled
+    const shouldMirrorLabels = config.giteaConfig?.mirrorLabels && !shouldMirrorIssues &&
+      !(repository.isStarred && config.githubConfig?.skipStarredIssues);
+
+    console.log(`[Metadata] Label mirroring check: mirrorLabels=${config.giteaConfig?.mirrorLabels}, shouldMirrorIssues=${shouldMirrorIssues}, isStarred=${repository.isStarred}, skipStarredIssues=${config.githubConfig?.skipStarredIssues}, shouldMirrorLabels=${shouldMirrorLabels}`);
+
+    if (shouldMirrorLabels) {
       try {
         await mirrorGitRepoLabelsToGitea({
           config,
@@ -534,8 +548,13 @@ export const mirrorGithubRepoToGitea = async ({
     }
 
     // Mirror milestones if enabled
-    console.log(`[Metadata] Milestone mirroring check: mirrorMilestones=${config.giteaConfig?.mirrorMilestones}`);
-    if (config.giteaConfig?.mirrorMilestones) {
+    // Skip milestones for starred repos if skipStarredIssues is enabled
+    const shouldMirrorMilestones = config.giteaConfig?.mirrorMilestones &&
+      !(repository.isStarred && config.githubConfig?.skipStarredIssues);
+
+    console.log(`[Metadata] Milestone mirroring check: mirrorMilestones=${config.giteaConfig?.mirrorMilestones}, isStarred=${repository.isStarred}, skipStarredIssues=${config.githubConfig?.skipStarredIssues}, shouldMirrorMilestones=${shouldMirrorMilestones}`);
+
+    if (shouldMirrorMilestones) {
       try {
         await mirrorGitRepoMilestonesToGitea({
           config,
@@ -824,13 +843,17 @@ export async function mirrorGitHubRepoToGiteaOrg({
     // Prepare migration payload
     // For private repos, use separate auth fields instead of embedding credentials in URL
     // This is required for Forgejo 12+ which rejects URLs with embedded credentials
+    // Skip wiki for starred repos if skipStarredIssues is enabled
+    const shouldMirrorWiki = config.giteaConfig?.wiki &&
+      !(repository.isStarred && config.githubConfig?.skipStarredIssues);
+
     const migratePayload: any = {
       clone_addr: cloneAddress,
       uid: giteaOrgId,
       repo_name: targetRepoName,
       mirror: true,
       mirror_interval: config.giteaConfig?.mirrorInterval || "8h",
-      wiki: config.giteaConfig?.wiki || false,
+      wiki: shouldMirrorWiki || false,
       lfs: config.giteaConfig?.lfs || false,
       private: repository.isPrivate,
     };
@@ -897,8 +920,13 @@ export async function mirrorGitHubRepoToGiteaOrg({
     }
 
     // Mirror pull requests if enabled
-    console.log(`[Metadata] Pull request mirroring check: mirrorPullRequests=${config.giteaConfig?.mirrorPullRequests}`);
-    if (config.giteaConfig?.mirrorPullRequests) {
+    // Skip pull requests for starred repos if skipStarredIssues is enabled
+    const shouldMirrorPullRequests = config.giteaConfig?.mirrorPullRequests &&
+      !(repository.isStarred && config.githubConfig?.skipStarredIssues);
+
+    console.log(`[Metadata] Pull request mirroring check: mirrorPullRequests=${config.giteaConfig?.mirrorPullRequests}, isStarred=${repository.isStarred}, skipStarredIssues=${config.githubConfig?.skipStarredIssues}, shouldMirrorPullRequests=${shouldMirrorPullRequests}`);
+
+    if (shouldMirrorPullRequests) {
       try {
         await mirrorGitRepoPullRequestsToGitea({
           config,
@@ -915,8 +943,13 @@ export async function mirrorGitHubRepoToGiteaOrg({
     }
 
     // Mirror labels if enabled (and not already done via issues)
-    console.log(`[Metadata] Label mirroring check: mirrorLabels=${config.giteaConfig?.mirrorLabels}, shouldMirrorIssues=${shouldMirrorIssues}`);
-    if (config.giteaConfig?.mirrorLabels && !shouldMirrorIssues) {
+    // Skip labels for starred repos if skipStarredIssues is enabled
+    const shouldMirrorLabels = config.giteaConfig?.mirrorLabels && !shouldMirrorIssues &&
+      !(repository.isStarred && config.githubConfig?.skipStarredIssues);
+
+    console.log(`[Metadata] Label mirroring check: mirrorLabels=${config.giteaConfig?.mirrorLabels}, shouldMirrorIssues=${shouldMirrorIssues}, isStarred=${repository.isStarred}, skipStarredIssues=${config.githubConfig?.skipStarredIssues}, shouldMirrorLabels=${shouldMirrorLabels}`);
+
+    if (shouldMirrorLabels) {
       try {
         await mirrorGitRepoLabelsToGitea({
           config,
@@ -933,8 +966,13 @@ export async function mirrorGitHubRepoToGiteaOrg({
     }
 
     // Mirror milestones if enabled
-    console.log(`[Metadata] Milestone mirroring check: mirrorMilestones=${config.giteaConfig?.mirrorMilestones}`);
-    if (config.giteaConfig?.mirrorMilestones) {
+    // Skip milestones for starred repos if skipStarredIssues is enabled
+    const shouldMirrorMilestones = config.giteaConfig?.mirrorMilestones &&
+      !(repository.isStarred && config.githubConfig?.skipStarredIssues);
+
+    console.log(`[Metadata] Milestone mirroring check: mirrorMilestones=${config.giteaConfig?.mirrorMilestones}, isStarred=${repository.isStarred}, skipStarredIssues=${config.githubConfig?.skipStarredIssues}, shouldMirrorMilestones=${shouldMirrorMilestones}`);
+
+    if (shouldMirrorMilestones) {
       try {
         await mirrorGitRepoMilestonesToGitea({
           config,
