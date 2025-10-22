@@ -28,7 +28,7 @@ cd gitea-mirror
 docker compose -f docker-compose.alt.yml up -d
 ```
 
-The `alt` compose file ships with sane defaults for a single-node backup mirror. It stores data in `./data`. If you need a different location, set `DATA_DIR=/path` in `.env` before boot.
+The `alt` compose file ships with sane defaults for a single-node backup mirror. It stores data in `./data`. To use a different path, edit the volume mapping (for example `- /srv/gitea-mirror:/app/data`).
 
 Verify the containers:
 
@@ -53,9 +53,9 @@ Wait for "Server started" before moving on.
 
 On the dashboard:
 
-1. Click **Sync Now** for a small test repository.
+1. Click **Mirror Repository** for a small test project.
 2. Open Gitea and confirm the mirror appears with the right owner/org.
-3. Enable **Mirror metadata** and **Mirror LFS** if you rely on issues, wikis, or large assets.
+3. In **Configuration → Connections**, open the **Content & Data** section to enable **Mirror metadata** and **Git LFS** if you rely on issues, wikis, or large assets.
 
 For broader coverage, switch the organization strategy to **Preserve structure** so Gitea mirrors your GitHub org layout automatically.
 
@@ -109,7 +109,7 @@ Treat the mirror like any other DR asset:
 
 ### Does Gitea Mirror copy issues, pull requests, releases, and LFS?
 
-Yes. Enable Mirror metadata, Mirror releases, and LFS under Repository defaults. Pull requests are mirrored as enriched issues with linked branches and metadata.
+Yes. Enable Mirror metadata, Mirror releases, and Git LFS from **Configuration → Connections → Content & Data**. Pull requests are mirrored as enriched issues with linked branches and metadata.
 
 ### How often should I sync GitHub backups?
 

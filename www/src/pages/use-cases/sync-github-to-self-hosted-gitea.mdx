@@ -53,7 +53,7 @@ You may still collaborate on GitHub every day, yet want a LAN Gitea copy you con
 
 ### 4. Mirror metadata and LFS
 
-Under **Repository defaults**:
+In **Configuration → Connections → Content & Data**:
 
 - Enable **Mirror metadata** so issues, pull requests (as enriched issues), labels, milestones, and wikis stay in sync.
 - Enable **Mirror LFS** if your repos store binaries; confirm your Gitea instance has LFS enabled.
@@ -61,7 +61,7 @@ Under **Repository defaults**:
 
 ### 5. Validate the local mirror
 
-- Select a repo in the dashboard and click **Sync now**.
+- Select a repository in the dashboard and use the **Sync Repository** action.
 - In Gitea, verify commit history, tags, issues, and releases match GitHub.
 - Run a quick diff: `git remote add gitea http://<gitea>/<owner>/<repo>.git && git fetch gitea` then `git log origin/main..gitea/main` — it should be empty.
 

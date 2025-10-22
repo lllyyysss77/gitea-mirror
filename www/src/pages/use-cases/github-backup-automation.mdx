@@ -63,9 +63,9 @@ Shell scripts and `git clone --mirror` jobs work until they don’t—usually wh
 
 ## Validate automation
 
-- Force a failure by temporarily revoking a PAT; the next scheduler run should flag the repository in the Activity Log. Restore the token and trigger **Sync now** to confirm recovery.
+- Force a failure by temporarily revoking a PAT; the next scheduler run should flag the repository in the Activity Log. Restore the token and use **Sync Repository** to confirm recovery.
 - Run `bun run manage-db check` (or the UI health check) to ensure migrations and tasks are clean.
-- Export the repositories table or CSV download to confirm `Last mirrored` timestamps match your configured interval.
+- Spot-check the **Repositories** table or export the Activity Log CSV to confirm `Last mirrored` timestamps match your configured interval.
 
 ## Best practices
 

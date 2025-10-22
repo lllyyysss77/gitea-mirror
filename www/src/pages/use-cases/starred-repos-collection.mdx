@@ -28,8 +28,8 @@ Stars are a personal library—but they vanish when creators delete repos or you
 
 ### 2. Categorize the collection
 
-- Create sub-organizations in Gitea (e.g. `stars-iot`, `stars-ai`).
-- Use the inline destination editor on the **Repositories** page to route specific stars into themed orgs.
+- Create sub-organizations in Gitea (e.g. `stars-iot`, `stars-ai`) if you want separate spaces you can curate manually.
+- Starred mirrors always land in the dedicated starred org, so use repository labels or Gitea teams to slice the collection by language, topic, or priority.
 - Tag repos in Gitea with labels like `language:rust`, `topic:homelab` for quick filtering.
 
 <figure class="mt-8 flex flex-col items-center">
@@ -59,7 +59,7 @@ Stars are a personal library—but they vanish when creators delete repos or you
 ## Verify the collection works
 
 1. Star a new repo on GitHub.
-2. Wait for the star interval or click **Sync now** in the dashboard.
+2. Wait for the star interval or run **Sync Repository** from the dashboard for an immediate refresh.
 3. Confirm the repo appears in your `stars` org with issues/releases intact.
 4. Unstar it on GitHub; if cleanup is set to **Archive**, verify the mirror is renamed with an `archived-` prefix and marked read-only. If you chose **Delete**, confirm it disappears on the next sync.
 

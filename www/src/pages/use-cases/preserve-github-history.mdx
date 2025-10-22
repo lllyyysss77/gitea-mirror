@@ -22,7 +22,7 @@ GitHub accounts get banned, repos go private, and owners rage-delete history. If
 
 ### 1. Set archival-friendly defaults
 
-In **Configuration → Connections**, open **Repository defaults**:
+In **Configuration → Connections**, open **Content & Data**:
 
 - Enable **Mirror metadata** and choose the components you care about (issues, pull requests, labels, milestones, wiki).
 - Enable **Mirror releases** and raise the **Latest releases** limit if you need a deeper history of release assets.
@@ -50,7 +50,7 @@ In **Configuration → Connections**, open **Repository defaults**:
 
 - In **Configuration → Automation**, enable **Automatic syncing** and set the interval (`1h` keeps fast-moving repos current; `12h` is usually enough for archives).
 - Turn on **Handle orphaned repositories automatically** and leave the action on **Archive** so anything deleted upstream is preserved locally but marked read-only.
-- Bump the **Latest releases** limit or run an occasional manual **Sync now** for milestone projects to capture older release assets.
+- Bump the **Latest releases** limit or run an occasional manual sync from the **Repositories** table when you need older release assets.
 
 ### 4. Record provenance
 
@@ -86,7 +86,7 @@ In **Configuration → Connections**, open **Repository defaults**:
 
 ### Does this preserve issues, pull requests, and releases?
 
-Yes—enable Mirror metadata and Mirror releases in Repository defaults. Pull requests copy as enriched issues, keeping discussion and labels.
+Yes—enable Mirror metadata and Mirror releases from **Configuration → Connections → Content & Data**. Pull requests copy as enriched issues, keeping discussion and labels.
 
 ### What happens if a GitHub repo is deleted or goes private?
 
