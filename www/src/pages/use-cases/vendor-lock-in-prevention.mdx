@@ -5,6 +5,8 @@ description: "Use Gitea Mirror to keep an always-current fallback so policy or p
 canonical: "https://gitea-mirror.com/use-cases/vendor-lock-in-prevention/"
 ---
 
+# Stay Ready to Leave GitHub
+
 ## Keep your exit hatch open
 
 GitHub can change pricing, authentication rules, or terms without notice. With Gitea Mirror running, you always have a live copy of code and metadata inside infrastructure you control—so switching to self-hosted Gitea, Forgejo, or something else becomes a DNS change, not a fire drill.
@@ -20,9 +22,9 @@ GitHub can change pricing, authentication rules, or terms without notice. With G
 
 ### 1. Mirror everything continuously
 
-- Add every GitHub organization you care about as an owner in Gitea Mirror.
-- Enable **Preserve structure** so Gitea’s org layout matches GitHub.
-- Turn on metadata + LFS mirroring to ensure issues, releases, and binaries are ready on day one.
+- In **Configuration → Connections**, add every GitHub organization you care about as an owner. Auto-discovery pulls new repositories on the next scheduler run.
+- Set the organization strategy to **Preserve structure** so Gitea mirrors the GitHub org layout.
+- Open **Content & Data** to enable metadata, releases, and Git LFS, ensuring issues, pull requests, and binaries survive the switchover.
 
 ### 2. Simulate a cutover
 
@@ -44,9 +46,9 @@ GitHub can change pricing, authentication rules, or terms without notice. With G
 
 ### 5. Watch for drift
 
-- Review the Gitea mirror weekly for newly created repos, teams, or permissions.
-- Parse the `/api/owners` endpoint to ensure auto-discovery still works.
-- Set alerts on the mirror’s activity log so you catch sync failures quickly.
+- Review the repositories dashboard weekly for new projects, teams, or permission mismatches.
+- Check the **Automation** tab—if the scheduler is enabled, auto-discovery keeps owners current.
+- Use the Activity Log and `/api/events` export to alert on failures before your recovery point objective is breached.
 
 ## Success criteria
 
@@ -59,3 +61,17 @@ GitHub can change pricing, authentication rules, or terms without notice. With G
 
 - [Sync GitHub to Your Self-Hosted Gitea](../sync-github-to-self-hosted-gitea/)
 - [Deploy Gitea Mirror with the Helm Chart](../deploy-with-helm-chart/)
+
+## FAQ
+
+### How do I confirm the mirror is still catching new repositories?
+
+Check the **Configuration → Connections** screen for the `Last imported` timestamp and ensure the scheduler in **Automation** is enabled. Auto-discovery runs with each scheduled sync.
+
+### What interval should I run before a potential cutover?
+
+Keep `Automatic syncing` at 15–30 minutes for active organizations. That keeps the lag well under an hour if you have to pivot suddenly.
+
+### Can I script the cutover?
+
+Yes. Use the `/api/export` configuration JSON and the repositories CSV export to generate runbooks, then pair them with infrastructure-as-code (DNS, reverse proxy, CI) so flipping endpoints becomes repeatable.
