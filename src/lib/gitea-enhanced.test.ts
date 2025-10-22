@@ -7,6 +7,9 @@ mock.module("@/lib/helpers", () => ({
   createMirrorJob: mockCreateMirrorJob
 }));
 
+const mockMirrorGitHubReleasesToGitea = mock(() => Promise.resolve());
+const mockGetGiteaRepoOwnerAsync = mock(() => Promise.resolve("starred"));
+
 // Mock the database module
 const mockDb = {
   insert: mock((table: any) => ({
@@ -220,6 +223,9 @@ describe("Enhanced Gitea Operations", () => {
     mockCreateMirrorJob.mockClear();
     mockDb.insert.mockClear();
     mockDb.update.mockClear();
+    mockMirrorGitHubReleasesToGitea.mockClear();
+    mockGetGiteaRepoOwnerAsync.mockClear();
+    mockGetGiteaRepoOwnerAsync.mockImplementation(() => Promise.resolve("starred"));
     // Reset tracking variables
     orgCheckCount = 0;
     orgTestContext = "";
@@ -250,6 +256,7 @@ describe("Enhanced Gitea Operations", () => {
           url: "https://gitea.example.com",
           token: "encrypted-token",
           defaultOwner: "testuser",
+          mirrorReleases: true,
         },
       };
 
@@ -280,6 +287,7 @@ describe("Enhanced Gitea Operations", () => {
           url: "https://gitea.example.com",
           token: "encrypted-token",
           defaultOwner: "testuser",
+          mirrorReleases: true,
         },
       };
 
@@ -306,6 +314,7 @@ describe("Enhanced Gitea Operations", () => {
           url: "https://gitea.example.com",
           token: "encrypted-token",
           defaultOwner: "testuser",
+          mirrorReleases: true,
         },
       };
 
@@ -362,6 +371,7 @@ describe("Enhanced Gitea Operations", () => {
           url: "https://gitea.example.com",
           token: "encrypted-token",
           defaultOwner: "testuser",
+          mirrorReleases: true,
         },
       };
 
@@ -391,6 +401,7 @@ describe("Enhanced Gitea Operations", () => {
           url: "https://gitea.example.com",
           token: "encrypted-token",
           defaultOwner: "testuser",
+          mirrorReleases: true,
         },
       };
 
@@ -409,18 +420,17 @@ describe("Enhanced Gitea Operations", () => {
         updatedAt: new Date(),
       };
 
-      // Mock getGiteaRepoOwnerAsync
-      const mockGetOwner = mock(() => Promise.resolve("starred"));
-      global.import = mock(async (path: string) => {
-        if (path === "./gitea") {
-          return { getGiteaRepoOwnerAsync: mockGetOwner };
-        }
-        return {};
-      }) as any;
-
       await expect(
-        syncGiteaRepoEnhanced({ config, repository })
+        syncGiteaRepoEnhanced(
+          { config, repository },
+          {
+            getGiteaRepoOwnerAsync: mockGetGiteaRepoOwnerAsync,
+            mirrorGitHubReleasesToGitea: mockMirrorGitHubReleasesToGitea,
+          }
+        )
       ).rejects.toThrow("Repository non-mirror-repo is not a mirror. Cannot sync.");
+
+      expect(mockMirrorGitHubReleasesToGitea).not.toHaveBeenCalled();
     });
 
     test("should successfully sync a mirror repository", async () => {
@@ -436,6 +446,7 @@ describe("Enhanced Gitea Operations", () => {
           url: "https://gitea.example.com",
           token: "encrypted-token",
           defaultOwner: "testuser",
+          mirrorReleases: true,
         },
       };
 
@@ -454,18 +465,22 @@ describe("Enhanced Gitea Operations", () => {
         updatedAt: new Date(),
       };
 
-      // Mock getGiteaRepoOwnerAsync
-      const mockGetOwner = mock(() => Promise.resolve("starred"));
-      global.import = mock(async (path: string) => {
-        if (path === "./gitea") {
-          return { getGiteaRepoOwnerAsync: mockGetOwner };
+      const result = await syncGiteaRepoEnhanced(
+        { config, repository },
+        {
+          getGiteaRepoOwnerAsync: mockGetGiteaRepoOwnerAsync,
+          mirrorGitHubReleasesToGitea: mockMirrorGitHubReleasesToGitea,
         }
-        return {};
-      }) as any;
-
-      const result = await syncGiteaRepoEnhanced({ config, repository });
+      );
 
       expect(result).toEqual({ success: true });
+      expect(mockGetGiteaRepoOwnerAsync).toHaveBeenCalled();
+      expect(mockMirrorGitHubReleasesToGitea).toHaveBeenCalledTimes(1);
+      const releaseCall = mockMirrorGitHubReleasesToGitea.mock.calls[0][0];
+      expect(releaseCall.giteaOwner).toBe("starred");
+      expect(releaseCall.giteaRepoName).toBe("mirror-repo");
+      expect(releaseCall.config.githubConfig?.token).toBe("github-token");
+      expect(releaseCall.octokit).toBeDefined();
     });
   });
 
