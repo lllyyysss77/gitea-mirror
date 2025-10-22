@@ -5,6 +5,7 @@ import type { RepoStatus } from "./Repository";
 export const membershipRoleEnum = z.enum([
   "member",
   "admin",
+  "owner",
   "billing_manager",
 ]);
 

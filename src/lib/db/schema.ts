@@ -208,7 +208,7 @@ export const organizationSchema = z.object({
   configId: z.string(),
   name: z.string(),
   avatarUrl: z.string(),
-  membershipRole: z.enum(["admin", "member", "owner"]).default("member"),
+  membershipRole: z.enum(["member", "admin", "owner", "billing_manager"]).default("member"),
   isIncluded: z.boolean().default(true),
   destinationOrg: z.string().optional().nullable(),
   status: z
