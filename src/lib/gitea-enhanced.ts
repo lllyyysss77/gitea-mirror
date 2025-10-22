@@ -8,12 +8,18 @@
 
 import type { Config } from "@/types/config";
 import type { Repository } from "./db/schema";
+import { Octokit } from "@octokit/rest";
 import { createMirrorJob } from "./helpers";
 import { decryptConfigTokens } from "./utils/config-encryption";
 import { httpPost, httpGet, httpPatch, HttpError } from "./http-client";
 import { db, repositories } from "./db";
 import { eq } from "drizzle-orm";
 import { repoStatusEnum } from "@/types/Repository";
+
+type SyncDependencies = {
+  getGiteaRepoOwnerAsync: typeof import("./gitea")["getGiteaRepoOwnerAsync"];
+  mirrorGitHubReleasesToGitea: typeof import("./gitea")["mirrorGitHubReleasesToGitea"];
+};
 
 /**
  * Enhanced repository information including mirror status
@@ -239,7 +245,7 @@ export async function syncGiteaRepoEnhanced({
 }: {
   config: Partial<Config>;
   repository: Repository;
-}): Promise<any> {
+}, deps?: SyncDependencies): Promise<any> {
   try {
     if (!config.userId || !config.giteaConfig?.url || !config.giteaConfig?.token) {
       throw new Error("Gitea config is required.");
@@ -259,8 +265,8 @@ export async function syncGiteaRepoEnhanced({
       .where(eq(repositories.id, repository.id!));
 
     // Get the expected owner
-    const { getGiteaRepoOwnerAsync } = await import("./gitea");
-    const repoOwner = await getGiteaRepoOwnerAsync({ config, repository });
+    const dependencies = deps ?? (await import("./gitea"));
+    const repoOwner = await dependencies.getGiteaRepoOwnerAsync({ config, repository });
 
     // Check if repo exists and get its info
     const repoInfo = await getGiteaRepoInfo({
@@ -323,6 +329,36 @@ export async function syncGiteaRepoEnhanced({
       const response = await httpPost(apiUrl, undefined, {
         Authorization: `token ${decryptedConfig.giteaConfig.token}`,
       });
+
+      const shouldMirrorReleases =
+        decryptedConfig.giteaConfig?.mirrorReleases &&
+        !(repository.isStarred && decryptedConfig.githubConfig?.starredCodeOnly);
+
+      if (shouldMirrorReleases) {
+        if (!decryptedConfig.githubConfig?.token) {
+          console.warn(
+            `[Sync] Skipping release mirroring for ${repository.name}: Missing GitHub token`
+          );
+        } else {
+          try {
+            const octokit = new Octokit({ auth: decryptedConfig.githubConfig.token });
+            await dependencies.mirrorGitHubReleasesToGitea({
+              config: decryptedConfig,
+              octokit,
+              repository,
+              giteaOwner: repoOwner,
+              giteaRepoName: repository.name,
+            });
+            console.log(`[Sync] Mirrored releases for ${repository.name} after sync`);
+          } catch (releaseError) {
+            console.error(
+              `[Sync] Failed to mirror releases for ${repository.name}: ${
+                releaseError instanceof Error ? releaseError.message : String(releaseError)
+              }`
+            );
+          }
+        }
+      }
 
       // Mark repo as "synced" in DB
       await db
