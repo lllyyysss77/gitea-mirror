@@ -2436,7 +2436,11 @@ export async function archiveGiteaRepo(
       const currentName = repoResponse.data.name;
       
       // Skip if already marked as archived
-      if (currentName.startsWith('[ARCHIVED]')) {
+      const normalizedName = currentName.toLowerCase();
+      if (
+        currentName.startsWith('[ARCHIVED]') ||
+        normalizedName.startsWith('archived-')
+      ) {
         console.log(`[Archive] Repository ${owner}/${repo} already marked as archived. Skipping.`);
         return;
       }
@@ -2495,17 +2499,17 @@ export async function archiveGiteaRepo(
         await httpPatch(
           `${client.url}/api/v1/repos/${owner}/${archivedName}`,
           {
-            mirror_interval: "8760h", // 1 year - minimizes sync attempts
+            mirror_interval: "0h", // Disable automatic syncing; manual sync is still available
           },
           {
             Authorization: `token ${client.token}`,
             'Content-Type': 'application/json',
           }
         );
-        console.log(`[Archive] Reduced sync frequency for ${owner}/${archivedName} to yearly`);
+        console.log(`[Archive] Disabled automatic syncs for ${owner}/${archivedName}; manual sync only`);
       } catch (intervalError) {
         // Non-critical - repo is still preserved even if we can't change interval
-        console.debug(`[Archive] Could not update mirror interval (non-critical):`, intervalError);
+        console.debug(`[Archive] Could not disable mirror interval (non-critical):`, intervalError);
       }
     } else {
       // For non-mirror repositories, use Gitea's native archive feature

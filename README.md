@@ -259,8 +259,9 @@ CLEANUP_DRY_RUN=false                 # Set to true to test without changes
 - **No Accidental Deletions**: Repository cleanup is automatically skipped if GitHub is inaccessible (account deleted, banned, or API errors)
 - **Archive Never Deletes Data**: The `archive` action preserves all repository data:
   - Regular repositories: Made read-only using Gitea's archive feature
-  - Mirror repositories: Renamed with `[ARCHIVED]` prefix (Gitea API limitation prevents archiving mirrors)
+  - Mirror repositories: Renamed with `archived-` prefix (Gitea API limitation prevents archiving mirrors)
   - Failed operations: Repository remains fully accessible even if marking as archived fails
+- **Manual Sync on Demand**: Archived mirrors stay in Gitea with automatic syncs disabled; trigger `Manual Sync` from the Repositories page whenever you need fresh data.
 - **The Whole Point of Backups**: Your Gitea mirrors are preserved even when GitHub sources disappear - that's why you have backups!
 - **Strongly Recommended**: Always use `CLEANUP_ORPHANED_REPO_ACTION=archive` (default) instead of `delete`
 

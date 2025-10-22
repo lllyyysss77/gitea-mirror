@@ -100,6 +100,13 @@ export async function createDefaultConfig({ userId, envOverrides = {} }: Default
     cleanupConfig: {
       enabled: cleanupEnabled,
       retentionDays: cleanupRetentionDays,
+      deleteFromGitea: false,
+      deleteIfNotInGitHub: true,
+      protectedRepos: [],
+      dryRun: false,
+      orphanedRepoAction: "archive",
+      batchSize: 10,
+      pauseBetweenDeletes: 2000,
       lastRun: null,
       nextRun: cleanupEnabled ? new Date(Date.now() + getCleanupInterval(cleanupRetentionDays) * 1000) : null,
     },

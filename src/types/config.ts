@@ -25,6 +25,13 @@ export interface ScheduleConfig {
 export interface DatabaseCleanupConfig {
   enabled: boolean;
   retentionDays: number; // Actually stores seconds, but keeping the name for compatibility
+  deleteIfNotInGitHub: boolean;
+  orphanedRepoAction: "skip" | "archive" | "delete";
+  dryRun: boolean;
+  deleteFromGitea?: boolean;
+  protectedRepos?: string[];
+  batchSize?: number;
+  pauseBetweenDeletes?: number;
   lastRun?: Date;
   nextRun?: Date;
 }

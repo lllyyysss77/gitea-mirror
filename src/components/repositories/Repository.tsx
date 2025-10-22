@@ -320,7 +320,7 @@ export default function Repository() {
     
     const selectedRepos = repositories.filter(repo => repo.id && selectedRepoIds.has(repo.id));
     const eligibleRepos = selectedRepos.filter(
-      repo => repo.status === "mirrored" || repo.status === "synced"
+      repo => ["mirrored", "synced", "archived"].includes(repo.status)
     );
 
     if (eligibleRepos.length === 0) {
