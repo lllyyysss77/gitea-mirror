@@ -279,34 +279,34 @@ export function AutomationSettings({
                         </Tooltip>
                       </TooltipProvider>
                     </Label>
-                    <Select
-                      value={cleanupConfig.retentionDays.toString()}
-                      onValueChange={(value) =>
-                        onCleanupChange({
-                          ...cleanupConfig,
-                          retentionDays: parseInt(value, 10),
-                        })
-                      }
-                    >
-                      <SelectTrigger id="retention-period" className="mt-1.5">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {retentionPeriods.map((option) => (
-                          <SelectItem
-                            key={option.value}
-                            value={option.value.toString()}
-                          >
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {cleanupConfig.enabled && (
-                      <p className="text-xs text-muted-foreground mt-1">
+                    <div className="flex items-center gap-3 mt-1.5">
+                      <Select
+                        value={cleanupConfig.retentionDays.toString()}
+                        onValueChange={(value) =>
+                          onCleanupChange({
+                            ...cleanupConfig,
+                            retentionDays: parseInt(value, 10),
+                          })
+                        }
+                      >
+                        <SelectTrigger id="retention-period" className="w-40">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {retentionPeriods.map((option) => (
+                            <SelectItem
+                              key={option.value}
+                              value={option.value.toString()}
+                            >
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
                         Cleanup runs {getCleanupFrequencyText(cleanupConfig.retentionDays)}
                       </p>
-                    )}
+                    </div>
                   </div>
 
                 </div>
