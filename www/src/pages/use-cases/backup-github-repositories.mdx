@@ -5,6 +5,8 @@ description: "Run a homelab-friendly playbook to mirror GitHub into self-hosted 
 canonical: "https://gitea-mirror.com/use-cases/backup-github-repositories/"
 ---
 
+# Backup GitHub Repositories with Gitea Mirror
+
 ## Why homelabbers care
 
 GitHub is great—right up until an outage, SSO change, or account lockout strands your projects. Gitea Mirror keeps a self-hosted copy of everything (history, metadata, LFS) so you can keep working locally. This playbook walks through the minimal Docker setup the project ships with and shows how to prove your backups actually work.
@@ -57,13 +59,25 @@ On the dashboard:
 
 For broader coverage, switch the organization strategy to **Preserve structure** so Gitea mirrors your GitHub org layout automatically.
 
-### 4. Schedule a recurring sync window
+### 4. Turn on automatic syncs and cleanup
 
-Under **Settings → Mirror Options**:
+Open **Configuration → Automation** in the web UI.
 
-- Set the global interval (for example 30 minutes) to keep backups fresh.
-- If you only need nightly backups, add a schedule window such as `02:00-02:30`.
-- Enable **Auto-discovery** so new repositories are picked up whenever they appear.
+- Enable **Automatic syncing** and pick an interval that matches how fresh you want the mirror (start with `60 minutes`, shorten for active repos).
+- Leave the scheduler enabled—auto-discovery ships with it, so new GitHub repositories and stars are pulled in on the next pass.
+- If you want the mirror to tidy up when GitHub repos disappear, enable **Handle orphaned repositories** and keep the action on **Archive** so history stays intact.
+
+<figure class="mt-8 flex flex-col items-center">
+  <img
+    src="/assets/configuration.png"
+    alt="Automation tab in Gitea Mirror showing the automatic syncing controls for GitHub backups."
+    class="w-full max-w-5xl rounded-xl border border-muted shadow-sm"
+    loading="lazy"
+  />
+  <figcaption class="mt-3 text-sm text-muted-foreground text-center">
+    Configure the scheduler and cleanup policies from the Automation tab so GitHub mirrors stay fresh without manual cron jobs.
+  </figcaption>
+</figure>
 
 ### 5. Prove the backup works
 
@@ -78,7 +92,7 @@ Treat the mirror like any other DR asset:
 
 - The container exposes `/api/health`; add it to Uptime Kuma, Healthchecks.io, or Prometheus.
 - Mirror failures surface in the activity log; consider exporting them through the `/api/events` endpoint.
-- Disk usage lives under `Settings → Storage`; make sure the host volume has headroom for LFS blobs.
+- Watch the `data/` volume on the host (e.g. `du -sh data/`) to make sure you have headroom for mirrored repos and LFS blobs.
 
 ## Hardening tips
 
@@ -90,3 +104,17 @@ Treat the mirror like any other DR asset:
 
 - Promote the mirror to read-only users who do not need GitHub access.
 - Layer on the [Helm](../deploy-with-helm-chart) or [Proxmox LXC](../proxmox-lxc-homelab) playbooks when you outgrow the single-node setup.
+
+## FAQ
+
+### Does Gitea Mirror copy issues, pull requests, releases, and LFS?
+
+Yes. Enable Mirror metadata, Mirror releases, and LFS under Repository defaults. Pull requests are mirrored as enriched issues with linked branches and metadata.
+
+### How often should I sync GitHub backups?
+
+Most homelabs pick 30–120 minutes. Faster schedules improve RPO but use more GitHub API quota; adjust by org/repo if only a few projects are critical.
+
+### Where are backups stored and how do I restore?
+
+Repositories and the SQLite DB live under the `data/` directory (or your configured volume). Restore by cloning from Gitea or by moving the volume to a fresh deployment and signing back in.

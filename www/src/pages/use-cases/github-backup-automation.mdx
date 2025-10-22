@@ -1,67 +1,93 @@
 ---
 layout: ../../layouts/UseCaseLayout.astro
 title: "Automate GitHub Backups"
-description: "Replace fragile cron scripts with scheduled mirrors, health checks, and alerts that keep GitHub backups trustworthy."
+description: "Replace fragile cron scripts with scheduled mirrors, health checks, and logging that keep GitHub backups trustworthy."
 canonical: "https://gitea-mirror.com/use-cases/github-backup-automation/"
 ---
 
+# Automate GitHub Backups
+
 ## Why automation beats cron
 
-Shell scripts and `git clone --mirror` jobs work until they don’t—usually when GitHub rotates tokens, repositories rename, or metadata gets missed. Gitea Mirror centralizes scheduling, retries, and monitoring so your backups keep running while you sleep.
+Shell scripts and `git clone --mirror` jobs work until they don’t—usually when GitHub rotates tokens, repositories rename, or metadata gets missed. Gitea Mirror bundles scheduling, auto-discovery, and repository cleanup so your backups keep running while you sleep.
 
 ## Requirements
 
 - Gitea Mirror deployment with outbound HTTPS access
-- GitHub PAT + Gitea token stored in the UI or environment
-- Healthcheck endpoint (Healthchecks.io, Cronitor, Uptime Kuma) for alerts
-- Optional: Mailer or webhook destinations for failure notifications
+- GitHub PAT + Gitea token stored in the UI or supplied via environment variables
+- A monitoring target that can poll HTTP endpoints (Healthchecks.io, Uptime Kuma, Prometheus, etc.)
 
 ## Step-by-step
 
-### 1. Configure schedules centrally
+### 1. Enable automatic syncing
 
-1. Visit **Settings → Mirror Options**.
-2. Set the global interval (e.g. `30 minutes`).
-3. Use **Schedule windows** to run heavy syncs overnight (e.g. `02:00-05:00`).
-4. Override intervals per org/repo when you need faster protection for a critical project.
+1. Go to **Configuration → Automation**.
+2. Toggle **Automatic syncing** on and choose an interval that matches your recovery point objective (start with `30 minutes` for active teams, stretch to `12 hours` for archives).
+3. Confirm the scheduler is running by checking the **Last sync** and **Next sync** timestamps in the Automation card.
 
-### 2. Turn on smart retries
+### 2. Keep the repository list current
 
-- Under **Advanced**, enable **Backoff retries** so failed syncs retry with exponential delay.
-- Toggle **Stale sync alerts** to get warned when a repo hasn’t synced in your target window.
-- Set the failure threshold (for example, alert after 3 consecutive failures).
+- In **Configuration → Connections**, click **Import GitHub Data** so the dashboard knows about every repository, organization, and star you selected.
+- Enable **Mirror starred repositories** if you want personal favorites backed up, and set the **Starred repos organization** for tidy storage in Gitea.
+- Use the inline destination editor on the **Repositories** page when you need a repo to land in a different Gitea organization.
 
-### 3. Wire in health monitoring
+### 3. Configure repository cleanup (optional)
 
-- Add a Healthchecks.io ping to the **Outgoing webhooks** field with `/api/health`.
-- If you self-host Uptime Kuma, create an HTTP check against `http://<mirror-host>:4321/api/health`.
-- Subscribe an email or webhook channel under **Notifications** for failure summaries.
+- Still on **Configuration → Automation**, enable **Handle orphaned repositories automatically**.
+- Leave the action on **Archive** to keep a read-only backup when a GitHub repo disappears, or switch to **Delete** if you require a strict mirror.
+- Disable **Dry run** after your first test so the cleanup service can act on what it finds.
 
-### 4. Manage credentials safely
+### 4. Monitor scheduler health
 
-- Store tokens in the built-in secret storage rather than `.env` files on disk.
-- Turn on **Token expiry reminders** (set e.g. 30 days before the expiry) to rotate proactively.
-- Use GitHub fine-grained PATs per org to minimize blast radius.
+- Point your monitoring system at `http://<mirror-host>:4321/api/health` to track uptime.
+- Review sync failures from the **Activity Log** page or export them via `/api/events` for long-term retention.
+- Run `bun run manage-db check` during maintenance windows to verify background tasks, migrations, and queue state.
 
-### 5. Document recovery steps
+<figure class="mt-8 flex flex-col items-center">
+  <img
+    src="/assets/activity.png"
+    alt="Gitea Mirror activity log displaying recent GitHub backup jobs and their status."
+    class="w-full max-w-5xl rounded-xl border border-muted shadow-sm"
+    loading="lazy"
+  />
+  <figcaption class="mt-3 text-sm text-muted-foreground text-center">
+    The Activity Log highlights successful syncs and failures so you can react before GitHub backups fall behind.
+  </figcaption>
+</figure>
 
-- Save the `docker compose`/Helm/Proxmox commands you used in your homelab wiki.
-- Export the mirror configuration JSON (`/api/export`) monthly so you can rehydrate quickly.
-- Note which repos are excluded and why; auditors will ask.
+### 5. Harden credentials and runbooks
+
+- Store GitHub and Gitea tokens via the Configuration UI—Gitea Mirror encrypts them at rest.
+- Rotate tokens on a schedule and note expiry dates in your homelab runbook; the dashboard surfaces failures when credentials expire.
+- Export the configuration JSON (`/api/export`) alongside your documentation so you can rebuild the mirror quickly if you need to redeploy.
 
 ## Validate automation
 
-- Force a failure by revoking a PAT, confirm alerts fire, then restore the token.
+- Force a failure by temporarily revoking a PAT; the next scheduler run should flag the repository in the Activity Log. Restore the token and trigger **Sync now** to confirm recovery.
 - Run `bun run manage-db check` (or the UI health check) to ensure migrations and tasks are clean.
-- Diff the last sync times via the dashboard CSV export.
+- Export the repositories table or CSV download to confirm `Last mirrored` timestamps match your configured interval.
 
 ## Best practices
 
-- Group repos by criticality so you can assign tighter schedules where it matters.
-- Keep the mirror in the same timezone as your documentation to simplify scheduling.
+- Tune the sync interval to balance freshness with GitHub rate limits; most homelabs sit between 30 and 120 minutes.
+- Start with the cleanup action set to **Archive** until you are confident you will not remove something you still need.
 - Pair automation with the [Preserve GitHub History](../preserve-github-history/) playbook to maintain context, not just code.
 
 ## Related playbooks
 
 - [Backup GitHub Repositories](../backup-github-repositories/)
 - [Run Gitea Mirror inside a Proxmox LXC](../proxmox-lxc-homelab/)
+
+## FAQ
+
+### What replaces my cron scripts?
+
+The built-in scheduler handles intervals, retries, and discovery. It also powers cleanup for deleted upstream repos (Archive/Delete) once enabled.
+
+### How do I get alerts if backups fail?
+
+Monitor `/api/health` with Healthchecks.io or Uptime Kuma and review the Activity Log. You can export failures via `/api/events` for centralized logging.
+
+### Will new repositories be discovered automatically?
+
+Yes. After importing your GitHub data once, the scheduler’s discovery step keeps the inventory updated and mirrors new repositories on the next run.

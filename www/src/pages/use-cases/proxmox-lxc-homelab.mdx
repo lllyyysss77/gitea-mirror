@@ -5,6 +5,8 @@ description: "Provision the community-maintained Proxmox VE LXC container for Gi
 canonical: "https://gitea-mirror.com/use-cases/proxmox-lxc-homelab/"
 ---
 
+# Run Gitea Mirror inside a Proxmox LXC
+
 ## Why run it on Proxmox
 
 When most of your homelab lives in Proxmox VE, the community LXC script is the fastest path from zero to a managed Gitea Mirror node. It handles Bun, systemd, persistent storage, and future upgrades so you can focus on keeping Git backups fresh.
@@ -71,10 +73,36 @@ You should see `gitea-mirror.db` and a `repos/` directory. Data lives under `/op
 2. Stop GitHub access temporarily and clone from the Gitea mirror to confirm the backup works.
 3. Restore the snapshot on a different node to ensure the service boots cleanly with the preserved data volume.
 
+<figure class="mt-8 flex flex-col items-center">
+  <img
+    src="/assets/dashboard_mobile.png"
+    alt="Mobile view of the Gitea Mirror dashboard running inside a Proxmox LXC container."
+    class="w-full max-w-sm rounded-xl border border-muted shadow-sm"
+    loading="lazy"
+  />
+  <figcaption class="mt-3 text-sm text-muted-foreground text-center">
+    Even inside a lightweight LXC container, the dashboard stays responsive for quick health checks on the go.
+  </figcaption>
+</figure>
+
 ## Troubleshooting
 
 - **Port 4321 already used**: change `PORT` in `/opt/gitea-mirror.env` and restart with `systemctl restart gitea-mirror`.
 - **Disk full**: extend the container disk in Proxmox, then run `pct resize <CTID> rootfs +5G`.
-- **Token expired**: log in to the UI → Settings to update GitHub/Gitea credentials.
+- **Token expired**: log in to the UI → Configuration to update GitHub/Gitea credentials.
 
 Looking for a cluster-native deployment? Try the [Helm playbook](../deploy-with-helm-chart).
+
+## FAQ
+
+### What container size should I start with?
+
+The script defaults to 2 vCPU, 2 GiB RAM, 6 GiB disk. Bump RAM for large orgs or many concurrent mirrors; you can resize disk later with `pct resize`.
+
+### How do I upgrade the LXC deployment?
+
+Re-run the community installer. It detects existing installs, backs up `/opt/gitea-mirror/data`, downloads the latest release, and restarts the service.
+
+### How should I back up and restore?
+
+Snapshot the container or back up `/opt/gitea-mirror/data`. Restore by attaching the volume to a fresh container and starting the service; your configuration is preserved.

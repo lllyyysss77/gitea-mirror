@@ -5,6 +5,8 @@ description: "Mirror your starred GitHub projects into a dedicated Gitea library
 canonical: "https://gitea-mirror.com/use-cases/starred-repos-collection/"
 ---
 
+# Build a Starred Repo Collection
+
 ## Curate without losing projects
 
 Stars are a personal library—but they vanish when creators delete repos or your account is rate limited. Gitea Mirror can automatically capture every starred repository into a dedicated Gitea organization, complete with issues and releases, so your inspiration lives on.
@@ -20,21 +22,33 @@ Stars are a personal library—but they vanish when creators delete repos or you
 
 ### 1. Enable starred owner tracking
 
-1. In the onboarding wizard (or later under **Settings → Owners**), add your GitHub username.
-2. Enable the **Include starred repositories** toggle.
-3. Set the destination in Gitea to a dedicated org, e.g. `stars-jamie`.
+1. In the onboarding wizard—or later under **Configuration → Connections**—add your GitHub username as an owner.
+2. Enable **Mirror starred repositories** and set the **Starred repos organization** to a dedicated space such as `stars-jamie`.
+3. Use the starred content selector to choose whether you want full metadata (issues, releases, PRs, wiki) or the lightweight code-only mode.
 
 ### 2. Categorize the collection
 
 - Create sub-organizations in Gitea (e.g. `stars-iot`, `stars-ai`).
-- Use Destination Overrides inside the dashboard to route specific stars into themed orgs.
+- Use the inline destination editor on the **Repositories** page to route specific stars into themed orgs.
 - Tag repos in Gitea with labels like `language:rust`, `topic:homelab` for quick filtering.
 
-### 3. Schedule incremental updates
+<figure class="mt-8 flex flex-col items-center">
+  <img
+    src="/assets/organisation.png"
+    alt="Organization view in Gitea Mirror highlighting starred GitHub repositories grouped in a dedicated Gitea org."
+    class="w-full max-w-5xl rounded-xl border border-muted shadow-sm"
+    loading="lazy"
+  />
+  <figcaption class="mt-3 text-sm text-muted-foreground text-center">
+    Group starred GitHub repositories into curated Gitea organizations for easier browsing and long-term preservation.
+  </figcaption>
+</figure>
 
-- Set the star discovery interval to something light like `1h` so new stars import quickly.
-- Use the **Starred sync window** (e.g. `00:00-00:30`) to avoid interfering with org backups.
-- Turn on **Starred repo cleanup** if you want unstarred projects removed from the library.
+### 3. Keep the collection fresh
+
+- Enable **Automatic syncing** in **Configuration → Automation** and pick an interval around `1h` so new stars appear quickly.
+- Leave the scheduler running—auto-discovery pulls in new stars on each pass without additional configuration.
+- If you want unstarred projects archived or removed, enable **Handle orphaned repositories automatically** and choose **Archive** (recommended) or **Delete** for strict mirroring.
 
 ### 4. Showcase the library
 
@@ -47,7 +61,7 @@ Stars are a personal library—but they vanish when creators delete repos or you
 1. Star a new repo on GitHub.
 2. Wait for the star interval or click **Sync now** in the dashboard.
 3. Confirm the repo appears in your `stars` org with issues/releases intact.
-4. Unstar it on GitHub; if cleanup is enabled, confirm it disappears on the next sync.
+4. Unstar it on GitHub; if cleanup is set to **Archive**, verify the mirror is renamed with an `archived-` prefix and marked read-only. If you chose **Delete**, confirm it disappears on the next sync.
 
 ## Nice-to-haves
 
@@ -59,3 +73,17 @@ Stars are a personal library—but they vanish when creators delete repos or you
 
 - [Backup GitHub Repositories](../backup-github-repositories/)
 - [Automate GitHub Backups](../github-backup-automation/)
+
+## FAQ
+
+### Can I mirror only the code or include metadata?
+
+Yes. Use the starred content selector to choose code-only or include issues, releases, pull requests, and wikis.
+
+### What happens when I unstar a repository?
+
+Enable Handle orphaned repositories automatically and choose Archive (recommended) to preserve history read-only, or Delete for a strict mirror.
+
+### Can others browse my collection safely?
+
+Create a read-only Gitea user or org members with no write permissions, then share the organization URL behind HTTPS.
