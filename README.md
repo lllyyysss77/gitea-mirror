@@ -407,8 +407,6 @@ GNU General Public License v3.0 - see [LICENSE](LICENSE) file for details.
 
 ## Star History
 
-## Star History
-
 <a href="https://www.star-history.com/#RayLabsHQ/gitea-mirror&type=date&legend=bottom-right">
  <picture>
    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=RayLabsHQ/gitea-mirror&type=date&theme=dark&legend=bottom-right" />
