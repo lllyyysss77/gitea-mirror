@@ -5,6 +5,9 @@ import { sso } from "@better-auth/sso";
 import { db, users } from "./db";
 import * as schema from "./db/schema";
 import { eq } from "drizzle-orm";
+import { ensureValidSsoProviders } from "./sso/provider-maintenance";
+
+await ensureValidSsoProviders();
 
 export const auth = betterAuth({
   // Database configuration
