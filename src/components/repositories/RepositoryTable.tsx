@@ -90,7 +90,7 @@ export default function RepositoryTable({
     }
 
     // Only provide Gitea links for repositories that have been or are being mirrored
-    const validStatuses = ['mirroring', 'mirrored', 'syncing', 'synced'];
+    const validStatuses = ['mirroring', 'mirrored', 'syncing', 'synced', 'archived'];
     if (!validStatuses.includes(repository.status)) {
       return null;
     }
@@ -820,8 +820,8 @@ function RepoActionButton({
     primaryLabel = "Retry";
     primaryIcon = <RotateCcw className="h-4 w-4" />;
     primaryOnClick = onRetry;
-  } else if (["mirrored", "synced", "syncing"].includes(repo.status)) {
-    primaryLabel = "Sync";
+  } else if (["mirrored", "synced", "syncing", "archived"].includes(repo.status)) {
+    primaryLabel = repo.status === "archived" ? "Manual Sync" : "Sync";
     primaryIcon = <RefreshCw className="h-4 w-4" />;
     primaryOnClick = onSync;
     primaryDisabled ||= repo.status === "syncing";

@@ -94,7 +94,7 @@ export const cleanupConfigSchema = z.object({
   deleteFromGitea: z.boolean().default(false),
   deleteIfNotInGitHub: z.boolean().default(true),
   protectedRepos: z.array(z.string()).default([]),
-  dryRun: z.boolean().default(true),
+  dryRun: z.boolean().default(false),
   orphanedRepoAction: z
     .enum(["skip", "archive", "delete"])
     .default("archive"),

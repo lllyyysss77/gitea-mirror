@@ -169,7 +169,7 @@ function parseEnvConfig(): EnvConfig {
       deleteFromGitea: process.env.CLEANUP_DELETE_FROM_GITEA === 'true',
       deleteIfNotInGitHub: process.env.CLEANUP_DELETE_IF_NOT_IN_GITHUB === 'true',
       protectedRepos,
-      dryRun: process.env.CLEANUP_DRY_RUN === 'true',
+      dryRun: process.env.CLEANUP_DRY_RUN === 'true' ? true : process.env.CLEANUP_DRY_RUN === 'false' ? false : false,
       orphanedRepoAction: process.env.CLEANUP_ORPHANED_REPO_ACTION as 'skip' | 'archive' | 'delete',
       batchSize: process.env.CLEANUP_BATCH_SIZE ? parseInt(process.env.CLEANUP_BATCH_SIZE, 10) : undefined,
       pauseBetweenDeletes: process.env.CLEANUP_PAUSE_BETWEEN_DELETES ? parseInt(process.env.CLEANUP_PAUSE_BETWEEN_DELETES, 10) : undefined,
