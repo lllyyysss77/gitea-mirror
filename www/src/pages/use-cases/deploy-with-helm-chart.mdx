@@ -5,9 +5,11 @@ description: "Install the Gitea Mirror backup service on Kubernetes with the off
 canonical: "https://gitea-mirror.com/use-cases/deploy-with-helm-chart/"
 ---
 
+# Deploy Gitea Mirror with the Helm Chart
+
 ## Why ship it to Kubernetes
 
-If your homelab already runs a cluster (k3s, Talos, MicroK8s), Helm is the fastest way to keep Gitea Mirror close to the rest of your self-hosted stack. The chart in `helm/gitea-mirror` bundles the deployment, service, ingress, and persistence so you can version your backup mirror just like any other release.
+If your homelab already runs a cluster (k3s, Talos, MicroK8s), Helm is the fastest way to keep Gitea Mirror close to the rest of your self-hosted stack. The chart in [`helm/gitea-mirror`](https://github.com/RayLabsHQ/gitea-mirror/tree/main/helm/gitea-mirror) bundles the deployment, service, ingress, and persistence so you can version your backup mirror just like any other release.
 
 ## Requirements
 
@@ -18,53 +20,77 @@ If your homelab already runs a cluster (k3s, Talos, MicroK8s), Helm is the faste
 
 ## Step-by-step
 
-### 1. Prepare a values file
-
-Create `values-gitea-mirror.yaml` with the credentials you want the chart to render. Only `github` and `gitea` fields are required for a basic backup deployment.
-
-```yaml
-gitea-mirror:
-  github:
-    username: "your-gh-user"
-    token: "ghp_..."
-  gitea:
-    url: "https://git.lab.local"
-    token: "gitea_..."
-  mirror:
-    interval: "30m"
-    owners:
-      - "your-gh-user"
-
-persistence:
-  enabled: true
-  size: 5Gi
-
-service:
-  type: ClusterIP
-
-ingress:
-  enabled: true
-  className: "traefik"
-  hosts:
-    - host: "mirror.lab.local"
-      paths:
-        - path: "/"
-          pathType: Prefix
-  tls:
-    - hosts: ["mirror.lab.local"]
-      secretName: "mirror-tls"
-```
-
-### 2. Install into a namespace
+### 1. Create a namespace (optional)
 
 ```bash
 kubectl create namespace gitea-mirror
+```
+
+### 2. Provide credentials and install the chart
+
+The [chart README](https://github.com/RayLabsHQ/gitea-mirror/blob/main/helm/gitea-mirror/README.md) documents multiple supported approaches. Choose the one that matches how you manage secrets.
+
+**Inline quick start (no values file):**
+
+First, clone the repository or download the chart:
+```bash
+git clone https://github.com/RayLabsHQ/gitea-mirror.git
+cd gitea-mirror
+```
+
+Then install with credentials:
+```bash
+helm upgrade --install gitea-mirror ./helm/gitea-mirror \
+  --namespace gitea-mirror \
+  --set "gitea-mirror.github.username=<your-gh-username>" \
+  --set "gitea-mirror.github.token=<your-gh-token>" \
+  --set "gitea-mirror.gitea.url=https://gitea.example.com" \
+  --set "gitea-mirror.gitea.token=<your-gitea-token>"
+```
+
+**Using a values file:**
+
+```yaml
+# values-gitea-mirror.yaml
+gitea-mirror:
+  github:
+    username: "your-gh-user"
+    token: "ghp_your_token"
+  gitea:
+    url: "https://git.lab.local"
+    token: "gitea_your_token"
+
+persistence:
+  enabled: true
+  size: 1Gi
+```
+
+```bash
 helm upgrade --install gitea-mirror ./helm/gitea-mirror \
   --namespace gitea-mirror \
   --values values-gitea-mirror.yaml
 ```
 
-Helm renders a `Deployment`, `Service`, optional `Ingress`, and PVC if persistence is enabled. The pod mounts storage at `/app/data` for the SQLite DB and cached repositories.
+**Bring your own Secret (recommended for production):**
+
+```bash
+kubectl -n gitea-mirror create secret generic gitea-mirror-secrets \
+  --from-literal=GITHUB_TOKEN="ghp_your_token" \
+  --from-literal=GITEA_TOKEN="gitea_your_token" \
+  --from-literal=ENCRYPTION_SECRET="$(openssl rand -base64 48)"
+```
+
+```yaml
+# values-gitea-mirror.yaml
+gitea-mirror:
+  existingSecret: "gitea-mirror-secrets"
+  github:
+    username: "your-gh-user"
+  gitea:
+    url: "https://git.lab.local"
+```
+
+Helm renders a `Deployment`, `Service`, optional Ingress/Gateway resources, and—when persistence is enabled—a PVC mounted at `/app/data` for the SQLite database and mirrored repositories.
 
 ### 3. Verify the release
 
@@ -73,12 +99,14 @@ kubectl -n gitea-mirror get pods,svc,pvc
 kubectl -n gitea-mirror logs deploy/gitea-mirror --tail=100
 ```
 
-Watch for `Server started` in the logs. Once ready, browse to the ingress host (or userland port-forward with `kubectl port-forward svc/gitea-mirror 4321:8080`). Complete the first-run wizard just like the Docker playbook.
+Watch for `Server started` in the logs. Once ready, browse to the ingress host (or userland port-forward with `kubectl port-forward svc/gitea-mirror 4321:4321`). Complete the first-run wizard just like the Docker playbook.
+
+After the pod is healthy, open **Configuration → Connections** inside the UI to add GitHub owners, choose a destination strategy, and enable metadata/LFS mirroring.
 
 ### 4. Keep it updated
 
 - Pull chart updates when you bump the repo: `git pull` then re-run the `helm upgrade` command.
-- Override the container image tag with `--set image.tag=v3.7.2` if you need to pin.
+- Override the container image tag with `--set image.tag=v3.7.2` if you need to pin (defaults to `v{appVersion}` from Chart.yaml).
 - Use Helm rollbacks if a release misbehaves: `helm rollback gitea-mirror <REVISION> -n gitea-mirror`.
 
 ## Observability
@@ -104,3 +132,17 @@ kubectl delete namespace gitea-mirror
 Remove the PVC manually if you want a clean slate: `kubectl delete pvc gitea-mirror-storage -n gitea-mirror`.
 
 Ready to run on bare metal instead? Head over to the [Proxmox LXC playbook](../proxmox-lxc-homelab).
+
+## FAQ
+
+### Where do I define GitHub owners and organizations?
+
+Add owners from the **Configuration → Connections** screen after the release is running. The chart seeds credentials and defaults, but owner discovery happens in the UI.
+
+### Can I manage secrets outside of Kubernetes?
+
+Yes. Leave `existingSecret` empty and the chart will create a secret with the values from the file, but using a pre-created secret keeps PATs out of Git history and lets you rotate them with `kubectl apply`.
+
+### How do I throttle syncs to fit my quota?
+
+Adjust `gitea-mirror.automation.schedule_interval` in your values file (default: 3600 seconds = 1 hour). Lower values mean more frequent syncs; higher values create quieter schedules. You can also configure intervals per owner/repository inside the web UI.
