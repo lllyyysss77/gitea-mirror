@@ -201,6 +201,96 @@ export const isRepoPresentInGitea = async ({
 };
 
 /**
+ * Check if a repository is currently being mirrored (in-progress state in database)
+ * This prevents race conditions where multiple concurrent operations try to mirror the same repo
+ */
+export const isRepoCurrentlyMirroring = async ({
+  config,
+  repoName,
+  expectedLocation,
+}: {
+  config: Partial<Config>;
+  repoName: string;
+  expectedLocation?: string; // Format: "owner/repo"
+}): Promise<boolean> => {
+  try {
+    if (!config.userId) {
+      return false;
+    }
+
+    const { or } = await import("drizzle-orm");
+
+    // Check database for any repository with "mirroring" or "syncing" status
+    const inProgressRepos = await db
+      .select()
+      .from(repositories)
+      .where(
+        and(
+          eq(repositories.userId, config.userId),
+          eq(repositories.name, repoName),
+          // Check for in-progress statuses
+          or(
+            eq(repositories.status, "mirroring"),
+            eq(repositories.status, "syncing")
+          )
+        )
+      );
+
+    if (inProgressRepos.length > 0) {
+      // Check if any of the in-progress repos are stale (stuck for > 2 hours)
+      const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+      const now = new Date().getTime();
+
+      const activeRepos = inProgressRepos.filter((repo) => {
+        if (!repo.updatedAt) return true; // No timestamp, assume active
+        const updatedTime = new Date(repo.updatedAt).getTime();
+        const isStale = (now - updatedTime) > TWO_HOURS_MS;
+
+        if (isStale) {
+          console.warn(
+            `[Idempotency] Repository ${repo.name} has been in "${repo.status}" status for over 2 hours. ` +
+            `Considering it stale and allowing retry.`
+          );
+        }
+
+        return !isStale;
+      });
+
+      if (activeRepos.length === 0) {
+        console.log(
+          `[Idempotency] All in-progress operations for ${repoName} are stale (>2h). Allowing retry.`
+        );
+        return false;
+      }
+
+      // If we have an expected location, verify it matches
+      if (expectedLocation) {
+        const matchingRepo = activeRepos.find(
+          (repo) => repo.mirroredLocation === expectedLocation
+        );
+        if (matchingRepo) {
+          console.log(
+            `[Idempotency] Repository ${repoName} is already being mirrored at ${expectedLocation}`
+          );
+          return true;
+        }
+      } else {
+        console.log(
+          `[Idempotency] Repository ${repoName} is already being mirrored (${activeRepos.length} in-progress operations found)`
+        );
+        return true;
+      }
+    }
+
+    return false;
+  } catch (error) {
+    console.error("Error checking if repo is currently mirroring:", error);
+    console.error("Error details:", error);
+    return false;
+  }
+};
+
+/**
  * Helper function to check if a repository exists in Gitea.
  * First checks the recorded mirroredLocation, then falls back to the expected location.
  */
@@ -276,11 +366,11 @@ export const mirrorGithubRepoToGitea = async ({
 
     // Determine the actual repository name to use (handle duplicates for starred repos)
     let targetRepoName = repository.name;
-    
+
     if (repository.isStarred && config.githubConfig) {
       // Extract GitHub owner from full_name (format: owner/repo)
       const githubOwner = repository.fullName.split('/')[0];
-      
+
       targetRepoName = await generateUniqueRepoName({
         config,
         orgName: repoOwner,
@@ -288,12 +378,29 @@ export const mirrorGithubRepoToGitea = async ({
         githubOwner,
         strategy: config.githubConfig.starredDuplicateStrategy,
       });
-      
+
       if (targetRepoName !== repository.name) {
         console.log(
           `Starred repo ${repository.fullName} will be mirrored as ${repoOwner}/${targetRepoName} to avoid naming conflict`
         );
       }
+    }
+
+    // IDEMPOTENCY CHECK: Check if this repo is already being mirrored
+    const expectedLocation = `${repoOwner}/${targetRepoName}`;
+    const isCurrentlyMirroring = await isRepoCurrentlyMirroring({
+      config,
+      repoName: targetRepoName,
+      expectedLocation,
+    });
+
+    if (isCurrentlyMirroring) {
+      console.log(
+        `[Idempotency] Skipping ${repository.fullName} - already being mirrored to ${expectedLocation}`
+      );
+
+      // Don't throw an error, just return to allow other repos to continue
+      return;
     }
 
     const isExisting = await isRepoPresentInGitea({
@@ -337,11 +444,30 @@ export const mirrorGithubRepoToGitea = async ({
 
     console.log(`Mirroring repository ${repository.name}`);
 
+    // DOUBLE-CHECK: Final idempotency check right before updating status
+    // This catches race conditions in the small window between first check and status update
+    const finalCheck = await isRepoCurrentlyMirroring({
+      config,
+      repoName: targetRepoName,
+      expectedLocation,
+    });
+
+    if (finalCheck) {
+      console.log(
+        `[Idempotency] Race condition detected - ${repository.fullName} is now being mirrored by another process. Skipping.`
+      );
+      return;
+    }
+
     // Mark repos as "mirroring" in DB
+    // CRITICAL: Set mirroredLocation NOW (not after success) so idempotency checks work
+    // This becomes the "target location" - where we intend to mirror to
+    // Without this, the idempotency check can't detect concurrent operations on first mirror
     await db
       .update(repositories)
       .set({
         status: repoStatusEnum.parse("mirroring"),
+        mirroredLocation: expectedLocation,
         updatedAt: new Date(),
       })
       .where(eq(repositories.id, repository.id!));
@@ -681,32 +807,32 @@ async function generateUniqueRepoName({
   strategy?: string;
 }): Promise<string> {
   const duplicateStrategy = strategy || "suffix";
-  
+
   // First check if base name is available
   const baseExists = await isRepoPresentInGitea({
     config,
     owner: orgName,
     repoName: baseName,
   });
-  
+
   if (!baseExists) {
     return baseName;
   }
-  
+
   // Generate name based on strategy
   let candidateName: string;
   let attempt = 0;
   const maxAttempts = 10;
-  
+
   while (attempt < maxAttempts) {
     switch (duplicateStrategy) {
       case "prefix":
         // Prefix with owner: owner-reponame
-        candidateName = attempt === 0 
+        candidateName = attempt === 0
           ? `${githubOwner}-${baseName}`
           : `${githubOwner}-${baseName}-${attempt}`;
         break;
-        
+
       case "owner-org":
         // This would require creating sub-organizations, not supported in this PR
         // Fall back to suffix strategy
@@ -718,24 +844,31 @@ async function generateUniqueRepoName({
           : `${baseName}-${githubOwner}-${attempt}`;
         break;
     }
-    
+
     const exists = await isRepoPresentInGitea({
       config,
       owner: orgName,
       repoName: candidateName,
     });
-    
+
     if (!exists) {
       console.log(`Found unique name for duplicate starred repo: ${candidateName}`);
       return candidateName;
     }
-    
+
     attempt++;
   }
-  
-  // If all attempts failed, use timestamp as last resort
-  const timestamp = Date.now();
-  return `${baseName}-${githubOwner}-${timestamp}`;
+
+  // SECURITY FIX: Prevent infinite duplicate creation
+  // Instead of falling back to timestamp (which creates infinite duplicates),
+  // throw an error to prevent hundreds of duplicate repos
+  console.error(`Failed to find unique name for ${baseName} after ${maxAttempts} attempts`);
+  console.error(`Organization: ${orgName}, GitHub Owner: ${githubOwner}, Strategy: ${duplicateStrategy}`);
+  throw new Error(
+    `Unable to generate unique repository name for "${baseName}". ` +
+    `All ${maxAttempts} naming attempts resulted in conflicts. ` +
+    `Please manually resolve the naming conflict or adjust your duplicate strategy.`
+  );
 }
 
 export async function mirrorGitHubRepoToGiteaOrg({
@@ -765,11 +898,11 @@ export async function mirrorGitHubRepoToGiteaOrg({
 
     // Determine the actual repository name to use (handle duplicates for starred repos)
     let targetRepoName = repository.name;
-    
+
     if (repository.isStarred && config.githubConfig) {
       // Extract GitHub owner from full_name (format: owner/repo)
       const githubOwner = repository.fullName.split('/')[0];
-      
+
       targetRepoName = await generateUniqueRepoName({
         config,
         orgName,
@@ -777,12 +910,29 @@ export async function mirrorGitHubRepoToGiteaOrg({
         githubOwner,
         strategy: config.githubConfig.starredDuplicateStrategy,
       });
-      
+
       if (targetRepoName !== repository.name) {
         console.log(
           `Starred repo ${repository.fullName} will be mirrored as ${orgName}/${targetRepoName} to avoid naming conflict`
         );
       }
+    }
+
+    // IDEMPOTENCY CHECK: Check if this repo is already being mirrored
+    const expectedLocation = `${orgName}/${targetRepoName}`;
+    const isCurrentlyMirroring = await isRepoCurrentlyMirroring({
+      config,
+      repoName: targetRepoName,
+      expectedLocation,
+    });
+
+    if (isCurrentlyMirroring) {
+      console.log(
+        `[Idempotency] Skipping ${repository.fullName} - already being mirrored to ${expectedLocation}`
+      );
+
+      // Don't throw an error, just return to allow other repos to continue
+      return;
     }
 
     const isExisting = await isRepoPresentInGitea({
@@ -831,11 +981,30 @@ export async function mirrorGitHubRepoToGiteaOrg({
     // Use clean clone URL without embedded credentials (Forgejo 12+ security requirement)
     const cloneAddress = repository.cloneUrl;
 
+    // DOUBLE-CHECK: Final idempotency check right before updating status
+    // This catches race conditions in the small window between first check and status update
+    const finalCheck = await isRepoCurrentlyMirroring({
+      config,
+      repoName: targetRepoName,
+      expectedLocation,
+    });
+
+    if (finalCheck) {
+      console.log(
+        `[Idempotency] Race condition detected - ${repository.fullName} is now being mirrored by another process. Skipping.`
+      );
+      return;
+    }
+
     // Mark repos as "mirroring" in DB
+    // CRITICAL: Set mirroredLocation NOW (not after success) so idempotency checks work
+    // This becomes the "target location" - where we intend to mirror to
+    // Without this, the idempotency check can't detect concurrent operations on first mirror
     await db
       .update(repositories)
       .set({
         status: repoStatusEnum.parse("mirroring"),
+        mirroredLocation: expectedLocation,
         updatedAt: new Date(),
       })
       .where(eq(repositories.id, repository.id!));
