@@ -14,7 +14,7 @@ GitHub accounts get banned, repos go private, and owners rage-delete history. If
 ## Requirements
 
 - Running Gitea Mirror (follow the [backup playbook](../backup-github-repositories/))
-- GitHub PAT with metadata scopes (`repo`, `read:org`)
+- GitHub PAT with `repo` enabled (add the `read:org` checkbox under `admin:org` when you archive organization repositories; leave write/admin unchecked)
 - Destination Gitea with enough disk for cloned repos + attachments
 - Optional: object storage or snapshots for long-term archiving of the mirror volume
 

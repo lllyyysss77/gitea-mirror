@@ -14,7 +14,7 @@ You may still collaborate on GitHub every day, yet want a LAN Gitea copy you con
 ## Requirements
 
 - Gitea Mirror deployed (Docker, Proxmox LXC, or Helm)
-- GitHub PAT with `repo`, `read:org`, and `admin:org` scopes
+- GitHub PAT with `repo` enabled (add the `read:org` checkbox under `admin:org` to mirror organizations; leave write/admin unchecked)
 - Gitea API token for the target account/org
 - Stable connectivity between the mirror host and both GitHub + Gitea
 

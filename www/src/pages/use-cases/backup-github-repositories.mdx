@@ -14,7 +14,7 @@ GitHub is great—right up until an outage, SSO change, or account lockout stran
 ## Requirements
 
 - Docker Engine and Compose on the host that will run the mirror
-- A GitHub personal access token with `repo`, `read:org`, and `admin:org` if you mirror orgs
+- A GitHub personal access token (classic) with `repo`, plus the `read:org` checkbox under `admin:org` when you mirror organizations (leave the write/admin boxes unchecked)
 - A self-hosted Gitea instance (can be on the same box) and admin or org owner credentials
 - Open ports 4321 (web UI) and 3000 (default Gitea) inside your network
 
@@ -41,7 +41,7 @@ Wait for "Server started" before moving on.
 
 ### 2. Generate tokens and connect GitHub
 
-1. Create a GitHub personal access token (classic) with at least `repo`, `read:org`, and `admin:org` if you want organization mirrors.
+1. Create a GitHub personal access token (classic) with `repo` enabled and, inside the `admin:org` section, check `read:org` so the mirror can list organization repositories—leave `write:org` and `admin:org` unchecked.
 2. Log in to Gitea and create an access token for an admin/owner account with `write:repository`.
 3. Visit `http://<host>:4321` and sign up—the first user becomes admin.
 4. Complete the setup wizard:
