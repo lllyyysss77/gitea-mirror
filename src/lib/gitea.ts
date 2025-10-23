@@ -1558,6 +1558,8 @@ export const mirrorGitRepoIssuesToGitea = async ({
       repo,
       state: "all",
       per_page: 100,
+      sort: "created",
+      direction: "asc",
     },
     (res) => res.data
   );
@@ -1589,6 +1591,12 @@ export const mirrorGitRepoIssuesToGitea = async ({
 
   // Import the processWithRetry function
   const { processWithRetry } = await import("@/lib/utils/concurrency");
+
+  const rawIssueConcurrency = config.giteaConfig?.issueConcurrency ?? 3;
+  const issueConcurrencyLimit =
+    Number.isFinite(rawIssueConcurrency)
+      ? Math.max(1, Math.floor(rawIssueConcurrency))
+      : 3;
 
   // Process issues in parallel with concurrency control
   await processWithRetry(
@@ -1694,7 +1702,7 @@ export const mirrorGitRepoIssuesToGitea = async ({
       return issue;
     },
     {
-      concurrencyLimit: 3, // Process 3 issues at a time
+      concurrencyLimit: issueConcurrencyLimit,
       maxRetries: 2,
       retryDelay: 2000,
       onProgress: (completed, total, result) => {
@@ -1966,6 +1974,8 @@ export async function mirrorGitRepoPullRequestsToGitea({
       repo,
       state: "all",
       per_page: 100,
+      sort: "created",
+      direction: "asc",
     },
     (res) => res.data
   );
@@ -2021,6 +2031,12 @@ export async function mirrorGitRepoPullRequestsToGitea({
   }
 
   const { processWithRetry } = await import("@/lib/utils/concurrency");
+
+  const rawPullConcurrency = config.giteaConfig?.pullRequestConcurrency ?? 5;
+  const pullRequestConcurrencyLimit =
+    Number.isFinite(rawPullConcurrency)
+      ? Math.max(1, Math.floor(rawPullConcurrency))
+      : 5;
 
   let successCount = 0;
   let failedCount = 0;
@@ -2144,7 +2160,7 @@ export async function mirrorGitRepoPullRequestsToGitea({
       }
     },
     {
-      concurrencyLimit: 5,
+      concurrencyLimit: pullRequestConcurrencyLimit,
       maxRetries: 3,
       retryDelay: 1000,
     }

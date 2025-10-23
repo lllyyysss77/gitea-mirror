@@ -13,6 +13,8 @@ export interface GiteaConfig {
   preserveOrgStructure: boolean;
   mirrorStrategy?: MirrorStrategy; // New field for the strategy
   personalReposOrg?: string; // Override destination for personal repos
+  issueConcurrency?: number;
+  pullRequestConcurrency?: number;
 }
 
 export interface ScheduleConfig {
