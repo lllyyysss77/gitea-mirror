@@ -149,7 +149,7 @@ jobs:
             ### Pull and Test
             \`\`\`bash
             docker pull ${imagePath}
-            docker run -d -p 3000:3000 --name gitea-mirror-test ${imagePath}
+            docker run -d -p 4321:4321 --name gitea-mirror-test ${imagePath}
             \`\`\`
 
             ### Docker Compose Testing
@@ -158,7 +158,7 @@ jobs:
               gitea-mirror:
                 image: ${imagePath}
                 ports:
-                  - "3000:3000"
+                  - "4321:4321"
                 environment:
                   - BETTER_AUTH_SECRET=your-secret-here
             \`\`\`
@@ -224,4 +224,3 @@ jobs:
         continue-on-error: true
         with:
           sarif_file: scout-results.sarif
-
