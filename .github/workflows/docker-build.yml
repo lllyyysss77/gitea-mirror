@@ -149,7 +149,11 @@ jobs:
             ### Pull and Test
             \`\`\`bash
             docker pull ${imagePath}
-            docker run -d -p 4321:4321 --name gitea-mirror-test ${imagePath}
+            docker run -d \
+              -p 4321:4321 \
+              -e BETTER_AUTH_SECRET=your-secret-here \
+              -e BETTER_AUTH_URL=http://localhost:4321 \
+              --name gitea-mirror-test ${imagePath}
             \`\`\`
 
             ### Docker Compose Testing
@@ -161,6 +165,9 @@ jobs:
                   - "4321:4321"
                 environment:
                   - BETTER_AUTH_SECRET=your-secret-here
+                  - BETTER_AUTH_URL=http://localhost:4321
+                  - MIRROR_ISSUE_CONCURRENCY=3
+                  - MIRROR_PULL_REQUEST_CONCURRENCY=5
             \`\`\`
 
             > 💡 **Note:** PR images are tagged as \`pr-<number>\` and only built for \`linux/amd64\` to speed up CI.
