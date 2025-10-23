@@ -26,6 +26,9 @@ services:
       - HOST=0.0.0.0
       - PORT=4321
       - PUBLIC_BETTER_AUTH_URL=${PUBLIC_BETTER_AUTH_URL:-http://localhost:4321}
+      # Optional concurrency controls (defaults match in-app defaults)
+      - MIRROR_ISSUE_CONCURRENCY=${MIRROR_ISSUE_CONCURRENCY:-3}
+      - MIRROR_PULL_REQUEST_CONCURRENCY=${MIRROR_PULL_REQUEST_CONCURRENCY:-5}
       
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=3", "--spider", "http://localhost:4321/api/health"]
