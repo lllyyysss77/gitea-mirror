@@ -10,10 +10,6 @@
   </p>
 </p>
 
-> [!IMPORTANT]
-> **Upgrading to v3?** v3 requires a fresh start with a new data volume. Please read the [Upgrade Guide](UPGRADE.md) for instructions.
-
-
 ## 🚀 Quick Start
 
 ```bash
