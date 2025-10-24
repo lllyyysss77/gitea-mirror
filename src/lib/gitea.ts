@@ -12,6 +12,7 @@ import { createMirrorJob } from "./helpers";
 import { db, organizations, repositories } from "./db";
 import { eq, and } from "drizzle-orm";
 import { decryptConfigTokens } from "./utils/config-encryption";
+import { formatDateShort } from "./utils";
 
 /**
  * Helper function to get organization configuration including destination override
@@ -1646,11 +1647,15 @@ export const mirrorGitRepoIssuesToGitea = async ({
               .join(", ")} on GitHub.`
           : "";
 
+      const issueAuthor = issue.user?.login ?? "unknown";
+      const issueCreatedOn = formatDateShort(issue.created_at);
+      const issueOriginHeader = `Originally created by @${issueAuthor} on GitHub${
+        issueCreatedOn ? ` (${issueCreatedOn})` : ""
+      }.`;
+
       const issuePayload: any = {
         title: issue.title,
-        body: `Originally created by @${
-          issue.user?.login
-        } on GitHub.${originalAssignees}\n\n${issue.body || ""}`,
+        body: `${issueOriginHeader}${originalAssignees}\n\n${issue.body ?? ""}`,
         closed: issue.state === "closed",
         labels: giteaLabelIds,
       };
@@ -1690,10 +1695,16 @@ export const mirrorGitRepoIssuesToGitea = async ({
         await processWithRetry(
           sortedComments,
           async (comment) => {
+            const commenter = comment.user?.login ?? "unknown";
+            const commentDate = formatDateShort(comment.created_at);
+            const commentHeader = `@${commenter} commented on GitHub${
+              commentDate ? ` (${commentDate})` : ""
+            }:`;
+
             await httpPost(
               `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues/${createdIssue.data.number}/comments`,
               {
-                body: `@${comment.user?.login} commented on GitHub:\n\n${comment.body}`,
+                body: `${commentHeader}\n\n${comment.body ?? ""}`,
               },
               {
                 Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
