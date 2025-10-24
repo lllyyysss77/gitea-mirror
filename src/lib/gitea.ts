@@ -1592,7 +1592,7 @@ export const mirrorGitRepoIssuesToGitea = async ({
   // Import the processWithRetry function
   const { processWithRetry } = await import("@/lib/utils/concurrency");
 
-  const rawIssueConcurrency = config.giteaConfig?.issueConcurrency ?? 1;
+  const rawIssueConcurrency = config.giteaConfig?.issueConcurrency ?? 3;
   const issueConcurrencyLimit =
     Number.isFinite(rawIssueConcurrency)
       ? Math.max(1, Math.floor(rawIssueConcurrency))
@@ -1600,7 +1600,7 @@ export const mirrorGitRepoIssuesToGitea = async ({
 
   if (issueConcurrencyLimit > 1) {
     console.warn(
-      `[Issues] Concurrency is set to ${issueConcurrencyLimit}. This may lead to out-of-order issue creation in Gitea.`
+      `[Issues] Concurrency is set to ${issueConcurrencyLimit}. This may lead to out-of-order issue creation in Gitea but is faster.`
     );
   }
 
@@ -2047,7 +2047,7 @@ export async function mirrorGitRepoPullRequestsToGitea({
 
   const { processWithRetry } = await import("@/lib/utils/concurrency");
 
-  const rawPullConcurrency = config.giteaConfig?.pullRequestConcurrency ?? 1;
+  const rawPullConcurrency = config.giteaConfig?.pullRequestConcurrency ?? 5;
   const pullRequestConcurrencyLimit =
     Number.isFinite(rawPullConcurrency)
       ? Math.max(1, Math.floor(rawPullConcurrency))
