@@ -12,6 +12,7 @@ import { createMirrorJob } from "./helpers";
 import { db, organizations, repositories } from "./db";
 import { eq, and } from "drizzle-orm";
 import { decryptConfigTokens } from "./utils/config-encryption";
+import { formatDateShort } from "./utils";
 
 /**
  * Helper function to get organization configuration including destination override
@@ -1558,6 +1559,8 @@ export const mirrorGitRepoIssuesToGitea = async ({
       repo,
       state: "all",
       per_page: 100,
+      sort: "created",
+      direction: "asc",
     },
     (res) => res.data
   );
@@ -1589,6 +1592,18 @@ export const mirrorGitRepoIssuesToGitea = async ({
 
   // Import the processWithRetry function
   const { processWithRetry } = await import("@/lib/utils/concurrency");
+
+  const rawIssueConcurrency = config.giteaConfig?.issueConcurrency ?? 3;
+  const issueConcurrencyLimit =
+    Number.isFinite(rawIssueConcurrency)
+      ? Math.max(1, Math.floor(rawIssueConcurrency))
+      : 1;
+
+  if (issueConcurrencyLimit > 1) {
+    console.warn(
+      `[Issues] Concurrency is set to ${issueConcurrencyLimit}. This may lead to out-of-order issue creation in Gitea but is faster.`
+    );
+  }
 
   // Process issues in parallel with concurrency control
   await processWithRetry(
@@ -1632,11 +1647,15 @@ export const mirrorGitRepoIssuesToGitea = async ({
               .join(", ")} on GitHub.`
           : "";
 
+      const issueAuthor = issue.user?.login ?? "unknown";
+      const issueCreatedOn = formatDateShort(issue.created_at);
+      const issueOriginHeader = `Originally created by @${issueAuthor} on GitHub${
+        issueCreatedOn ? ` (${issueCreatedOn})` : ""
+      }.`;
+
       const issuePayload: any = {
         title: issue.title,
-        body: `Originally created by @${
-          issue.user?.login
-        } on GitHub.${originalAssignees}\n\n${issue.body || ""}`,
+        body: `${issueOriginHeader}${originalAssignees}\n\n${issue.body ?? ""}`,
         closed: issue.state === "closed",
         labels: giteaLabelIds,
       };
@@ -1662,15 +1681,30 @@ export const mirrorGitRepoIssuesToGitea = async ({
         (res) => res.data
       );
 
-      // Process comments in parallel with concurrency control
-      if (comments.length > 0) {
+      // Ensure comments are applied in chronological order to preserve discussion flow
+      const sortedComments = comments
+        .slice()
+        .sort(
+          (a, b) =>
+            new Date(a.created_at || 0).getTime() -
+            new Date(b.created_at || 0).getTime()
+        );
+
+      // Process comments sequentially to preserve historical ordering
+      if (sortedComments.length > 0) {
         await processWithRetry(
-          comments,
+          sortedComments,
           async (comment) => {
+            const commenter = comment.user?.login ?? "unknown";
+            const commentDate = formatDateShort(comment.created_at);
+            const commentHeader = `@${commenter} commented on GitHub${
+              commentDate ? ` (${commentDate})` : ""
+            }:`;
+
             await httpPost(
               `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues/${createdIssue.data.number}/comments`,
               {
-                body: `@${comment.user?.login} commented on GitHub:\n\n${comment.body}`,
+                body: `${commentHeader}\n\n${comment.body ?? ""}`,
               },
               {
                 Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
@@ -1679,7 +1713,7 @@ export const mirrorGitRepoIssuesToGitea = async ({
             return comment;
           },
           {
-            concurrencyLimit: 5,
+            concurrencyLimit: 1,
             maxRetries: 2,
             retryDelay: 1000,
             onRetry: (_comment, error, attempt) => {
@@ -1694,7 +1728,7 @@ export const mirrorGitRepoIssuesToGitea = async ({
       return issue;
     },
     {
-      concurrencyLimit: 3, // Process 3 issues at a time
+      concurrencyLimit: issueConcurrencyLimit,
       maxRetries: 2,
       retryDelay: 2000,
       onProgress: (completed, total, result) => {
@@ -1966,6 +2000,8 @@ export async function mirrorGitRepoPullRequestsToGitea({
       repo,
       state: "all",
       per_page: 100,
+      sort: "created",
+      direction: "asc",
     },
     (res) => res.data
   );
@@ -2021,6 +2057,18 @@ export async function mirrorGitRepoPullRequestsToGitea({
   }
 
   const { processWithRetry } = await import("@/lib/utils/concurrency");
+
+  const rawPullConcurrency = config.giteaConfig?.pullRequestConcurrency ?? 5;
+  const pullRequestConcurrencyLimit =
+    Number.isFinite(rawPullConcurrency)
+      ? Math.max(1, Math.floor(rawPullConcurrency))
+      : 1;
+
+  if (pullRequestConcurrencyLimit > 1) {
+    console.warn(
+      `[Pull Requests] Concurrency is set to ${pullRequestConcurrencyLimit}. This may lead to out-of-order pull request mirroring in Gitea.`
+    );
+  }
 
   let successCount = 0;
   let failedCount = 0;
@@ -2144,7 +2192,7 @@ export async function mirrorGitRepoPullRequestsToGitea({
       }
     },
     {
-      concurrencyLimit: 5,
+      concurrencyLimit: pullRequestConcurrencyLimit,
       maxRetries: 3,
       retryDelay: 1000,
     }

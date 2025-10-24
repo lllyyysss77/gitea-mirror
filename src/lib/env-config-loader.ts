@@ -49,6 +49,9 @@ interface EnvConfig {
     mirrorLabels?: boolean;
     mirrorMilestones?: boolean;
     mirrorMetadata?: boolean;
+    releaseLimit?: number;
+    issueConcurrency?: number;
+    pullRequestConcurrency?: number;
   };
   schedule: {
     enabled?: boolean;
@@ -136,6 +139,8 @@ function parseEnvConfig(): EnvConfig {
       mirrorMilestones: process.env.MIRROR_MILESTONES === 'true',
       mirrorMetadata: process.env.MIRROR_METADATA === 'true',
       releaseLimit: process.env.RELEASE_LIMIT ? parseInt(process.env.RELEASE_LIMIT, 10) : undefined,
+      issueConcurrency: process.env.MIRROR_ISSUE_CONCURRENCY ? parseInt(process.env.MIRROR_ISSUE_CONCURRENCY, 10) : undefined,
+      pullRequestConcurrency: process.env.MIRROR_PULL_REQUEST_CONCURRENCY ? parseInt(process.env.MIRROR_PULL_REQUEST_CONCURRENCY, 10) : undefined,
     },
     schedule: {
       enabled: process.env.SCHEDULE_ENABLED === 'true' || 
@@ -277,6 +282,12 @@ export async function initializeConfigFromEnv(): Promise<void> {
       // Mirror metadata options
       mirrorReleases: envConfig.mirror.mirrorReleases ?? existingConfig?.[0]?.giteaConfig?.mirrorReleases ?? false,
       releaseLimit: envConfig.mirror.releaseLimit ?? existingConfig?.[0]?.giteaConfig?.releaseLimit ?? 10,
+      issueConcurrency: envConfig.mirror.issueConcurrency && envConfig.mirror.issueConcurrency > 0
+        ? envConfig.mirror.issueConcurrency
+        : existingConfig?.[0]?.giteaConfig?.issueConcurrency ?? 3,
+      pullRequestConcurrency: envConfig.mirror.pullRequestConcurrency && envConfig.mirror.pullRequestConcurrency > 0
+        ? envConfig.mirror.pullRequestConcurrency
+        : existingConfig?.[0]?.giteaConfig?.pullRequestConcurrency ?? 5,
       mirrorMetadata: envConfig.mirror.mirrorMetadata ?? (envConfig.mirror.mirrorIssues || envConfig.mirror.mirrorPullRequests || envConfig.mirror.mirrorLabels || envConfig.mirror.mirrorMilestones) ?? existingConfig?.[0]?.giteaConfig?.mirrorMetadata ?? false,
       mirrorIssues: envConfig.mirror.mirrorIssues ?? existingConfig?.[0]?.giteaConfig?.mirrorIssues ?? false,
       mirrorPullRequests: envConfig.mirror.mirrorPullRequests ?? existingConfig?.[0]?.giteaConfig?.mirrorPullRequests ?? false,

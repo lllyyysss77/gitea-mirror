@@ -89,6 +89,8 @@ export function mapUiToDbConfig(
     forkStrategy: advancedOptions.skipForks ? "skip" : "reference",
     
     // Mirror options from UI
+    issueConcurrency: giteaConfig.issueConcurrency ?? 3,
+    pullRequestConcurrency: giteaConfig.pullRequestConcurrency ?? 5,
     mirrorReleases: mirrorOptions.mirrorReleases,
     releaseLimit: mirrorOptions.releaseLimit || 10,
     mirrorMetadata: mirrorOptions.mirrorMetadata,
@@ -132,6 +134,8 @@ export function mapDbToUiConfig(dbConfig: any): {
     preserveOrgStructure: dbConfig.giteaConfig?.preserveVisibility || false, // Map preserveVisibility
     mirrorStrategy: dbConfig.githubConfig?.mirrorStrategy || "preserve", // Get from GitHub config
     personalReposOrg: undefined, // Not stored in current schema
+    issueConcurrency: dbConfig.giteaConfig?.issueConcurrency ?? 3,
+    pullRequestConcurrency: dbConfig.giteaConfig?.pullRequestConcurrency ?? 5,
   };
 
   // Map mirror options from various database fields

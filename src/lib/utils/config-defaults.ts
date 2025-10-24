@@ -86,6 +86,8 @@ export async function createDefaultConfig({ userId, envOverrides = {} }: Default
       addTopics: true,
       preserveVisibility: false,
       forkStrategy: "reference",
+      issueConcurrency: 3,
+      pullRequestConcurrency: 5,
     },
     include: [],
     exclude: [],

@@ -149,7 +149,11 @@ jobs:
             ### Pull and Test
             \`\`\`bash
             docker pull ${imagePath}
-            docker run -d -p 3000:3000 --name gitea-mirror-test ${imagePath}
+            docker run -d \
+              -p 4321:4321 \
+              -e BETTER_AUTH_SECRET=your-secret-here \
+              -e BETTER_AUTH_URL=http://localhost:4321 \
+              --name gitea-mirror-test ${imagePath}
             \`\`\`
 
             ### Docker Compose Testing
@@ -158,9 +162,11 @@ jobs:
               gitea-mirror:
                 image: ${imagePath}
                 ports:
-                  - "3000:3000"
+                  - "4321:4321"
                 environment:
                   - BETTER_AUTH_SECRET=your-secret-here
+                  - BETTER_AUTH_URL=http://localhost:4321
+                  - BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:4321
             \`\`\`
 
             > 💡 **Note:** PR images are tagged as \`pr-<number>\` and only built for \`linux/amd64\` to speed up CI.
@@ -224,4 +230,3 @@ jobs:
         continue-on-error: true
         with:
           sarif_file: scout-results.sarif
-
