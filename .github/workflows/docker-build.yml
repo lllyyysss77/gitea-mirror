@@ -166,8 +166,7 @@ jobs:
                 environment:
                   - BETTER_AUTH_SECRET=your-secret-here
                   - BETTER_AUTH_URL=http://localhost:4321
-                  - MIRROR_ISSUE_CONCURRENCY=3
-                  - MIRROR_PULL_REQUEST_CONCURRENCY=5
+                  - BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:4321
             \`\`\`
 
             > 💡 **Note:** PR images are tagged as \`pr-<number>\` and only built for \`linux/amd64\` to speed up CI.
