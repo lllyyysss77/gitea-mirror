@@ -141,6 +141,10 @@ Control what content gets mirrored from GitHub to Gitea.
 | `MIRROR_PULL_REQUESTS` | Mirror pull requests (requires MIRROR_METADATA=true) | `false` | `true`, `false` |
 | `MIRROR_LABELS` | Mirror labels (requires MIRROR_METADATA=true) | `false` | `true`, `false` |
 | `MIRROR_MILESTONES` | Mirror milestones (requires MIRROR_METADATA=true) | `false` | `true`, `false` |
+| `MIRROR_ISSUE_CONCURRENCY` | Number of issues processed in parallel. Set above `1` to speed up mirroring at the risk of out-of-order creation. | `1` | Integer ≥ 1 |
+| `MIRROR_PULL_REQUEST_CONCURRENCY` | Number of pull requests processed in parallel. Values above `1` may cause ordering differences. | `1` | Integer ≥ 1 |
+
+> **Ordering vs Throughput:** Metadata now mirrors sequentially by default to preserve chronology. Increase the concurrency variables only if you can tolerate minor out-of-order entries.
 
 ## Automation Configuration
 
