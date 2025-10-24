@@ -284,10 +284,10 @@ export async function initializeConfigFromEnv(): Promise<void> {
       releaseLimit: envConfig.mirror.releaseLimit ?? existingConfig?.[0]?.giteaConfig?.releaseLimit ?? 10,
       issueConcurrency: envConfig.mirror.issueConcurrency && envConfig.mirror.issueConcurrency > 0
         ? envConfig.mirror.issueConcurrency
-        : existingConfig?.[0]?.giteaConfig?.issueConcurrency ?? 3,
+        : existingConfig?.[0]?.giteaConfig?.issueConcurrency ?? 1,
       pullRequestConcurrency: envConfig.mirror.pullRequestConcurrency && envConfig.mirror.pullRequestConcurrency > 0
         ? envConfig.mirror.pullRequestConcurrency
-        : existingConfig?.[0]?.giteaConfig?.pullRequestConcurrency ?? 5,
+        : existingConfig?.[0]?.giteaConfig?.pullRequestConcurrency ?? 1,
       mirrorMetadata: envConfig.mirror.mirrorMetadata ?? (envConfig.mirror.mirrorIssues || envConfig.mirror.mirrorPullRequests || envConfig.mirror.mirrorLabels || envConfig.mirror.mirrorMilestones) ?? existingConfig?.[0]?.giteaConfig?.mirrorMetadata ?? false,
       mirrorIssues: envConfig.mirror.mirrorIssues ?? existingConfig?.[0]?.giteaConfig?.mirrorIssues ?? false,
       mirrorPullRequests: envConfig.mirror.mirrorPullRequests ?? existingConfig?.[0]?.giteaConfig?.mirrorPullRequests ?? false,

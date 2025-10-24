@@ -54,8 +54,8 @@ export const giteaConfigSchema = z.object({
     .enum(["skip", "reference", "full-copy"])
     .default("reference"),
   // Mirror options
-  issueConcurrency: z.number().int().min(1).default(3),
-  pullRequestConcurrency: z.number().int().min(1).default(5),
+  issueConcurrency: z.number().int().min(1).default(1),
+  pullRequestConcurrency: z.number().int().min(1).default(1),
   mirrorReleases: z.boolean().default(false),
   releaseLimit: z.number().default(10),
   mirrorMetadata: z.boolean().default(false),

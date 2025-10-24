@@ -1592,11 +1592,17 @@ export const mirrorGitRepoIssuesToGitea = async ({
   // Import the processWithRetry function
   const { processWithRetry } = await import("@/lib/utils/concurrency");
 
-  const rawIssueConcurrency = config.giteaConfig?.issueConcurrency ?? 3;
+  const rawIssueConcurrency = config.giteaConfig?.issueConcurrency ?? 1;
   const issueConcurrencyLimit =
     Number.isFinite(rawIssueConcurrency)
       ? Math.max(1, Math.floor(rawIssueConcurrency))
-      : 3;
+      : 1;
+
+  if (issueConcurrencyLimit > 1) {
+    console.warn(
+      `[Issues] Concurrency is set to ${issueConcurrencyLimit}. This may lead to out-of-order issue creation in Gitea.`
+    );
+  }
 
   // Process issues in parallel with concurrency control
   await processWithRetry(
@@ -1670,10 +1676,19 @@ export const mirrorGitRepoIssuesToGitea = async ({
         (res) => res.data
       );
 
-      // Process comments in parallel with concurrency control
-      if (comments.length > 0) {
+      // Ensure comments are applied in chronological order to preserve discussion flow
+      const sortedComments = comments
+        .slice()
+        .sort(
+          (a, b) =>
+            new Date(a.created_at || 0).getTime() -
+            new Date(b.created_at || 0).getTime()
+        );
+
+      // Process comments sequentially to preserve historical ordering
+      if (sortedComments.length > 0) {
         await processWithRetry(
-          comments,
+          sortedComments,
           async (comment) => {
             await httpPost(
               `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues/${createdIssue.data.number}/comments`,
@@ -1687,7 +1702,7 @@ export const mirrorGitRepoIssuesToGitea = async ({
             return comment;
           },
           {
-            concurrencyLimit: 5,
+            concurrencyLimit: 1,
             maxRetries: 2,
             retryDelay: 1000,
             onRetry: (_comment, error, attempt) => {
@@ -2032,11 +2047,17 @@ export async function mirrorGitRepoPullRequestsToGitea({
 
   const { processWithRetry } = await import("@/lib/utils/concurrency");
 
-  const rawPullConcurrency = config.giteaConfig?.pullRequestConcurrency ?? 5;
+  const rawPullConcurrency = config.giteaConfig?.pullRequestConcurrency ?? 1;
   const pullRequestConcurrencyLimit =
     Number.isFinite(rawPullConcurrency)
       ? Math.max(1, Math.floor(rawPullConcurrency))
-      : 5;
+      : 1;
+
+  if (pullRequestConcurrencyLimit > 1) {
+    console.warn(
+      `[Pull Requests] Concurrency is set to ${pullRequestConcurrencyLimit}. This may lead to out-of-order pull request mirroring in Gitea.`
+    );
+  }
 
   let successCount = 0;
   let failedCount = 0;
