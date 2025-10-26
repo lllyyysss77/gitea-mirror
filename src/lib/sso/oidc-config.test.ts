@@ -24,6 +24,7 @@ describe("normalizeOidcProviderConfig", () => {
     expect(result.oidcConfig.userInfoEndpoint).toBe("https://auth.example.com/userinfo");
     expect(result.oidcConfig.scopes).toEqual(["openid", "email"]);
     expect(result.oidcConfig.pkce).toBe(false);
+    expect(result.oidcConfig.discoveryEndpoint).toBe("https://auth.example.com/.well-known/openid-configuration");
   });
 
   it("derives missing fields from discovery", async () => {
@@ -46,6 +47,24 @@ describe("normalizeOidcProviderConfig", () => {
     expect(result.oidcConfig.jwksEndpoint).toBe("https://auth.example.com/jwks");
     expect(result.oidcConfig.userInfoEndpoint).toBe("https://auth.example.com/userinfo");
     expect(result.oidcConfig.scopes).toEqual(["openid", "email", "profile"]);
+    expect(result.oidcConfig.discoveryEndpoint).toBe("https://auth.example.com/.well-known/openid-configuration");
+  });
+
+  it("preserves trailing slash issuers when building discovery endpoints", async () => {
+    const trailingIssuer = "https://auth.example.com/application/o/example/";
+    const requestedUrls: string[] = [];
+    const fetchMock: typeof fetch = async (url) => {
+      requestedUrls.push(typeof url === "string" ? url : url.url);
+      return new Response(JSON.stringify({
+        authorization_endpoint: "https://auth.example.com/application/o/example/auth",
+        token_endpoint: "https://auth.example.com/application/o/example/token",
+      }));
+    };
+
+    const result = await normalizeOidcProviderConfig(trailingIssuer, {}, fetchMock);
+
+    expect(requestedUrls[0]).toBe("https://auth.example.com/application/o/example/.well-known/openid-configuration");
+    expect(result.oidcConfig.discoveryEndpoint).toBe("https://auth.example.com/application/o/example/.well-known/openid-configuration");
   });
 
   it("throws for invalid issuer URL", async () => {

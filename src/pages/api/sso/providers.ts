@@ -82,11 +82,10 @@ export async function POST(context: APIContext) {
       );
     }
 
-    // Clean issuer URL (remove trailing slash); validate format
-    let cleanIssuer = issuer;
+    // Validate issuer URL format but keep trailing slash if provided
+    const trimmedIssuer = issuer.toString().trim();
     try {
-      const issuerUrl = new URL(issuer.toString().trim());
-      cleanIssuer = issuerUrl.toString().replace(/\/$/, "");
+      new URL(trimmedIssuer);
     } catch {
       return new Response(
         JSON.stringify({ error: `Invalid issuer URL format: ${issuer}` }),
@@ -99,7 +98,7 @@ export async function POST(context: APIContext) {
 
     let normalized;
     try {
-      normalized = await normalizeOidcProviderConfig(cleanIssuer, {
+      normalized = await normalizeOidcProviderConfig(trimmedIssuer, {
         clientId,
         clientSecret,
         authorizationEndpoint,
@@ -134,7 +133,7 @@ export async function POST(context: APIContext) {
       .insert(ssoProviders)
       .values({
         id: nanoid(),
-        issuer: cleanIssuer,
+        issuer: trimmedIssuer,
         domain,
         oidcConfig: JSON.stringify(storedOidcConfig),
         userId: user.id,
@@ -213,12 +212,10 @@ export async function PUT(context: APIContext) {
 
     // Parse existing config
     const existingConfig = JSON.parse(existingProvider.oidcConfig);
-    const effectiveIssuer = issuer || existingProvider.issuer;
+    const effectiveIssuer = issuer?.toString().trim() || existingProvider.issuer;
 
-    let cleanIssuer = effectiveIssuer;
     try {
-      const issuerUrl = new URL(effectiveIssuer.toString().trim());
-      cleanIssuer = issuerUrl.toString().replace(/\/$/, "");
+      new URL(effectiveIssuer);
     } catch {
       return new Response(
         JSON.stringify({ error: `Invalid issuer URL format: ${effectiveIssuer}` }),
@@ -244,7 +241,7 @@ export async function PUT(context: APIContext) {
 
     let normalized;
     try {
-      normalized = await normalizeOidcProviderConfig(cleanIssuer, mergedConfig);
+      normalized = await normalizeOidcProviderConfig(effectiveIssuer, mergedConfig);
     } catch (error) {
       if (error instanceof OidcConfigError) {
         return new Response(
@@ -266,7 +263,7 @@ export async function PUT(context: APIContext) {
     const [updatedProvider] = await db
       .update(ssoProviders)
       .set({
-        issuer: cleanIssuer,
+        issuer: effectiveIssuer,
         domain: domain || existingProvider.domain,
         oidcConfig: JSON.stringify(storedOidcConfig),
         organizationId: organizationId !== undefined ? organizationId : existingProvider.organizationId,

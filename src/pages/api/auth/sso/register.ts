@@ -29,12 +29,13 @@ export async function POST(context: APIContext) {
       );
     }
 
-    // Validate issuer URL format
+    // Validate issuer URL format while preserving trailing slash when provided
     let validatedIssuer = issuer;
     if (issuer && typeof issuer === 'string' && issuer.trim() !== '') {
       try {
-        const issuerUrl = new URL(issuer.trim());
-        validatedIssuer = issuerUrl.toString().replace(/\/$/, ''); // Remove trailing slash
+        const trimmedIssuer = issuer.trim();
+        new URL(trimmedIssuer);
+        validatedIssuer = trimmedIssuer;
       } catch (e) {
         return new Response(
           JSON.stringify({ error: `Invalid issuer URL format: ${issuer}` }),
