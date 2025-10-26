@@ -326,6 +326,8 @@ Enable users to sign in with external identity providers like Google, Azure AD, 
 https://your-domain.com/api/auth/sso/callback/{provider-id}
 ```
 
+Need help? The [SSO & OIDC guide](docs/SSO-OIDC-SETUP.md) now includes a working Authentik walkthrough plus troubleshooting tips. If you upgraded from a version earlier than v3.8.10 and see `TypeError … url.startsWith` after the callback, delete the old provider and add it again using the Discover button (see [#73](https://github.com/RayLabsHQ/gitea-mirror/issues/73) and [#122](https://github.com/RayLabsHQ/gitea-mirror/issues/122)).
+
 ### 3. Header Authentication (Reverse Proxy)
 Perfect for automatic authentication when using reverse proxies like Authentik, Authelia, or Traefik Forward Auth.
 
