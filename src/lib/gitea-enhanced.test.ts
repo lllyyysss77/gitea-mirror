@@ -8,6 +8,10 @@ mock.module("@/lib/helpers", () => ({
 }));
 
 const mockMirrorGitHubReleasesToGitea = mock(() => Promise.resolve());
+const mockMirrorGitRepoIssuesToGitea = mock(() => Promise.resolve());
+const mockMirrorGitRepoPullRequestsToGitea = mock(() => Promise.resolve());
+const mockMirrorGitRepoLabelsToGitea = mock(() => Promise.resolve());
+const mockMirrorGitRepoMilestonesToGitea = mock(() => Promise.resolve());
 const mockGetGiteaRepoOwnerAsync = mock(() => Promise.resolve("starred"));
 
 // Mock the database module
@@ -128,6 +132,36 @@ const mockHttpGet = mock(async (url: string, headers?: any) => {
       headers: new Headers()
     };
   }
+  if (url.includes("/api/v1/repos/starred/metadata-repo")) {
+    return {
+      data: {
+        id: 790,
+        name: "metadata-repo",
+        mirror: true,
+        owner: { login: "starred" },
+        mirror_interval: "8h",
+        private: false,
+      },
+      status: 200,
+      statusText: "OK",
+      headers: new Headers(),
+    };
+  }
+  if (url.includes("/api/v1/repos/starred/already-synced-repo")) {
+    return {
+      data: {
+        id: 791,
+        name: "already-synced-repo",
+        mirror: true,
+        owner: { login: "starred" },
+        mirror_interval: "8h",
+        private: false,
+      },
+      status: 200,
+      statusText: "OK",
+      headers: new Headers(),
+    };
+  }
   if (url.includes("/api/v1/repos/")) {
     throw new MockHttpError("Not Found", 404, "Not Found");
   }
@@ -224,6 +258,10 @@ describe("Enhanced Gitea Operations", () => {
     mockDb.insert.mockClear();
     mockDb.update.mockClear();
     mockMirrorGitHubReleasesToGitea.mockClear();
+    mockMirrorGitRepoIssuesToGitea.mockClear();
+    mockMirrorGitRepoPullRequestsToGitea.mockClear();
+    mockMirrorGitRepoLabelsToGitea.mockClear();
+    mockMirrorGitRepoMilestonesToGitea.mockClear();
     mockGetGiteaRepoOwnerAsync.mockClear();
     mockGetGiteaRepoOwnerAsync.mockImplementation(() => Promise.resolve("starred"));
     // Reset tracking variables
@@ -426,6 +464,10 @@ describe("Enhanced Gitea Operations", () => {
           {
             getGiteaRepoOwnerAsync: mockGetGiteaRepoOwnerAsync,
             mirrorGitHubReleasesToGitea: mockMirrorGitHubReleasesToGitea,
+            mirrorGitRepoIssuesToGitea: mockMirrorGitRepoIssuesToGitea,
+            mirrorGitRepoPullRequestsToGitea: mockMirrorGitRepoPullRequestsToGitea,
+            mirrorGitRepoLabelsToGitea: mockMirrorGitRepoLabelsToGitea,
+            mirrorGitRepoMilestonesToGitea: mockMirrorGitRepoMilestonesToGitea,
           }
         )
       ).rejects.toThrow("Repository non-mirror-repo is not a mirror. Cannot sync.");
@@ -470,6 +512,10 @@ describe("Enhanced Gitea Operations", () => {
         {
           getGiteaRepoOwnerAsync: mockGetGiteaRepoOwnerAsync,
           mirrorGitHubReleasesToGitea: mockMirrorGitHubReleasesToGitea,
+          mirrorGitRepoIssuesToGitea: mockMirrorGitRepoIssuesToGitea,
+          mirrorGitRepoPullRequestsToGitea: mockMirrorGitRepoPullRequestsToGitea,
+          mirrorGitRepoLabelsToGitea: mockMirrorGitRepoLabelsToGitea,
+          mirrorGitRepoMilestonesToGitea: mockMirrorGitRepoMilestonesToGitea,
         }
       );
 
@@ -481,6 +527,130 @@ describe("Enhanced Gitea Operations", () => {
       expect(releaseCall.giteaRepoName).toBe("mirror-repo");
       expect(releaseCall.config.githubConfig?.token).toBe("github-token");
       expect(releaseCall.octokit).toBeDefined();
+    });
+
+    test("mirrors metadata components when enabled and not previously synced", async () => {
+      const config: Partial<Config> = {
+        userId: "user123",
+        githubConfig: {
+          username: "testuser",
+          token: "github-token",
+          privateRepositories: true,
+          mirrorStarred: false,
+        },
+        giteaConfig: {
+          url: "https://gitea.example.com",
+          token: "encrypted-token",
+          defaultOwner: "testuser",
+          mirrorReleases: true,
+          mirrorMetadata: true,
+          mirrorIssues: true,
+          mirrorPullRequests: true,
+          mirrorLabels: true,
+          mirrorMilestones: true,
+        },
+      };
+
+      const repository: Repository = {
+        id: "repo789",
+        name: "metadata-repo",
+        fullName: "user/metadata-repo",
+        owner: "user",
+        cloneUrl: "https://github.com/user/metadata-repo.git",
+        isPrivate: false,
+        isStarred: false,
+        status: repoStatusEnum.parse("mirrored"),
+        visibility: "public",
+        userId: "user123",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        metadata: null,
+      };
+
+      await syncGiteaRepoEnhanced(
+        { config, repository },
+        {
+          getGiteaRepoOwnerAsync: mockGetGiteaRepoOwnerAsync,
+          mirrorGitHubReleasesToGitea: mockMirrorGitHubReleasesToGitea,
+          mirrorGitRepoIssuesToGitea: mockMirrorGitRepoIssuesToGitea,
+          mirrorGitRepoPullRequestsToGitea: mockMirrorGitRepoPullRequestsToGitea,
+          mirrorGitRepoLabelsToGitea: mockMirrorGitRepoLabelsToGitea,
+          mirrorGitRepoMilestonesToGitea: mockMirrorGitRepoMilestonesToGitea,
+        }
+      );
+
+      expect(mockMirrorGitHubReleasesToGitea).toHaveBeenCalledTimes(1);
+      expect(mockMirrorGitRepoIssuesToGitea).toHaveBeenCalledTimes(1);
+      expect(mockMirrorGitRepoPullRequestsToGitea).toHaveBeenCalledTimes(1);
+      expect(mockMirrorGitRepoMilestonesToGitea).toHaveBeenCalledTimes(1);
+      // Labels should be skipped because issues already import them
+      expect(mockMirrorGitRepoLabelsToGitea).not.toHaveBeenCalled();
+    });
+
+    test("skips metadata mirroring when components already synced", async () => {
+      const config: Partial<Config> = {
+        userId: "user123",
+        githubConfig: {
+          username: "testuser",
+          token: "github-token",
+          privateRepositories: true,
+          mirrorStarred: false,
+        },
+        giteaConfig: {
+          url: "https://gitea.example.com",
+          token: "encrypted-token",
+          defaultOwner: "testuser",
+          mirrorReleases: false,
+          mirrorMetadata: true,
+          mirrorIssues: true,
+          mirrorPullRequests: true,
+          mirrorLabels: true,
+          mirrorMilestones: true,
+        },
+      };
+
+      const repository: Repository = {
+        id: "repo790",
+        name: "already-synced-repo",
+        fullName: "user/already-synced-repo",
+        owner: "user",
+        cloneUrl: "https://github.com/user/already-synced-repo.git",
+        isPrivate: false,
+        isStarred: false,
+        status: repoStatusEnum.parse("mirrored"),
+        visibility: "public",
+        userId: "user123",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        metadata: JSON.stringify({
+          components: {
+            releases: true,
+            issues: true,
+            pullRequests: true,
+            labels: true,
+            milestones: true,
+          },
+          lastSyncedAt: new Date().toISOString(),
+        }),
+      };
+
+      await syncGiteaRepoEnhanced(
+        { config, repository },
+        {
+          getGiteaRepoOwnerAsync: mockGetGiteaRepoOwnerAsync,
+          mirrorGitHubReleasesToGitea: mockMirrorGitHubReleasesToGitea,
+          mirrorGitRepoIssuesToGitea: mockMirrorGitRepoIssuesToGitea,
+          mirrorGitRepoPullRequestsToGitea: mockMirrorGitRepoPullRequestsToGitea,
+          mirrorGitRepoLabelsToGitea: mockMirrorGitRepoLabelsToGitea,
+          mirrorGitRepoMilestonesToGitea: mockMirrorGitRepoMilestonesToGitea,
+        }
+      );
+
+      expect(mockMirrorGitHubReleasesToGitea).not.toHaveBeenCalled();
+      expect(mockMirrorGitRepoIssuesToGitea).not.toHaveBeenCalled();
+      expect(mockMirrorGitRepoPullRequestsToGitea).not.toHaveBeenCalled();
+      expect(mockMirrorGitRepoLabelsToGitea).not.toHaveBeenCalled();
+      expect(mockMirrorGitRepoMilestonesToGitea).not.toHaveBeenCalled();
     });
   });
 
