@@ -36,7 +36,7 @@
         "@types/react-dom": "^19.2.2",
         "astro": "^5.14.8",
         "bcryptjs": "^3.0.2",
-        "better-auth": "1.4.0-beta.12",
+        "better-auth": "1.4.0-beta.13",
         "buffer": "^6.0.3",
         "canvas-confetti": "^1.9.3",
         "class-variance-authority": "^0.7.1",
@@ -150,11 +150,11 @@
 
     "@babel/types": ["@babel/types@7.28.4", "", { "dependencies": { "@babel/helper-string-parser": "^7.27.1", "@babel/helper-validator-identifier": "^7.27.1" } }, "sha512-bkFqkLhh3pMBUQQkpVgWDWq/lqzc2678eUyDlTBhRqhCHFguYYGM0Efga7tYk4TogG/3x0EEl66/OQ+WGbWB/Q=="],
 
-    "@better-auth/core": ["@better-auth/core@1.4.0-beta.12", "", { "dependencies": { "zod": "^4.1.5" }, "peerDependencies": { "@better-auth/utils": "0.3.0", "@better-fetch/fetch": "1.1.18", "better-call": "1.0.24", "better-sqlite3": "^12.4.1", "jose": "^6.1.0", "kysely": "^0.28.5", "nanostores": "^1.0.1" } }, "sha512-2GisAGuSVZS4gtnwP5Owk3RyC6GevZe9zcODTrtbwRCvBTrHUmu0j6bcklK9uNG8DaWDmzCK1+VGA5qIHzg5Pw=="],
+    "@better-auth/core": ["@better-auth/core@1.4.0-beta.13", "", { "dependencies": { "zod": "^4.1.5" }, "peerDependencies": { "@better-auth/utils": "0.3.0", "@better-fetch/fetch": "1.1.18", "better-call": "1.0.24", "jose": "^6.1.0", "kysely": "^0.28.5", "nanostores": "^1.0.1" } }, "sha512-EGySsNv6HQYnlRQDIa7otIMrwFoC0gGLxBum9lC6C3wAsF4l4pn/ECcdIriFpc9ewLb8mGkeMSpvjVBUBND6ew=="],
 
     "@better-auth/sso": ["@better-auth/sso@1.4.0-beta.12", "", { "dependencies": { "@better-fetch/fetch": "1.1.18", "fast-xml-parser": "^5.2.5", "jose": "^6.1.0", "oauth2-mock-server": "^7.2.1", "samlify": "^2.10.1", "zod": "^4.1.5" }, "peerDependencies": { "better-auth": "1.4.0-beta.12" } }, "sha512-iuRuy59J3yXQihZJ34rqYClWyuVjSkxuBkdFblccKbOhNy7pmRO1lfmBMpyeth3ET5Cp0PDVV/z1XBbDcQp0LA=="],
 
-    "@better-auth/telemetry": ["@better-auth/telemetry@1.4.0-beta.12", "", { "dependencies": { "@better-auth/utils": "0.3.0", "@better-fetch/fetch": "1.1.18" }, "peerDependencies": { "@better-auth/core": "1.4.0-beta.12" } }, "sha512-pQ5HITRGXMHQPcPCDnz0xlxFqqxvpD4kQMvY6cdt1vDsPVePHAj9R3S318XEfaw3NAgtw3af/wCN6eBt2u4Kew=="],
+    "@better-auth/telemetry": ["@better-auth/telemetry@1.4.0-beta.13", "", { "dependencies": { "@better-auth/utils": "0.3.0", "@better-fetch/fetch": "1.1.18" }, "peerDependencies": { "@better-auth/core": "1.4.0-beta.13" } }, "sha512-910f+APALhhD79TiujzXp85Pnd2M3TlcTgBfiYF+mk3ouIkBJkl2N6D2ElcgwfiNTg50cFuTkP3AFPYioz8Arw=="],
 
     "@better-auth/utils": ["@better-auth/utils@0.3.0", "", {}, "sha512-W+Adw6ZA6mgvnSnhOki270rwJ42t4XzSK6YWGF//BbVXL6SwCLWfyzBc1lN2m/4RM28KubdBKQ4X5VMoLRNPQw=="],
 
@@ -698,7 +698,7 @@
 
     "before-after-hook": ["before-after-hook@4.0.0", "", {}, "sha512-q6tR3RPqIB1pMiTRMFcZwuG5T8vwp+vUvEG0vuI6B+Rikh5BfPp2fQ82c925FOs+b0lcFQ8CFrL+KbilfZFhOQ=="],
 
-    "better-auth": ["better-auth@1.4.0-beta.12", "", { "dependencies": { "@better-auth/core": "1.4.0-beta.12", "@better-auth/telemetry": "1.4.0-beta.12", "@better-auth/utils": "0.3.0", "@better-fetch/fetch": "1.1.18", "@noble/ciphers": "^2.0.0", "@noble/hashes": "^2.0.0", "@simplewebauthn/browser": "^13.1.2", "@simplewebauthn/server": "^13.1.2", "better-call": "1.0.24", "defu": "^6.1.4", "jose": "^6.1.0", "kysely": "^0.28.5", "nanostores": "^1.0.1", "zod": "^4.1.5" } }, "sha512-IvrSBmQkHgOinDh6JyJCoKwbMPmHpkmt98/0hBU9Nc0s7Y7u72AOx1Z35J2dRQxxX4SzvFQ9pHqlV6wPnm72Ww=="],
+    "better-auth": ["better-auth@1.4.0-beta.13", "", { "dependencies": { "@better-auth/core": "1.4.0-beta.13", "@better-auth/telemetry": "1.4.0-beta.13", "@better-auth/utils": "0.3.0", "@better-fetch/fetch": "1.1.18", "@noble/ciphers": "^2.0.0", "@noble/hashes": "^2.0.0", "@simplewebauthn/browser": "^13.1.2", "@simplewebauthn/server": "^13.1.2", "better-call": "1.0.24", "defu": "^6.1.4", "jose": "^6.1.0", "kysely": "^0.28.5", "nanostores": "^1.0.1", "zod": "^4.1.5" } }, "sha512-VOzbsCldupk2AdNfzDmpCVajX83nwITX8S9I8TdEUURgr3kB/CDVrsN6S8t0AClMnGgB4XaeKiXUNN30CCG4aA=="],
 
     "better-call": ["better-call@1.0.24", "", { "dependencies": { "@better-auth/utils": "^0.3.0", "@better-fetch/fetch": "^1.1.4", "rou3": "^0.5.1", "set-cookie-parser": "^2.7.1", "uncrypto": "^0.1.3" } }, "sha512-iGqL29cstPp4xLD2MjKL1EmyAqQHjYS+cBMt4W27rPs3vf+kuqkVPA0NYaf7JciBOzVsJdNj4cbZWXC5TardWQ=="],
 

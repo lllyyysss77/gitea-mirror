@@ -131,18 +131,21 @@ export async function normalizeOidcProviderConfig(
     throw new OidcConfigError("Issuer is required");
   }
 
-  let normalizedIssuer: string;
+  const trimmedIssuer = issuer.trim();
+
   try {
-    const issuerUrl = new URL(issuer.trim());
-    normalizedIssuer = issuerUrl.toString().replace(/\/$/, "");
+    // Validate issuer but keep caller-provided formatting so we don't break provider expectations
+    new URL(trimmedIssuer);
   } catch {
     throw new OidcConfigError(`Invalid issuer URL: ${issuer}`);
   }
 
+  const issuerForDiscovery = trimmedIssuer.replace(/\/$/, "");
+
   const discoveryEndpoint = cleanUrl(
     rawConfig.discoveryEndpoint,
     "discovery endpoint",
-  ) ?? `${normalizedIssuer}/.well-known/openid-configuration`;
+  ) ?? `${issuerForDiscovery}/.well-known/openid-configuration`;
 
   const authorizationEndpoint = cleanUrl(rawConfig.authorizationEndpoint, "authorization endpoint");
   const tokenEndpoint = cleanUrl(rawConfig.tokenEndpoint, "token endpoint");
