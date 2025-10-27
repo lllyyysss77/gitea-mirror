@@ -127,6 +127,7 @@ export const repositorySchema = z.object({
   configId: z.string(),
   name: z.string(),
   fullName: z.string(),
+  normalizedFullName: z.string(),
   url: z.url(),
   cloneUrl: z.url(),
   owner: z.string(),
@@ -209,6 +210,7 @@ export const organizationSchema = z.object({
   userId: z.string(),
   configId: z.string(),
   name: z.string(),
+  normalizedName: z.string(),
   avatarUrl: z.string(),
   membershipRole: z.enum(["member", "admin", "owner", "billing_manager"]).default("member"),
   isIncluded: z.boolean().default(true),
@@ -334,6 +336,7 @@ export const repositories = sqliteTable("repositories", {
     .references(() => configs.id),
   name: text("name").notNull(),
   fullName: text("full_name").notNull(),
+  normalizedFullName: text("normalized_full_name").notNull(),
   url: text("url").notNull(),
   cloneUrl: text("clone_url").notNull(),
   owner: text("owner").notNull(),
@@ -388,6 +391,7 @@ export const repositories = sqliteTable("repositories", {
   index("idx_repositories_is_fork").on(table.isForked),
   index("idx_repositories_is_starred").on(table.isStarred),
   uniqueIndex("uniq_repositories_user_full_name").on(table.userId, table.fullName),
+  uniqueIndex("uniq_repositories_user_normalized_full_name").on(table.userId, table.normalizedFullName),
 ]);
 
 export const mirrorJobs = sqliteTable("mirror_jobs", {
@@ -438,6 +442,7 @@ export const organizations = sqliteTable("organizations", {
     .notNull()
     .references(() => configs.id),
   name: text("name").notNull(),
+  normalizedName: text("normalized_name").notNull(),
 
   avatarUrl: text("avatar_url").notNull(),
 
@@ -469,6 +474,7 @@ export const organizations = sqliteTable("organizations", {
   index("idx_organizations_config_id").on(table.configId),
   index("idx_organizations_status").on(table.status),
   index("idx_organizations_is_included").on(table.isIncluded),
+  uniqueIndex("uniq_organizations_user_normalized_name").on(table.userId, table.normalizedName),
 ]);
 
 // ===== Better Auth Tables =====
