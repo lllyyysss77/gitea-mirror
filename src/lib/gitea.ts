@@ -1992,12 +1992,20 @@ export async function mirrorGitHubReleasesToGitea({
   let mirroredCount = 0;
   let skippedCount = 0;
 
-  // Sort releases by created_at to ensure we get the most recent ones
-  const sortedReleases = releases.data.sort((a, b) => 
-    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  ).slice(0, releaseLimit);
+  const getReleaseTimestamp = (release: typeof releases.data[number]) => {
+    const sourceDate = release.created_at ?? release.published_at ?? "";
+    const timestamp = sourceDate ? new Date(sourceDate).getTime() : 0;
+    return Number.isFinite(timestamp) ? timestamp : 0;
+  };
 
-  for (const release of sortedReleases) {
+  // Capture the latest releases, then process them oldest-to-newest so Gitea mirrors keep chronological order
+  const releasesToProcess = releases.data
+    .slice()
+    .sort((a, b) => getReleaseTimestamp(b) - getReleaseTimestamp(a))
+    .slice(0, releaseLimit)
+    .sort((a, b) => getReleaseTimestamp(a) - getReleaseTimestamp(b));
+
+  for (const release of releasesToProcess) {
     try {
       // Check if release already exists
       const existingReleasesResponse = await httpGet(
