@@ -1,7 +1,7 @@
 import { useMemo, useRef } from "react";
 import Fuse from "fuse.js";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { FlipHorizontal, GitFork, RefreshCw, RotateCcw, Star, Lock, Ban, Check, ChevronDown } from "lucide-react";
+import { FlipHorizontal, GitFork, RefreshCw, RotateCcw, Star, Lock, Ban, Check, ChevronDown, Trash2 } from "lucide-react";
 import { SiGithub, SiGitea } from "react-icons/si";
 import type { Repository } from "@/lib/db/schema";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -40,6 +41,7 @@ interface RepositoryTableProps {
   selectedRepoIds: Set<string>;
   onSelectionChange: (selectedIds: Set<string>) => void;
   onRefresh?: () => Promise<void>;
+  onDelete?: (repoId: string) => void;
 }
 
 export default function RepositoryTable({
@@ -56,6 +58,7 @@ export default function RepositoryTable({
   selectedRepoIds,
   onSelectionChange,
   onRefresh,
+  onDelete,
 }: RepositoryTableProps) {
   const tableParentRef = useRef<HTMLDivElement>(null);
   const { giteaConfig } = useGiteaConfig();
@@ -676,6 +679,7 @@ export default function RepositoryTable({
                           onSync={() => onSync({ repoId: repo.id ?? "" })}
                           onRetry={() => onRetry({ repoId: repo.id ?? "" })}
                           onSkip={(skip) => onSkip({ repoId: repo.id ?? "", skip })}
+                          onDelete={onDelete && repo.id ? () => onDelete(repo.id as string) : undefined}
                         />
                       </div>
                       {/* Links */}
@@ -786,6 +790,7 @@ function RepoActionButton({
   onSync,
   onRetry,
   onSkip,
+  onDelete,
 }: {
   repo: { id: string; status: string };
   isLoading: boolean;
@@ -793,6 +798,7 @@ function RepoActionButton({
   onSync: () => void;
   onRetry: () => void;
   onSkip: (skip: boolean) => void;
+  onDelete?: () => void;
 }) {
   // For ignored repos, show an "Include" action
   if (repo.status === "ignored") {
@@ -849,7 +855,7 @@ function RepoActionButton({
     );
   }
 
-  // Show primary action with dropdown for skip option
+  // Show primary action with dropdown for additional actions
   return (
     <DropdownMenu>
       <div className="flex">
@@ -886,6 +892,18 @@ function RepoActionButton({
           <Ban className="h-4 w-4 mr-2" />
           Ignore Repository
         </DropdownMenuItem>
+        {onDelete && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={onDelete}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete from Mirror
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
