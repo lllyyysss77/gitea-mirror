@@ -57,6 +57,13 @@
       "when": 1761534391115,
       "tag": "0007_whole_hellion",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1761802056073,
+      "tag": "0008_serious_thena",
+      "breakpoints": true
     }
   ]
 }

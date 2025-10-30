@@ -164,6 +164,7 @@ export const repositorySchema = z.object({
   lastMirrored: z.coerce.date().optional().nullable(),
   errorMessage: z.string().optional().nullable(),
   destinationOrg: z.string().optional().nullable(),
+  metadata: z.string().optional().nullable(), // JSON string for metadata sync state
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
 });
@@ -375,6 +376,8 @@ export const repositories = sqliteTable("repositories", {
   errorMessage: text("error_message"),
   
   destinationOrg: text("destination_org"),
+
+  metadata: text("metadata"), // JSON string storing metadata sync state (issues, PRs, releases, etc.)
 
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
