@@ -156,10 +156,14 @@ Zero-configuration deployment with Nix:
 
 ```bash
 # Run immediately - no setup needed!
-nix run github:RayLabsHQ/gitea-mirror
+nix run --extra-experimental-features 'nix-command flakes' github:RayLabsHQ/gitea-mirror
+
+# Or build and run locally
+nix build --extra-experimental-features 'nix-command flakes'
+./result/bin/gitea-mirror
 
 # Or install to profile
-nix profile install github:RayLabsHQ/gitea-mirror
+nix profile install --extra-experimental-features 'nix-command flakes' github:RayLabsHQ/gitea-mirror
 gitea-mirror
 ```
 

@@ -4,10 +4,12 @@
 
 ```bash
 # Just run it - zero configuration needed!
-nix run .#gitea-mirror
+nix run --extra-experimental-features 'nix-command flakes' .#gitea-mirror
 ```
 
 Secrets auto-generate, database auto-initializes, and the web UI starts at http://localhost:4321.
+
+**Note:** If you have flakes enabled in your nix config, you can omit `--extra-experimental-features 'nix-command flakes'`
 
 ---
 
@@ -15,12 +17,12 @@ Secrets auto-generate, database auto-initializes, and the web UI starts at http:
 
 ### 1. Run Without Installing
 ```bash
-nix run .#gitea-mirror
+nix run --extra-experimental-features 'nix-command flakes' .#gitea-mirror
 ```
 
 ### 2. Install to Profile
 ```bash
-nix profile install .#gitea-mirror
+nix profile install --extra-experimental-features 'nix-command flakes' .#gitea-mirror
 gitea-mirror
 ```
 
@@ -40,9 +42,18 @@ gitea-mirror
 
 ### 4. Development
 ```bash
-nix develop
+nix develop --extra-experimental-features 'nix-command flakes'
 # or
-direnv allow
+direnv allow  # Handles experimental features automatically
+```
+
+---
+
+## Enable Flakes Permanently (Recommended)
+
+To avoid typing `--extra-experimental-features` every time, add to `~/.config/nix/nix.conf`:
+```
+experimental-features = nix-command flakes
 ```
 
 ---
@@ -68,10 +79,11 @@ gitea-mirror-db init      # Initialize database
 gitea-mirror-db check     # Health check
 gitea-mirror-db fix       # Fix issues
 
-# Development
+# Development (add --extra-experimental-features 'nix-command flakes' if needed)
 nix develop               # Enter dev shell
 nix build                 # Build package
 nix flake check           # Validate flake
+nix flake update          # Update dependencies
 ```
 
 ---

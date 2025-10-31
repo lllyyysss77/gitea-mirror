@@ -4,24 +4,31 @@ This guide covers deploying Gitea Mirror using Nix flakes. The Nix deployment fo
 
 ## Prerequisites
 
-- Nix with flakes enabled (Nix 2.4+)
+- Nix 2.4+ installed
 - For NixOS module: NixOS 23.05+
 
-To enable flakes, add to `/etc/nix/nix.conf` or `~/.config/nix/nix.conf`:
+### Enable Flakes (Recommended)
+
+To enable flakes permanently and avoid typing flags, add to `/etc/nix/nix.conf` or `~/.config/nix/nix.conf`:
 ```
 experimental-features = nix-command flakes
 ```
+
+**Note:** If you don't enable flakes globally, add `--extra-experimental-features 'nix-command flakes'` to all nix commands shown below.
 
 ## Quick Start (Zero Configuration!)
 
 ### Run Immediately - No Setup Required
 
 ```bash
-# Run directly from the flake
-nix run .#gitea-mirror
+# Run directly from the flake (local)
+nix run --extra-experimental-features 'nix-command flakes' .#gitea-mirror
 
 # Or from GitHub (once published)
-nix run github:RayLabsHQ/gitea-mirror
+nix run --extra-experimental-features 'nix-command flakes' github:RayLabsHQ/gitea-mirror
+
+# If you have flakes enabled globally, simply:
+nix run .#gitea-mirror
 ```
 
 That's it! On first run:
@@ -36,9 +43,9 @@ Everything else (GitHub credentials, Gitea settings, mirror options) is configur
 
 ```bash
 # Enter development shell with all dependencies
-nix develop
+nix develop --extra-experimental-features 'nix-command flakes'
 
-# Or use direnv for automatic environment loading
+# Or use direnv for automatic environment loading (handles flags automatically)
 echo "use flake" > .envrc
 direnv allow
 ```
@@ -47,13 +54,13 @@ direnv allow
 
 ```bash
 # Build the package
-nix build
+nix build --extra-experimental-features 'nix-command flakes'
 
 # Run the built package
 ./result/bin/gitea-mirror
 
 # Install to your profile
-nix profile install .#gitea-mirror
+nix profile install --extra-experimental-features 'nix-command flakes' .#gitea-mirror
 ```
 
 ## What Happens on First Run?
@@ -312,7 +319,7 @@ dockerImage = pkgs.dockerTools.buildLayeredImage {
 
 Build and load:
 ```bash
-nix build .#dockerImage
+nix build --extra-experimental-features 'nix-command flakes' .#dockerImage
 docker load < result
 docker run -p 4321:4321 -v gitea-mirror-data:/data gitea-mirror:latest
 ```
@@ -384,22 +391,22 @@ sudo journalctl -u gitea-mirror -f --since "5 minutes ago"
 ### Standalone Installation
 ```bash
 # Update flake lock
-nix flake update
+nix flake update --extra-experimental-features 'nix-command flakes'
 
 # Rebuild
-nix build
+nix build --extra-experimental-features 'nix-command flakes'
 
 # Or update profile
-nix profile upgrade gitea-mirror
+nix profile upgrade --extra-experimental-features 'nix-command flakes' gitea-mirror
 ```
 
 ### NixOS
 ```bash
 # Update input
-sudo nix flake lock --update-input gitea-mirror
+sudo nix flake lock --update-input gitea-mirror --extra-experimental-features 'nix-command flakes'
 
 # Rebuild system
-sudo nixos-rebuild switch
+sudo nixos-rebuild switch --flake .#your-hostname
 ```
 
 ## Migration from Docker
@@ -464,6 +471,7 @@ jobs:
         authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
     - run: nix build
     - run: nix flake check
+    # Note: GitHub Actions runner usually has flakes enabled by install-nix-action
 ```
 
 ## Resources
