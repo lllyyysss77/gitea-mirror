@@ -150,6 +150,34 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/Proxmo
 
 See the [Proxmox VE Community Scripts](https://community-scripts.github.io/ProxmoxVE/scripts?id=gitea-mirror) for more details.
 
+### Nix/NixOS
+
+Zero-configuration deployment with Nix:
+
+```bash
+# Run immediately - no setup needed!
+nix run github:RayLabsHQ/gitea-mirror
+
+# Or install to profile
+nix profile install github:RayLabsHQ/gitea-mirror
+gitea-mirror
+```
+
+**NixOS users** - add to your configuration:
+```nix
+{
+  inputs.gitea-mirror.url = "github:RayLabsHQ/gitea-mirror";
+
+  services.gitea-mirror = {
+    enable = true;
+    betterAuthUrl = "https://mirror.example.com";
+    openFirewall = true;
+  };
+}
+```
+
+Secrets auto-generate, database auto-initializes. See [NIX.md](NIX.md) for quick reference or [docs/NIX_DEPLOYMENT.md](docs/NIX_DEPLOYMENT.md) for full documentation.
+
 ### Manual Installation
 
 ```bash
