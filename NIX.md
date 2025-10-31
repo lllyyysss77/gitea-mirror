@@ -3,7 +3,10 @@
 ## TL;DR
 
 ```bash
-# Just run it - zero configuration needed!
+# From GitHub (no clone needed!)
+nix run --extra-experimental-features 'nix-command flakes' github:RayLabsHQ/gitea-mirror
+
+# Or from local clone
 nix run --extra-experimental-features 'nix-command flakes' .#gitea-mirror
 ```
 
@@ -15,18 +18,33 @@ Secrets auto-generate, database auto-initializes, and the web UI starts at http:
 
 ## Installation Options
 
-### 1. Run Without Installing
+### 1. Run Without Installing (from GitHub)
 ```bash
-nix run --extra-experimental-features 'nix-command flakes' .#gitea-mirror
+# Latest version from main branch
+nix run --extra-experimental-features 'nix-command flakes' github:RayLabsHQ/gitea-mirror
+
+# Pin to specific version
+nix run github:RayLabsHQ/gitea-mirror/v3.8.11
 ```
 
 ### 2. Install to Profile
 ```bash
-nix profile install --extra-experimental-features 'nix-command flakes' .#gitea-mirror
+# Install from GitHub
+nix profile install --extra-experimental-features 'nix-command flakes' github:RayLabsHQ/gitea-mirror
+
+# Run the installed binary
 gitea-mirror
 ```
 
-### 3. NixOS System Service
+### 3. Use Local Clone
+```bash
+# Clone and run
+git clone https://github.com/RayLabsHQ/gitea-mirror.git
+cd gitea-mirror
+nix run --extra-experimental-features 'nix-command flakes' .#gitea-mirror
+```
+
+### 4. NixOS System Service
 ```nix
 # configuration.nix
 {
@@ -40,7 +58,7 @@ gitea-mirror
 }
 ```
 
-### 4. Development
+### 5. Development (Local Clone)
 ```bash
 nix develop --extra-experimental-features 'nix-command flakes'
 # or
@@ -145,12 +163,18 @@ services.gitea-mirror = {
 
 ## Full Documentation
 
-See [docs/NIX_DEPLOYMENT.md](docs/NIX_DEPLOYMENT.md) for:
-- Complete NixOS module configuration
-- Home Manager integration
-- Production deployment examples
-- Migration from Docker
-- Troubleshooting guide
+- **[docs/NIX_DEPLOYMENT.md](docs/NIX_DEPLOYMENT.md)** - Complete deployment guide
+  - NixOS module configuration
+  - Home Manager integration
+  - Production deployment examples
+  - Migration from Docker
+  - Troubleshooting guide
+
+- **[docs/NIX_DISTRIBUTION.md](docs/NIX_DISTRIBUTION.md)** - Distribution guide for maintainers
+  - How users consume the package
+  - Setting up binary cache (Cachix)
+  - Releasing new versions
+  - Submitting to nixpkgs
 
 ---
 
