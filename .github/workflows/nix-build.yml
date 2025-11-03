@@ -1,4 +1,6 @@
 name: Nix Build and Cache
+permissions:
+  contents: read
 
 on:
   push:
