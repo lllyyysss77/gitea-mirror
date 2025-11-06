@@ -2005,6 +2005,12 @@ export async function mirrorGitHubReleasesToGitea({
     .slice(0, releaseLimit)
     .sort((a, b) => getReleaseTimestamp(a) - getReleaseTimestamp(b));
 
+  console.log(`[Releases] Processing ${releasesToProcess.length} releases in chronological order (oldest to newest)`);
+  releasesToProcess.forEach((rel, idx) => {
+    const date = new Date(rel.published_at || rel.created_at);
+    console.log(`[Releases] ${idx + 1}. ${rel.tag_name} - Originally published: ${date.toISOString()}`);
+  });
+
   for (const release of releasesToProcess) {
     try {
       // Check if release already exists
@@ -2015,8 +2021,14 @@ export async function mirrorGitHubReleasesToGitea({
         }
       ).catch(() => null);
 
-      const releaseNote = release.body || "";
-      
+      // Prepare release body with GitHub original date header
+      const githubPublishedDate = release.published_at || release.created_at;
+      const githubDateHeader = githubPublishedDate
+        ? `> 📅 **Originally published on GitHub:** ${new Date(githubPublishedDate).toUTCString()}\n\n`
+        : '';
+      const originalReleaseNote = release.body || "";
+      const releaseNote = githubDateHeader + originalReleaseNote;
+
       if (existingReleasesResponse) {
         // Update existing release if the changelog/body differs
         const existingRelease = existingReleasesResponse.data;
@@ -2039,9 +2051,11 @@ export async function mirrorGitHubReleasesToGitea({
               Authorization: `token ${decryptedConfig.giteaConfig.token}`,
             }
           );
-          
-          if (releaseNote) {
-            console.log(`[Releases] Updated changelog for ${release.tag_name} (${releaseNote.length} characters)`);
+
+          if (originalReleaseNote) {
+            console.log(`[Releases] Updated changelog for ${release.tag_name} (${originalReleaseNote.length} characters + GitHub date header)`);
+          } else {
+            console.log(`[Releases] Updated release ${release.tag_name} with GitHub date header`);
           }
           mirroredCount++;
         } else {
@@ -2051,9 +2065,11 @@ export async function mirrorGitHubReleasesToGitea({
         continue;
       }
 
-      // Create new release with changelog/body content
-      if (releaseNote) {
-        console.log(`[Releases] Including changelog for ${release.tag_name} (${releaseNote.length} characters)`);
+      // Create new release with changelog/body content (includes GitHub date header)
+      if (originalReleaseNote) {
+        console.log(`[Releases] Including changelog for ${release.tag_name} (${originalReleaseNote.length} characters + GitHub date header)`);
+      } else {
+        console.log(`[Releases] Creating release ${release.tag_name} with GitHub date header (no changelog)`);
       }
       
       const createReleaseResponse = await httpPost(
@@ -2121,8 +2137,14 @@ export async function mirrorGitHubReleasesToGitea({
       }
       
       mirroredCount++;
-      const noteInfo = releaseNote ? ` with ${releaseNote.length} character changelog` : " without changelog";
+      const noteInfo = originalReleaseNote ? ` with ${originalReleaseNote.length} character changelog` : " without changelog";
       console.log(`[Releases] Successfully mirrored release: ${release.tag_name}${noteInfo}`);
+
+      // Add delay to ensure proper timestamp ordering in Gitea
+      // Gitea sorts releases by created_unix DESC, and all releases created in quick succession
+      // will have nearly identical timestamps. The 1-second delay ensures proper chronological order.
+      console.log(`[Releases] Waiting 1 second to ensure proper timestamp ordering in Gitea...`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
     } catch (error) {
       console.error(`[Releases] Failed to mirror release ${release.tag_name}: ${error instanceof Error ? error.message : String(error)}`);
     }
