@@ -1,22 +1,40 @@
 import {
-  repoStatusEnum,
+  and,
+  eq,
+} from 'drizzle-orm';
+
+import type { Config } from '@/types/config';
+import { membershipRoleEnum } from '@/types/organizations';
+import {
   type RepositoryVisibility,
   type RepoStatus,
-} from "@/types/Repository";
-import { membershipRoleEnum } from "@/types/organizations";
-import { Octokit } from "@octokit/rest";
-import type { Config } from "@/types/config";
-import type { Organization, Repository } from "./db/schema";
-import { httpPost, httpGet, httpDelete, httpPut, httpPatch } from "./http-client";
-import { createMirrorJob } from "./helpers";
-import { db, organizations, repositories } from "./db";
-import { eq, and } from "drizzle-orm";
-import { decryptConfigTokens } from "./utils/config-encryption";
-import { formatDateShort } from "./utils";
+  repoStatusEnum,
+} from '@/types/Repository';
+import { Octokit } from '@octokit/rest';
+
+import {
+  db,
+  organizations,
+  repositories,
+} from './db';
+import type {
+  Organization,
+  Repository,
+} from './db/schema';
+import { createMirrorJob } from './helpers';
+import {
+  httpDelete,
+  httpGet,
+  httpPatch,
+  httpPost,
+  httpPut,
+} from './http-client';
 import {
   parseRepositoryMetadataState,
   serializeRepositoryMetadataState,
-} from "./metadata-state";
+} from './metadata-state';
+import { formatDateShort } from './utils';
+import { decryptConfigTokens } from './utils/config-encryption';
 
 /**
  * Helper function to get organization configuration including destination override
@@ -2011,10 +2029,85 @@ export async function mirrorGitHubReleasesToGitea({
     console.log(`[Releases] ${idx + 1}. ${rel.tag_name} - Originally published: ${date.toISOString()}`);
   });
 
+  // Check if existing releases in Gitea are in the wrong order
+  // If so, we need to delete and recreate them to fix the ordering
+  let needsRecreation = false;
+  try {
+    const existingReleasesResponse = await httpGet(
+      `${config.giteaConfig.url}/api/v1/repos/${repoOwner}/${repoName}/releases?per_page=100`,
+      {
+        Authorization: `token ${decryptedConfig.giteaConfig.token}`,
+      }
+    ).catch(() => null);
+
+    if (existingReleasesResponse && existingReleasesResponse.data && Array.isArray(existingReleasesResponse.data)) {
+      const existingReleases = existingReleasesResponse.data;
+
+      if (existingReleases.length > 0) {
+        console.log(`[Releases] Found ${existingReleases.length} existing releases in Gitea, checking chronological order...`);
+
+        // Create a map of tag_name to expected chronological index (0 = oldest, n = newest)
+        const expectedOrder = new Map<string, number>();
+        releasesToProcess.forEach((rel, idx) => {
+          expectedOrder.set(rel.tag_name, idx);
+        });
+
+        // Check if existing releases are in the correct order based on created_unix
+        // Gitea sorts by created_unix DESC, so newer releases should have higher created_unix values
+        const releasesThatShouldExist = existingReleases.filter(r => expectedOrder.has(r.tag_name));
+
+        if (releasesThatShouldExist.length > 1) {
+          for (let i = 0; i < releasesThatShouldExist.length - 1; i++) {
+            const current = releasesThatShouldExist[i];
+            const next = releasesThatShouldExist[i + 1];
+
+            const currentExpectedIdx = expectedOrder.get(current.tag_name)!;
+            const nextExpectedIdx = expectedOrder.get(next.tag_name)!;
+
+            // Since Gitea returns releases sorted by created_unix DESC:
+            // - Earlier releases in the list should have HIGHER expected indices (newer)
+            // - Later releases in the list should have LOWER expected indices (older)
+            if (currentExpectedIdx < nextExpectedIdx) {
+              console.log(`[Releases] ⚠️  Incorrect ordering detected: ${current.tag_name} (index ${currentExpectedIdx}) appears before ${next.tag_name} (index ${nextExpectedIdx})`);
+              needsRecreation = true;
+              break;
+            }
+          }
+        }
+
+        if (needsRecreation) {
+          console.log(`[Releases] ⚠️  Releases are in incorrect chronological order. Will delete and recreate all releases.`);
+
+          // Delete all existing releases that we're about to recreate
+          for (const existingRelease of releasesThatShouldExist) {
+            try {
+              console.log(`[Releases] Deleting incorrectly ordered release: ${existingRelease.tag_name}`);
+              await httpDelete(
+                `${config.giteaConfig.url}/api/v1/repos/${repoOwner}/${repoName}/releases/${existingRelease.id}`,
+                {
+                  Authorization: `token ${decryptedConfig.giteaConfig.token}`,
+                }
+              );
+            } catch (deleteError) {
+              console.error(`[Releases] Failed to delete release ${existingRelease.tag_name}: ${deleteError instanceof Error ? deleteError.message : String(deleteError)}`);
+            }
+          }
+
+          console.log(`[Releases] ✅ Deleted ${releasesThatShouldExist.length} releases. Will recreate in correct chronological order.`);
+        } else {
+          console.log(`[Releases] ✅ Existing releases are in correct chronological order.`);
+        }
+      }
+    }
+  } catch (orderCheckError) {
+    console.warn(`[Releases] Could not verify release order: ${orderCheckError instanceof Error ? orderCheckError.message : String(orderCheckError)}`);
+    // Continue with normal processing
+  }
+
   for (const release of releasesToProcess) {
     try {
-      // Check if release already exists
-      const existingReleasesResponse = await httpGet(
+      // Check if release already exists (skip check if we just deleted all releases)
+      const existingReleasesResponse = needsRecreation ? null : await httpGet(
         `${config.giteaConfig.url}/api/v1/repos/${repoOwner}/${repoName}/releases/tags/${release.tag_name}`,
         {
           Authorization: `token ${decryptedConfig.giteaConfig.token}`,
