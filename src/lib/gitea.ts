@@ -1,40 +1,22 @@
 import {
-  and,
-  eq,
-} from 'drizzle-orm';
-
-import type { Config } from '@/types/config';
-import { membershipRoleEnum } from '@/types/organizations';
-import {
+  repoStatusEnum,
   type RepositoryVisibility,
   type RepoStatus,
-  repoStatusEnum,
-} from '@/types/Repository';
-import { Octokit } from '@octokit/rest';
-
-import {
-  db,
-  organizations,
-  repositories,
-} from './db';
-import type {
-  Organization,
-  Repository,
-} from './db/schema';
-import { createMirrorJob } from './helpers';
-import {
-  httpDelete,
-  httpGet,
-  httpPatch,
-  httpPost,
-  httpPut,
-} from './http-client';
+} from "@/types/Repository";
+import { membershipRoleEnum } from "@/types/organizations";
+import { Octokit } from "@octokit/rest";
+import type { Config } from "@/types/config";
+import type { Organization, Repository } from "./db/schema";
+import { httpPost, httpGet, httpDelete, httpPut, httpPatch } from "./http-client";
+import { createMirrorJob } from "./helpers";
+import { db, organizations, repositories } from "./db";
+import { eq, and } from "drizzle-orm";
+import { decryptConfigTokens } from "./utils/config-encryption";
+import { formatDateShort } from "./utils";
 import {
   parseRepositoryMetadataState,
   serializeRepositoryMetadataState,
-} from './metadata-state';
-import { formatDateShort } from './utils';
-import { decryptConfigTokens } from './utils/config-encryption';
+} from "./metadata-state";
 
 /**
  * Helper function to get organization configuration including destination override
@@ -2011,7 +1993,11 @@ export async function mirrorGitHubReleasesToGitea({
   let skippedCount = 0;
 
   const getReleaseTimestamp = (release: typeof releases.data[number]) => {
-    const sourceDate = release.created_at ?? release.published_at ?? "";
+    // Use published_at first (when the release was published on GitHub)
+    // Fall back to created_at (when the git tag was created) only if published_at is missing
+    // This matches GitHub's sorting behavior and handles cases where multiple tags
+    // point to the same commit but have different publish dates
+    const sourceDate = release.published_at ?? release.created_at ?? "";
     const timestamp = sourceDate ? new Date(sourceDate).getTime() : 0;
     return Number.isFinite(timestamp) ? timestamp : 0;
   };
@@ -2023,10 +2009,14 @@ export async function mirrorGitHubReleasesToGitea({
     .slice(0, releaseLimit)
     .sort((a, b) => getReleaseTimestamp(a) - getReleaseTimestamp(b));
 
-  console.log(`[Releases] Processing ${releasesToProcess.length} releases in chronological order (oldest to newest)`);
+  console.log(`[Releases] Processing ${releasesToProcess.length} releases in chronological order (oldest to newest by published date)`);
   releasesToProcess.forEach((rel, idx) => {
-    const date = new Date(rel.published_at || rel.created_at);
-    console.log(`[Releases] ${idx + 1}. ${rel.tag_name} - Originally published: ${date.toISOString()}`);
+    const publishedDate = new Date(rel.published_at || rel.created_at);
+    const createdDate = new Date(rel.created_at);
+    const dateInfo = rel.published_at !== rel.created_at
+      ? `published ${publishedDate.toISOString()} (tag created ${createdDate.toISOString()})`
+      : `published ${publishedDate.toISOString()}`;
+    console.log(`[Releases] ${idx + 1}. ${rel.tag_name} - ${dateInfo}`);
   });
 
   // Check if existing releases in Gitea are in the wrong order
@@ -2116,9 +2106,21 @@ export async function mirrorGitHubReleasesToGitea({
 
       // Prepare release body with GitHub original date header
       const githubPublishedDate = release.published_at || release.created_at;
-      const githubDateHeader = githubPublishedDate
-        ? `> 📅 **Originally published on GitHub:** ${new Date(githubPublishedDate).toUTCString()}\n\n`
-        : '';
+      const githubTagCreatedDate = release.created_at;
+
+      let githubDateHeader = '';
+      if (githubPublishedDate) {
+        githubDateHeader = `> 📅 **Originally published on GitHub:** ${new Date(githubPublishedDate).toUTCString()}`;
+
+        // If the tag was created on a different date than the release was published,
+        // show both dates (helps with repos that create multiple tags from the same commit)
+        if (release.published_at && release.created_at && release.published_at !== release.created_at) {
+          githubDateHeader += `\n> 🏷️  **Git tag created:** ${new Date(githubTagCreatedDate).toUTCString()}`;
+        }
+
+        githubDateHeader += '\n\n';
+      }
+
       const originalReleaseNote = release.body || "";
       const releaseNote = githubDateHeader + originalReleaseNote;
 
