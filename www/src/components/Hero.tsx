@@ -1,5 +1,5 @@
 import { Button } from "./ui/button";
-import { ArrowRight, Shield, RefreshCw } from "lucide-react";
+import { ArrowRight, Shield, RefreshCw, HardDrive } from "lucide-react";
 import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import React, { Suspense } from 'react';
 
@@ -39,31 +39,30 @@ export function Hero() {
       <div className="clip-avoid w-full h-[16rem] md:h-[20rem] lg:h-[12rem] 2xl:h-[16rem]" aria-hidden="true"></div>
       <div className="max-w-7xl mx-auto pb-20 lg:pb-60 xl:pb-24 text-center w-full">
         <h1 className="pt-10 2xl:pt-20 text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight">
-          <span className="text-foreground">Keep Your Code</span>
+          <span className="text-foreground">Backup Your GitHub</span>
           <br />
           <span className="text-gradient from-primary via-accent to-accent-purple">
-            Safe & Synced
+            To Self-Hosted Gitea
           </span>
         </h1>
 
         <p className="mt-4 sm:mt-6 text-base sm:text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto px-4 z-20">
-          Automatically mirror your GitHub repositories to self-hosted Gitea.
-          Never lose access to your code with continuous backup and
-          synchronization.
+          Automatic, private, and free. Own your code history forever.
+          Preserve issues, PRs, releases, and wiki in your own Gitea server.
         </p>
 
         <div className="mt-6 sm:mt-8 flex flex-wrap items-center justify-center gap-3 text-xs sm:text-sm text-muted-foreground px-4 z-20">
           <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary">
-            <Shield className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="font-medium">Self-Hosted</span>
+            <HardDrive className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="font-medium">Self-Hosted Backup</span>
           </div>
           <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 text-accent">
             <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="font-medium">Auto-Sync</span>
+            <span className="font-medium">Automated Syncing</span>
           </div>
           <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-accent-purple/10 text-accent-purple">
-            <GitHubLogoIcon className="w-3 h-3 sm:w-4 sm:h-4" />
-            <span className="font-medium">Open Source</span>
+            <Shield className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="font-medium">$0/month</span>
           </div>
         </div>
 

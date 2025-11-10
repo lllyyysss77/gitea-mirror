@@ -1,15 +1,17 @@
 ---
 layout: ../../layouts/UseCaseLayout.astro
-title: "Run Gitea Mirror inside a Proxmox LXC"
-description: "Provision the community-maintained Proxmox VE LXC container for Gitea Mirror and wire it into your homelab backup workflow."
+title: "Self-Hosted GitHub Backup on Proxmox LXC | Gitea Mirror Homelab Setup"
+description: "Deploy a dedicated GitHub backup appliance in your Proxmox homelab using the one-line LXC installer. Automatic syncing, snapshot-ready, homelab-optimized."
 canonical: "https://gitea-mirror.com/use-cases/proxmox-lxc-homelab/"
 ---
 
-# Run Gitea Mirror inside a Proxmox LXC
+# Self-Hosted GitHub Backup on Proxmox LXC
 
-## Why run it on Proxmox
+## The Homelab GitHub Backup Appliance
 
-When most of your homelab lives in Proxmox VE, the community LXC script is the fastest path from zero to a managed Gitea Mirror node. It handles Bun, systemd, persistent storage, and future upgrades so you can focus on keeping Git backups fresh.
+Running GitHub backups in your homelab means **complete data ownership** without monthly SaaS fees. When most of your infrastructure lives in Proxmox VE, the community LXC script is the fastest path from zero to a dedicated backup appliance.
+
+It handles Bun runtime, systemd services, persistent storage, and future upgrades—so you can focus on keeping your GitHub history safe and synced locally. Perfect for homelabbers who want the peace of mind of offline backups without cloud dependencies.
 
 ## Requirements
 
