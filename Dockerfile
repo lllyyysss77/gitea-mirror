@@ -1,8 +1,10 @@
 # syntax=docker/dockerfile:1.4
 
-FROM oven/bun:1.3.1-alpine AS base
+FROM oven/bun:1.3.3-debian AS base
 WORKDIR /app
-RUN apk add --no-cache libc6-compat python3 make g++ gcc wget sqlite openssl ca-certificates
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  python3 make g++ gcc wget sqlite3 openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 
 # ----------------------------
 FROM base AS deps
