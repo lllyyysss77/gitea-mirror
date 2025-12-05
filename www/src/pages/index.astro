@@ -10,6 +10,7 @@ import { Installation } from '../components/Installation';
 import { CTA } from '../components/CTA';
 import FAQ from '../components/FAQ.astro';
 import Footer from '../components/Footer.astro';
+import { PromoBanner } from '../components/PromoBanner';
 
 const siteUrl = 'https://gitea-mirror.com';
 const title = 'GitHub Backup Tool | Self-Hosted Repository Backup to Gitea';
@@ -119,6 +120,7 @@ const structuredData = {
   </head>
 
   <body class="min-h-screen bg-background text-foreground antialiased">
+    <PromoBanner client:load />
     <Header client:load />
     
     <main>
