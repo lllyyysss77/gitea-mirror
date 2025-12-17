@@ -172,7 +172,7 @@ services.gitea-mirror = {
 
 - **[docs/NIX_DISTRIBUTION.md](docs/NIX_DISTRIBUTION.md)** - Distribution guide for maintainers
   - How users consume the package
-  - Setting up binary cache (Cachix)
+  - CI build caching
   - Releasing new versions
   - Submitting to nixpkgs
 

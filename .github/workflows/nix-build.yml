@@ -1,14 +1,15 @@
-name: Nix Build and Cache
-permissions:
-  contents: read
+name: Nix Build
 
 on:
   push:
-    branches: [main]
+    branches: [main, nix]
     tags:
       - 'v*'
   pull_request:
     branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -20,24 +21,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: cachix/install-nix-action@v24
-        with:
-          extra_nix_config: |
-            experimental-features = nix-command flakes
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
 
-      - uses: cachix/cachix-action@v12
-        with:
-          name: gitea-mirror  # Your cache name
-          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-
-      - name: Build package
-        run: nix build --print-build-logs
+      - name: Setup Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
 
       - name: Check flake
         run: nix flake check
 
-      - name: Test run (dry run)
+      - name: Build package
+        run: nix build --print-build-logs
+
+      - name: Verify binary
         run: |
-          # Just verify the binary exists and is executable
+          # Verify the binary exists and is executable
           test -x ./result/bin/gitea-mirror
-          ./result/bin/gitea-mirror --version || echo "Version check skipped"
+          echo "✅ Binary exists and is executable"
+
+          # Show package info
+          ls -la ./result/bin/
+
+      - name: Test --help flag
+        run: |
+          # Test that the binary can at least show help/version info
+          ./result/bin/gitea-mirror --version 2>&1 || echo "Note: --version may not be implemented"

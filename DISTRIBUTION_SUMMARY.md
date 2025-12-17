@@ -1,6 +1,6 @@
-# Nix Distribution - Ready to Use! 🎉
+# Nix Distribution - Ready to Use!
 
-## Current Status: ✅ WORKS NOW
+## Current Status: WORKS NOW
 
 Your Nix package is **already distributable**! Users can run it directly from GitHub without any additional setup on your end.
 
@@ -31,32 +31,14 @@ That's it! No releases, no CI, no infrastructure needed. It works right now.
 ### For Basic Usage: **NO**
 Users can already use it from GitHub. No CI or releases required.
 
-### For Better UX: **Recommended**
-Set up binary caching so users don't compile from source.
+### For CI Validation: **Already Set Up**
+GitHub Actions validates builds on every push with Magic Nix Cache (free, no setup).
 
 ---
 
-## Next Steps (Optional but Recommended)
+## Next Steps (Optional)
 
-### Option 1: Add Binary Cache (5 minutes)
-
-**Why:** Users download pre-built binaries instead of compiling (much faster!)
-
-**How:**
-1. Create free account at https://cachix.org/
-2. Create cache named `gitea-mirror`
-3. Add GitHub secret: `CACHIX_AUTH_TOKEN`
-4. GitHub Actions workflow already created at `.github/workflows/nix-build.yml`
-5. Add to your docs:
-   ```bash
-   # Users run once
-   cachix use gitea-mirror
-
-   # Then they get fast binary downloads
-   nix run github:RayLabsHQ/gitea-mirror
-   ```
-
-### Option 2: Release Versioning (2 minutes)
+### Option 1: Release Versioning (2 minutes)
 
 **Why:** Users can pin to specific versions
 
@@ -72,7 +54,7 @@ nix run github:RayLabsHQ/gitea-mirror/v3.8.11
 
 No additional CI needed - tags work automatically with flakes!
 
-### Option 3: Submit to nixpkgs (Long Term)
+### Option 2: Submit to nixpkgs (Long Term)
 
 **Why:** Maximum discoverability and trust
 
@@ -85,21 +67,21 @@ No additional CI needed - tags work automatically with flakes!
 ## Files Created
 
 ### Essential (Already Working)
-- ✅ `flake.nix` - Package definition
-- ✅ `flake.lock` - Dependency lock file
-- ✅ `.envrc` - direnv integration
+- `flake.nix` - Package definition
+- `flake.lock` - Dependency lock file
+- `.envrc` - direnv integration
 
 ### Documentation
-- ✅ `NIX.md` - Quick reference for users
-- ✅ `docs/NIX_DEPLOYMENT.md` - Complete deployment guide
-- ✅ `docs/NIX_DISTRIBUTION.md` - Distribution guide for you (maintainer)
-- ✅ `README.md` - Updated with Nix instructions
+- `NIX.md` - Quick reference for users
+- `docs/NIX_DEPLOYMENT.md` - Complete deployment guide
+- `docs/NIX_DISTRIBUTION.md` - Distribution guide for you (maintainer)
+- `README.md` - Updated with Nix instructions
 
-### CI (Optional, Already Set Up)
-- ✅ `.github/workflows/nix-build.yml` - Builds + caches to Cachix
+### CI (Already Set Up)
+- `.github/workflows/nix-build.yml` - Builds and validates on Linux + macOS
 
 ### Updated
-- ✅ `.gitignore` - Added Nix artifacts
+- `.gitignore` - Added Nix artifacts
 
 ---
 
@@ -107,12 +89,11 @@ No additional CI needed - tags work automatically with flakes!
 
 | Setup | Time | User Experience | What You Need |
 |-------|------|----------------|---------------|
-| **Direct GitHub** | 0 min ✅ | Slow (build from source) | Nothing! Works now |
-| **+ Cachix** | 5 min | Fast (binary download) | Cachix account + token |
+| **Direct GitHub** | 0 min | Slow (build from source) | Nothing! Works now |
 | **+ Git Tags** | 2 min | Versionable | Just push tags |
 | **+ nixpkgs** | Hours | Official/Trusted | PR review process |
 
-**Recommendation:** Start with Direct GitHub (already works!), add Cachix this week for better UX.
+**Recommendation:** Direct GitHub works now. Add git tags for versioning. Consider nixpkgs submission once stable.
 
 ---
 
@@ -175,17 +156,12 @@ Users can always use latest from main: `nix run github:RayLabsHQ/gitea-mirror`
 
 ## Summary
 
-**✅ Ready to distribute RIGHT NOW**
+**Ready to distribute RIGHT NOW**
 - Just commit and push your `flake.nix`
 - Users can run directly from GitHub
-- No CI, releases, or infrastructure required
+- CI validates builds automatically
 
-**🚀 Recommended next: Add Cachix (5 minutes)**
-- Much better user experience
-- Workflow already created
-- Free for public projects
-
-**📦 Optional later: Submit to nixpkgs**
+**Optional: Submit to nixpkgs**
 - Maximum discoverability
 - Official Nix repository
 - Do this once package is stable

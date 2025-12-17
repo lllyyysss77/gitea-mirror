@@ -449,30 +449,33 @@ To migrate from Docker to Nix while keeping your data:
 
 ## CI/CD Integration
 
-Example GitHub Actions workflow:
+Example GitHub Actions workflow (see `.github/workflows/nix-build.yml`):
 
 ```yaml
-name: Build with Nix
+name: Nix Build
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v4
-    - uses: cachix/install-nix-action@v24
-      with:
-        extra_nix_config: |
-          experimental-features = nix-command flakes
-    - uses: cachix/cachix-action@v12
-      with:
-        name: gitea-mirror
-        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-    - run: nix build
+    - uses: DeterminateSystems/nix-installer-action@main
+    - uses: DeterminateSystems/magic-nix-cache-action@main
     - run: nix flake check
-    # Note: GitHub Actions runner usually has flakes enabled by install-nix-action
+    - run: nix build --print-build-logs
 ```
+
+This uses:
+- **Determinate Nix Installer** - Fast, reliable Nix installation with flakes enabled by default
+- **Magic Nix Cache** - Free caching using GitHub Actions cache (no account needed)
 
 ## Resources
 

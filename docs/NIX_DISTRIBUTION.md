@@ -36,39 +36,21 @@ nix run github:RayLabsHQ/gitea-mirror/v3.8.11
 
 ---
 
-### Method 2: Binary Cache (Recommended)
+### Method 2: CI Build Caching
 
-Pre-build packages and cache them so users download binaries instead of building:
+The GitHub Actions workflow uses **Magic Nix Cache** (by Determinate Systems) to cache builds:
 
-#### Setup: Cachix (Free for Public Projects)
+- **Zero configuration required** - no accounts or tokens needed
+- **Automatic** - CI workflow handles everything
+- **Uses GitHub Actions cache** - fast, reliable, free
 
-1. **Create account:** https://cachix.org/
-2. **Create cache:** `gitea-mirror` (public)
-3. **Add secret to GitHub:** `Settings → Secrets → CACHIX_AUTH_TOKEN`
-4. **GitHub Actions builds automatically** (see `.github/workflows/nix-build.yml`)
+#### How It Works:
 
-#### User Experience:
+1. GitHub Actions builds the package on each push/PR
+2. Build artifacts are cached in GitHub Actions cache
+3. Subsequent builds reuse cached dependencies (faster CI)
 
-```bash
-# First time: Configure cache
-cachix use gitea-mirror
-
-# Or add to nix.conf:
-# substituters = https://cache.nixos.org https://gitea-mirror.cachix.org
-# trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= gitea-mirror.cachix.org-1:YOUR_KEY_HERE
-
-# Then use normally - downloads pre-built binaries!
-nix run github:RayLabsHQ/gitea-mirror
-```
-
-**Pros:**
-- Fast installation (no compilation)
-- Reduced bandwidth/CPU for users
-- Professional experience
-
-**Cons:**
-- Requires Cachix account (free for public)
-- Requires CI setup
+Note: This caches CI builds. Users still build locally, but the flake.lock ensures reproducibility.
 
 ---
 
@@ -115,14 +97,13 @@ Already working! Users can:
 nix run github:RayLabsHQ/gitea-mirror
 ```
 
-### Phase 2: Binary Cache (Recommended Next)
+### Phase 2: CI Build Validation ✅
 
-Set up Cachix for faster installs:
+GitHub Actions workflow validates builds on every push/PR:
 
-1. Create Cachix cache
-2. Add `CACHIX_AUTH_TOKEN` secret to GitHub
-3. Workflow already created in `.github/workflows/nix-build.yml`
-4. Add instructions to docs
+- Uses Magic Nix Cache for fast CI builds
+- Tests on both Linux and macOS
+- No setup required - works automatically
 
 ### Phase 3: Version Releases (Optional)
 
@@ -158,17 +139,7 @@ nix run --extra-experimental-features 'nix-command flakes' github:RayLabsHQ/gite
 nix profile install --extra-experimental-features 'nix-command flakes' github:RayLabsHQ/gitea-mirror
 ```
 
-#### Option 2: With Binary Cache (Faster)
-
-```bash
-# One-time setup
-cachix use gitea-mirror
-
-# Then install (downloads pre-built binary)
-nix profile install github:RayLabsHQ/gitea-mirror
-```
-
-#### Option 3: Pin to Specific Version
+#### Option 2: Pin to Specific Version
 
 ```bash
 # Pin to git tag
@@ -181,7 +152,7 @@ nix run github:RayLabsHQ/gitea-mirror/abc123def
 inputs.gitea-mirror.url = "github:RayLabsHQ/gitea-mirror/v3.8.11";
 ```
 
-#### Option 4: NixOS Configuration
+#### Option 3: NixOS Configuration
 
 ```nix
 {
@@ -270,11 +241,11 @@ git push
 2. **Test locally:** `nix flake check`
 3. **Check flake.lock:** May need update if dependencies changed
 
-### Cachix Not Working
+### CI Cache Not Working
 
-1. **Verify cache exists:** https://gitea-mirror.cachix.org
-2. **Check GitHub secret:** `CACHIX_AUTH_TOKEN` is set
-3. **Review workflow logs:** Ensure build + push succeeded
+1. **Check workflow logs:** Review GitHub Actions for errors
+2. **Clear cache:** GitHub Actions → Caches → Delete relevant cache
+3. **Verify flake.lock:** May need `nix flake update` if dependencies changed
 
 ### Version Pinning Not Working
 
@@ -336,17 +307,16 @@ trusted-public-keys = YOUR_KEY
 | Method | Setup Time | User Speed | Cost | Discoverability |
 |--------|-----------|------------|------|-----------------|
 | Direct GitHub | 0 min | Slow (build) | Free | Low |
-| Cachix | 5 min | Fast (binary) | Free (public) | Medium |
 | nixpkgs | Hours/days | Fast (binary) | Free | High |
-| Self-hosted | 30+ min | Fast (binary) | Server cost | Low |
+| Self-hosted cache | 30+ min | Fast (binary) | Server cost | Low |
 
-**Recommendation:** Start with **Direct GitHub** (works now), add **Cachix** for better UX (5 min), consider **nixpkgs** later for maximum reach.
+**Current approach:** Direct GitHub consumption with CI validation using Magic Nix Cache. Users build locally (reproducible via flake.lock). Consider **nixpkgs** submission for maximum reach once the package is mature.
 
 ---
 
 ## Resources
 
 - [Nix Flakes Documentation](https://nixos.wiki/wiki/Flakes)
-- [Cachix Documentation](https://docs.cachix.org/)
+- [Magic Nix Cache](https://github.com/DeterminateSystems/magic-nix-cache-action)
 - [nixpkgs Contributing Guide](https://github.com/NixOS/nixpkgs/blob/master/CONTRIBUTING.md)
 - [Nix Binary Cache Setup](https://nixos.org/manual/nix/stable/package-management/binary-cache-substituter.html)
