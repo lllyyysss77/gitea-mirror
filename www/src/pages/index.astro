@@ -1,61 +1,64 @@
 ---
-import '../styles/global.css';
-import { Header } from '../components/Header';
-import { Hero } from '../components/Hero';
-import ShaderBackground from '../components/ShaderBackground.astro';
-import Features from '../components/Features.astro';
-import UseCases from '../components/UseCases.astro';
-import Screenshots from '../components/Screenshots.astro';
-import { Installation } from '../components/Installation';
-import { CTA } from '../components/CTA';
-import FAQ from '../components/FAQ.astro';
-import Footer from '../components/Footer.astro';
-import { PromoBanner } from '../components/PromoBanner';
+import "../styles/global.css";
+import { Header } from "../components/Header";
+import { Hero } from "../components/Hero";
+import ShaderBackground from "../components/ShaderBackground.astro";
+import Features from "../components/Features.astro";
+import UseCases from "../components/UseCases.astro";
+import Screenshots from "../components/Screenshots.astro";
+import { Installation } from "../components/Installation";
+import { CTA } from "../components/CTA";
+import FAQ from "../components/FAQ.astro";
+import Footer from "../components/Footer.astro";
+import { PromoBanner } from "../components/PromoBanner";
 
-const siteUrl = 'https://gitea-mirror.com';
-const title = 'GitHub Backup Tool | Self-Hosted Repository Backup to Gitea';
-const description = 'Automatically backup GitHub repos to your own Gitea server. Preserve issues, PRs, releases & wiki. Self-hosted, Docker-ready. Free alternative to cloud backup services.';
-const keywords = 'github backup, github backup self hosted, github repository backup, backup github to nas, github disaster recovery, offline github backup, github backup docker, automatic github backup, github account backup, gitea mirror, self-hosted git backup, repository sync, github to gitea, git mirror, code backup, self-hosted backup solution';
+const siteUrl = "https://gitea-mirror.com";
+const title = "GitHub Backup Tool | Self-Hosted Repository Backup to Gitea";
+const description =
+  "Automatically backup GitHub repos to your own Gitea server. Preserve issues, PRs, releases & wiki. Self-hosted, Docker-ready. Free alternative to cloud backup services.";
+const keywords =
+  "github backup, github backup self hosted, github repository backup, backup github to nas, github disaster recovery, offline github backup, github backup docker, automatic github backup, github account backup, gitea mirror, self-hosted git backup, repository sync, github to gitea, git mirror, code backup, self-hosted backup solution";
 
 // Structured data for SEO
 const structuredData = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  "name": "Gitea Mirror",
-  "applicationCategory": "BackupApplication",
-  "operatingSystem": "Linux, macOS, Windows",
-  "offers": {
+  name: "Gitea Mirror",
+  applicationCategory: "BackupApplication",
+  operatingSystem: "Linux, macOS, Windows",
+  offers: {
     "@type": "Offer",
-    "price": "0",
-    "priceCurrency": "USD"
+    price: "0",
+    priceCurrency: "USD",
   },
-  "description": "Automatic GitHub repository backup to self-hosted Gitea. Preserves complete history, issues, PRs, and releases. Free alternative to cloud backup services.",
-  "url": siteUrl,
-  "author": {
+  description:
+    "Automatic GitHub repository backup to self-hosted Gitea. Preserves complete history, issues, PRs, and releases. Free alternative to cloud backup services.",
+  url: siteUrl,
+  author: {
     "@type": "Organization",
-    "name": "RayLabs",
-    "url": "https://github.com/RayLabsHQ"
+    name: "RayLabs",
+    url: "https://github.com/RayLabsHQ",
   },
-  "softwareVersion": "3.9.2",
-  "screenshot": [
+  softwareVersion: "3.9.2",
+  screenshot: [
     `${siteUrl}/assets/dashboard.png`,
     `${siteUrl}/assets/repositories.png`,
-    `${siteUrl}/assets/organisation.png`
+    `${siteUrl}/assets/organisation.png`,
   ],
-  "featureList": [
+  featureList: [
     "Automated scheduled backups",
     "Self-hosted (full data ownership)",
     "Metadata preservation (issues, PRs, releases, wiki)",
     "Docker support",
     "Multi-repository backup",
     "Git LFS support",
-    "Free and open source"
+    "Free and open source",
   ],
-  "softwareRequirements": "Docker or Bun runtime"
+  softwareRequirements: "Docker or Bun runtime",
 };
 ---
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -63,15 +66,18 @@ const structuredData = {
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="icon" type="image/png" href="/assets/logo.png" />
     <meta name="generator" content={Astro.generator} />
-    
+
     <!-- Primary Meta Tags -->
     <title>{title}</title>
     <meta name="title" content={title} />
     <meta name="description" content={description} />
     <meta name="keywords" content={keywords} />
-    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta
+      name="robots"
+      content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+    />
     <meta name="author" content="RayLabs" />
-    
+
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content={siteUrl} />
@@ -82,7 +88,7 @@ const structuredData = {
     <meta property="og:image:height" content="630" />
     <meta property="og:site_name" content="Gitea Mirror" />
     <meta property="og:locale" content="en_US" />
-    
+
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content={siteUrl} />
@@ -90,39 +96,49 @@ const structuredData = {
     <meta property="twitter:description" content={description} />
     <meta property="twitter:image" content={`${siteUrl}/og-image.png`} />
     <meta name="twitter:creator" content="@RayLabsHQ" />
-    
+
     <!-- Canonical URL -->
     <link rel="canonical" href={siteUrl} />
-    
+
     <!-- Additional Meta Tags -->
     <meta name="theme-color" content="#5b6fff" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Gitea Mirror" />
-    
+
     <!-- Structured Data -->
-    <script type="application/ld+json" is:inline set:html={JSON.stringify(structuredData)} />
-    
+    <script
+      type="application/ld+json"
+      is:inline
+      set:html={JSON.stringify(structuredData)}
+    />
+
     <!-- Preconnect to external domains -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="dns-prefetch" href="https://github.com" />
-    
+
     <!-- Theme detection script (prevent flash) -->
     <script is:inline>
-      const theme = localStorage.getItem('theme') || 
-        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-      document.documentElement.classList.toggle('dark', theme === 'dark');
+      const theme =
+        localStorage.getItem("theme") ||
+        (window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light");
+      document.documentElement.classList.toggle("dark", theme === "dark");
     </script>
-    
+
     <!-- 100% privacy-first analytics -->
-    <script async src="https://scripts.simpleanalyticscdn.com/latest.js" is:inline></script>
+    <script
+      async
+      src="https://scripts.simpleanalyticscdn.com/latest.js"
+      is:inline></script>
   </head>
 
   <body class="min-h-screen bg-background text-foreground antialiased">
-    <PromoBanner client:load />
+    <!-- <PromoBanner client:load /> -->
     <Header client:load />
-    
+
     <main>
       <div class="relative">
         <ShaderBackground />
@@ -135,7 +151,7 @@ const structuredData = {
       <FAQ />
       <CTA client:load />
     </main>
-    
+
     <Footer />
 
     <style>
@@ -174,21 +190,31 @@ const structuredData = {
 
       /* Grid background pattern */
       .bg-grid-white\/10 {
-        background-image: linear-gradient(to right, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
-          linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+        background-image:
+          linear-gradient(
+            to right,
+            rgba(255, 255, 255, 0.1) 1px,
+            transparent 1px
+          ),
+          linear-gradient(
+            to bottom,
+            rgba(255, 255, 255, 0.1) 1px,
+            transparent 1px
+          );
         background-size: 20px 20px;
       }
-      
+
       /* Smooth gradient animations */
       @keyframes gradient-shift {
-        0%, 100% {
+        0%,
+        100% {
           background-position: 0% 50%;
         }
         50% {
           background-position: 100% 50%;
         }
       }
-      
+
       .animate-gradient {
         background-size: 200% 200%;
         animation: gradient-shift 15s ease infinite;
