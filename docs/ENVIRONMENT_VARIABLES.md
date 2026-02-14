@@ -62,6 +62,7 @@ Settings for connecting to and configuring GitHub repository sources.
 | `SKIP_FORKS` | Skip forked repositories | `false` | `true`, `false` |
 | `MIRROR_STARRED` | Mirror starred repositories | `false` | `true`, `false` |
 | `STARRED_REPOS_ORG` | Organization name for starred repos | `starred` | Any string |
+| `STARRED_REPOS_MODE` | How starred repos are mirrored | `dedicated-org` | `dedicated-org`, `preserve-owner` |
 
 ### Organization Settings
 

@@ -92,8 +92,13 @@ async function preCreateOrganizations({
   // Get unique organization names
   const orgNames = new Set<string>();
   
-  // Add starred repos org
-  if (config.githubConfig?.starredReposOrg) {
+  const starredReposMode = config.githubConfig?.starredReposMode || "dedicated-org";
+
+  if (starredReposMode === "preserve-owner") {
+    for (const repo of repositories) {
+      orgNames.add(repo.organization || repo.owner);
+    }
+  } else if (config.githubConfig?.starredReposOrg) {
     orgNames.add(config.githubConfig.starredReposOrg);
   } else {
     orgNames.add("starred");
@@ -129,7 +134,11 @@ async function processStarredRepository({
   octokit: Octokit;
   strategyConfig: ReturnType<typeof getMirrorStrategyConfig>;
 }): Promise<void> {
-  const starredOrg = config.githubConfig?.starredReposOrg || "starred";
+  const starredReposMode = config.githubConfig?.starredReposMode || "dedicated-org";
+  const starredOrg =
+    starredReposMode === "preserve-owner"
+      ? repository.organization || repository.owner
+      : config.githubConfig?.starredReposOrg || "starred";
   
   // Check if repository exists in Gitea
   const existingRepo = await getGiteaRepoInfo({
@@ -257,7 +266,11 @@ export async function syncStarredRepositories({
         if (error instanceof Error && error.message.includes("not a mirror")) {
           console.warn(`Repository ${repository.name} is not a mirror, handling...`);
           
-          const starredOrg = config.githubConfig?.starredReposOrg || "starred";
+          const starredReposMode = config.githubConfig?.starredReposMode || "dedicated-org";
+          const starredOrg =
+            starredReposMode === "preserve-owner"
+              ? repository.organization || repository.owner
+              : config.githubConfig?.starredReposOrg || "starred";
           const repoInfo = await getGiteaRepoInfo({
             config,
             owner: starredOrg,

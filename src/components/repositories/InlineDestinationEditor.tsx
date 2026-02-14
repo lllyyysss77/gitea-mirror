@@ -28,9 +28,16 @@ export function InlineDestinationEditor({
 
   // Determine the default destination based on repository properties and config
   const getDefaultDestination = () => {
-    // Starred repos always go to the configured starredReposOrg
-    if (repository.isStarred && giteaConfig?.starredReposOrg) {
-      return giteaConfig.starredReposOrg;
+    // Starred repos can use either dedicated org or preserved source owner
+    if (repository.isStarred) {
+      const starredReposMode = giteaConfig?.starredReposMode || "dedicated-org";
+      if (starredReposMode === "preserve-owner") {
+        return repository.organization || repository.owner;
+      }
+      if (giteaConfig?.starredReposOrg) {
+        return giteaConfig.starredReposOrg;
+      }
+      return "starred";
     }
     
     // Check mirror strategy
@@ -60,7 +67,7 @@ export function InlineDestinationEditor({
   const defaultDestination = getDefaultDestination();
   const currentDestination = repository.destinationOrg || defaultDestination;
   const hasOverride = repository.destinationOrg && repository.destinationOrg !== defaultDestination;
-  const isStarredRepo = repository.isStarred && giteaConfig?.starredReposOrg;
+  const isStarredRepo = repository.isStarred;
 
   useEffect(() => {
     if (isEditing && inputRef.current) {

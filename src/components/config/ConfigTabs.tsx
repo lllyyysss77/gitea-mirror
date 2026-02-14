@@ -47,6 +47,7 @@ export function ConfigTabs() {
       organization: 'github-mirrors',
       visibility: 'public',
       starredReposOrg: 'starred',
+      starredReposMode: 'dedicated-org',
       preserveOrgStructure: false,
     },
     scheduleConfig: {

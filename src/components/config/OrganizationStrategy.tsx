@@ -8,6 +8,7 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
+import type { StarredReposMode } from "@/types/config";
 
 export type MirrorStrategy = "preserve" | "single-org" | "flat-user" | "mixed";
 
@@ -15,6 +16,7 @@ interface OrganizationStrategyProps {
   strategy: MirrorStrategy;
   destinationOrg?: string;
   starredReposOrg?: string;
+  starredReposMode?: StarredReposMode;
   onStrategyChange: (strategy: MirrorStrategy) => void;
   githubUsername?: string;
   giteaUsername?: string;
@@ -76,13 +78,18 @@ const MappingPreview: React.FC<{
   config: typeof strategyConfig.preserve;
   destinationOrg?: string;
   starredReposOrg?: string;
+  starredReposMode?: StarredReposMode;
   githubUsername?: string;
   giteaUsername?: string;
-}> = ({ strategy, config, destinationOrg, starredReposOrg, githubUsername, giteaUsername }) => {
+}> = ({ strategy, config, destinationOrg, starredReposOrg, starredReposMode, githubUsername, giteaUsername }) => {
   const displayGithubUsername = githubUsername || "<username>";
   const displayGiteaUsername = giteaUsername || "<username>";
   const isGithubPlaceholder = !githubUsername;
   const isGiteaPlaceholder = !giteaUsername;
+  const starredDestination =
+    (starredReposMode || "dedicated-org") === "preserve-owner"
+      ? "awesome/starred-repo"
+      : `${starredReposOrg || "starred"}/starred-repo`;
   
   if (strategy === "preserve") {
     return (
@@ -122,7 +129,7 @@ const MappingPreview: React.FC<{
             </div>
             <div className={cn("flex items-center gap-2 p-1.5 rounded text-xs", config.repoColors.bg)}>
               <Building2 className={cn("h-3 w-3", config.repoColors.icon)} />
-              <span>{starredReposOrg || "starred"}/starred-repo</span>
+              <span>{starredDestination}</span>
             </div>
           </div>
         </div>
@@ -168,7 +175,7 @@ const MappingPreview: React.FC<{
             </div>
             <div className={cn("flex items-center gap-2 p-1.5 rounded text-xs", config.repoColors.bg)}>
               <Building2 className={cn("h-3 w-3", config.repoColors.icon)} />
-              <span>{starredReposOrg || "starred"}/starred-repo</span>
+              <span>{starredDestination}</span>
             </div>
           </div>
         </div>
@@ -214,7 +221,7 @@ const MappingPreview: React.FC<{
             </div>
             <div className={cn("flex items-center gap-2 p-1.5 rounded text-xs", config.repoColors.bg)}>
               <Building2 className={cn("h-3 w-3", config.repoColors.icon)} />
-              <span>{starredReposOrg || "starred"}/starred-repo</span>
+              <span>{starredDestination}</span>
             </div>
           </div>
         </div>
@@ -260,7 +267,7 @@ const MappingPreview: React.FC<{
             </div>
             <div className={cn("flex items-center gap-2 p-1.5 rounded text-xs", config.repoColors.bg)}>
               <Building2 className={cn("h-3 w-3", config.repoColors.icon)} />
-              <span>{starredReposOrg || "starred"}/starred-repo</span>
+              <span>{starredDestination}</span>
             </div>
           </div>
         </div>
@@ -275,6 +282,7 @@ export const OrganizationStrategy: React.FC<OrganizationStrategyProps> = ({
   strategy,
   destinationOrg,
   starredReposOrg,
+  starredReposMode,
   onStrategyChange,
   githubUsername,
   giteaUsername,
@@ -339,7 +347,7 @@ export const OrganizationStrategy: React.FC<OrganizationStrategyProps> = ({
                       <span className="text-xs font-medium">Starred Repositories</span>
                     </div>
                     <p className="text-xs text-muted-foreground pl-5">
-                      Always go to the configured starred repos organization and cannot be overridden.
+                      Follow your starred-repo mode and cannot be overridden per repository.
                     </p>
                   </div>
                 </div>
@@ -415,6 +423,7 @@ export const OrganizationStrategy: React.FC<OrganizationStrategyProps> = ({
                                     config={config}
                                     destinationOrg={destinationOrg}
                                     starredReposOrg={starredReposOrg}
+                                    starredReposMode={starredReposMode}
                                     githubUsername={githubUsername}
                                     giteaUsername={giteaUsername}
                                   />

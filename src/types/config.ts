@@ -2,6 +2,7 @@ import { type Config as ConfigType } from "@/lib/db/schema";
 
 export type GiteaOrgVisibility = "public" | "private" | "limited";
 export type MirrorStrategy = "preserve" | "single-org" | "flat-user" | "mixed";
+export type StarredReposMode = "dedicated-org" | "preserve-owner";
 
 export interface GiteaConfig {
   url: string;
@@ -10,6 +11,7 @@ export interface GiteaConfig {
   organization: string;
   visibility: GiteaOrgVisibility;
   starredReposOrg: string;
+  starredReposMode?: StarredReposMode;
   preserveOrgStructure: boolean;
   mirrorStrategy?: MirrorStrategy; // New field for the strategy
   personalReposOrg?: string; // Override destination for personal repos
@@ -46,6 +48,7 @@ export interface GitHubConfig {
   privateRepositories: boolean;
   mirrorStarred: boolean;
   starredDuplicateStrategy?: DuplicateNameStrategy;
+  starredReposMode?: StarredReposMode;
 }
 
 export interface MirrorOptions {
