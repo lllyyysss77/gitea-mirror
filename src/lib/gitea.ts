@@ -2026,17 +2026,43 @@ export async function mirrorGitHubReleasesToGitea({
   }
 
   // Get release limit from config (default to 10)
-  const releaseLimit = config.giteaConfig?.releaseLimit || 10;
-  
-  const releases = await octokit.rest.repos.listReleases({
-    owner: repository.owner,
-    repo: repository.name,
-    per_page: releaseLimit, // Only fetch the latest N releases
-  });
+  const releaseLimit = Math.max(1, Math.floor(config.giteaConfig?.releaseLimit || 10));
 
-  console.log(`[Releases] Found ${releases.data.length} releases (limited to latest ${releaseLimit}) to mirror for ${repository.fullName}`);
+  // GitHub API max per page is 100; paginate until we reach the configured limit.
+  const releases: Awaited<
+    ReturnType<typeof octokit.rest.repos.listReleases>
+  >["data"] = [];
+  let page = 1;
+  const perPage = Math.min(100, releaseLimit);
 
-  if (releases.data.length === 0) {
+  while (releases.length < releaseLimit) {
+    const response = await octokit.rest.repos.listReleases({
+      owner: repository.owner,
+      repo: repository.name,
+      per_page: perPage,
+      page,
+    });
+
+    if (response.data.length === 0) {
+      break;
+    }
+
+    releases.push(...response.data);
+
+    if (response.data.length < perPage) {
+      break;
+    }
+
+    page++;
+  }
+
+  const limitedReleases = releases.slice(0, releaseLimit);
+
+  console.log(
+    `[Releases] Found ${limitedReleases.length} releases (limited to latest ${releaseLimit}) to mirror for ${repository.fullName}`
+  );
+
+  if (limitedReleases.length === 0) {
     console.log(`[Releases] No releases to mirror for ${repository.fullName}`);
     return;
   }
@@ -2044,7 +2070,7 @@ export async function mirrorGitHubReleasesToGitea({
   let mirroredCount = 0;
   let skippedCount = 0;
 
-  const getReleaseTimestamp = (release: typeof releases.data[number]) => {
+  const getReleaseTimestamp = (release: (typeof limitedReleases)[number]) => {
     // Use published_at first (when the release was published on GitHub)
     // Fall back to created_at (when the git tag was created) only if published_at is missing
     // This matches GitHub's sorting behavior and handles cases where multiple tags
@@ -2055,10 +2081,9 @@ export async function mirrorGitHubReleasesToGitea({
   };
 
   // Capture the latest releases, then process them oldest-to-newest so Gitea mirrors keep chronological order
-  const releasesToProcess = releases.data
+  const releasesToProcess = limitedReleases
     .slice()
     .sort((a, b) => getReleaseTimestamp(b) - getReleaseTimestamp(a))
-    .slice(0, releaseLimit)
     .sort((a, b) => getReleaseTimestamp(a) - getReleaseTimestamp(b));
 
   console.log(`[Releases] Processing ${releasesToProcess.length} releases in chronological order (oldest to newest by published date)`);
