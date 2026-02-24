@@ -377,14 +377,13 @@ export function GitHubMirrorSettings({
                       id="release-limit"
                       type="number"
                       min="1"
-                      max="100"
                       value={mirrorOptions.releaseLimit || 10}
                       onChange={(e) => {
                         const value = parseInt(e.target.value) || 10;
-                        const clampedValue = Math.min(100, Math.max(1, value));
+                        const clampedValue = Math.max(1, value);
                         handleMirrorChange('releaseLimit', clampedValue);
                       }}
-                      className="w-16 px-2 py-1 text-xs border border-input rounded bg-background text-foreground"
+                      className="w-20 px-2 py-1 text-xs border border-input rounded bg-background text-foreground"
                     />
                     <span className="text-xs text-muted-foreground">releases</span>
                   </div>
