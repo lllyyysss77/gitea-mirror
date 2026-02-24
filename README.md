@@ -299,6 +299,19 @@ CLEANUP_DRY_RUN=false                 # Set to true to test without changes
 
 If using a reverse proxy (e.g., nginx proxy manager) and experiencing issues with JavaScript files not loading properly, try enabling HTTP/2 support in your proxy configuration. While not required by the application, some proxy configurations may have better compatibility with HTTP/2 enabled. See [issue #43](https://github.com/RayLabsHQ/gitea-mirror/issues/43) for reference.
 
+### Re-sync Metadata After Changing Mirror Options
+
+If you enable metadata options (issues/PRs/labels/milestones/releases) after repositories were already mirrored:
+
+1. Go to **Repositories**, select the repositories, and click **Sync** to run a fresh sync pass.
+2. If some repositories still miss metadata, reset metadata sync state in SQLite and sync again:
+
+```bash
+sqlite3 data/gitea-mirror.db "UPDATE repositories SET metadata = NULL;"
+```
+
+This clears per-repository metadata completion flags so the next sync can re-run metadata import steps.
+
 ## Development
 
 ```bash
