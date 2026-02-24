@@ -6,6 +6,7 @@ export type StarredReposMode = "dedicated-org" | "preserve-owner";
 
 export interface GiteaConfig {
   url: string;
+  externalUrl?: string;
   username: string;
   token: string;
   organization: string;

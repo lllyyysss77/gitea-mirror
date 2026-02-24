@@ -42,6 +42,7 @@ export function ConfigTabs() {
     },
     giteaConfig: {
       url: '',
+      externalUrl: '',
       username: '',
       token: '',
       organization: 'github-mirrors',

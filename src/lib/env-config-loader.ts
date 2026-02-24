@@ -28,6 +28,7 @@ interface EnvConfig {
   };
   gitea: {
     url?: string;
+    externalUrl?: string;
     username?: string;
     token?: string;
     organization?: string;
@@ -118,6 +119,7 @@ function parseEnvConfig(): EnvConfig {
     },
     gitea: {
       url: process.env.GITEA_URL,
+      externalUrl: process.env.GITEA_EXTERNAL_URL,
       username: process.env.GITEA_USERNAME,
       token: process.env.GITEA_TOKEN,
       organization: process.env.GITEA_ORGANIZATION,
@@ -267,6 +269,7 @@ export async function initializeConfigFromEnv(): Promise<void> {
     // Build Gitea config
     const giteaConfig = {
       url: envConfig.gitea.url || existingConfig?.[0]?.giteaConfig?.url || '',
+      externalUrl: envConfig.gitea.externalUrl || existingConfig?.[0]?.giteaConfig?.externalUrl || undefined,
       token: envConfig.gitea.token ? encrypt(envConfig.gitea.token) : existingConfig?.[0]?.giteaConfig?.token || '',
       defaultOwner: envConfig.gitea.username || existingConfig?.[0]?.giteaConfig?.defaultOwner || '',
       organization: envConfig.gitea.organization || existingConfig?.[0]?.giteaConfig?.organization || undefined,

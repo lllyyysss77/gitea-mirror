@@ -9,6 +9,7 @@ export interface DefaultConfigOptions {
     githubToken?: string;
     githubUsername?: string;
     giteaUrl?: string;
+    giteaExternalUrl?: string;
     giteaToken?: string;
     giteaUsername?: string;
     scheduleEnabled?: boolean;
@@ -38,6 +39,8 @@ export async function createDefaultConfig({ userId, envOverrides = {} }: Default
   const githubToken = envOverrides.githubToken || process.env.GITHUB_TOKEN || "";
   const githubUsername = envOverrides.githubUsername || process.env.GITHUB_USERNAME || "";
   const giteaUrl = envOverrides.giteaUrl || process.env.GITEA_URL || "";
+  const giteaExternalUrl =
+    envOverrides.giteaExternalUrl || process.env.GITEA_EXTERNAL_URL || "";
   const giteaToken = envOverrides.giteaToken || process.env.GITEA_TOKEN || "";
   const giteaUsername = envOverrides.giteaUsername || process.env.GITEA_USERNAME || "";
   
@@ -77,6 +80,7 @@ export async function createDefaultConfig({ userId, envOverrides = {} }: Default
     },
     giteaConfig: {
       url: giteaUrl,
+      externalUrl: giteaExternalUrl || undefined,
       token: giteaToken ? encrypt(giteaToken) : "",
       defaultOwner: giteaUsername,
       mirrorInterval: "8h",
