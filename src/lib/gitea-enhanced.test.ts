@@ -587,7 +587,7 @@ describe("Enhanced Gitea Operations", () => {
       expect(mockMirrorGitRepoLabelsToGitea).not.toHaveBeenCalled();
     });
 
-    test("skips metadata mirroring when components already synced", async () => {
+    test("continues incremental issue and PR syncing when metadata was previously synced", async () => {
       const config: Partial<Config> = {
         userId: "user123",
         githubConfig: {
@@ -647,8 +647,8 @@ describe("Enhanced Gitea Operations", () => {
       );
 
       expect(mockMirrorGitHubReleasesToGitea).not.toHaveBeenCalled();
-      expect(mockMirrorGitRepoIssuesToGitea).not.toHaveBeenCalled();
-      expect(mockMirrorGitRepoPullRequestsToGitea).not.toHaveBeenCalled();
+      expect(mockMirrorGitRepoIssuesToGitea).toHaveBeenCalledTimes(1);
+      expect(mockMirrorGitRepoPullRequestsToGitea).toHaveBeenCalledTimes(1);
       expect(mockMirrorGitRepoLabelsToGitea).not.toHaveBeenCalled();
       expect(mockMirrorGitRepoMilestonesToGitea).not.toHaveBeenCalled();
     });

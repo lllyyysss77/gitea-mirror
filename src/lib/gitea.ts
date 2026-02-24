@@ -1773,6 +1773,53 @@ export const mirrorGitRepoIssuesToGitea = async ({
     return;
   }
 
+  const ghIssueMarkerRegex = /\[GH-ISSUE #(\d+)\]/i;
+  const extractGitHubIssueNumber = (value: string | null | undefined): number | null => {
+    if (!value) return null;
+    const match = value.match(ghIssueMarkerRegex);
+    if (!match?.[1]) return null;
+    const parsed = Number.parseInt(match[1], 10);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const existingGiteaIssues: any[] = [];
+  const titleFallbackMap = new Map<string, any[]>();
+  const giteaIssueByGitHubNumber = new Map<number, any>();
+  let issuesPage = 1;
+  const issuesPerPage = 100;
+
+  while (true) {
+    const existingIssuesRes = await httpGet(
+      `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repoName}/issues?state=all&page=${issuesPage}&limit=${issuesPerPage}`,
+      {
+        Authorization: `token ${decryptedConfig.giteaConfig.token}`,
+      }
+    );
+
+    const pageIssues = Array.isArray(existingIssuesRes.data)
+      ? existingIssuesRes.data
+      : [];
+    if (!pageIssues.length) break;
+
+    existingGiteaIssues.push(...pageIssues);
+    if (pageIssues.length < issuesPerPage) break;
+    issuesPage += 1;
+  }
+
+  for (const giteaIssue of existingGiteaIssues) {
+    const mappedNumber = extractGitHubIssueNumber(giteaIssue.title);
+    if (mappedNumber !== null) {
+      giteaIssueByGitHubNumber.set(mappedNumber, giteaIssue);
+      continue;
+    }
+
+    const title = (giteaIssue.title || "").trim();
+    if (!title) continue;
+    const existing = titleFallbackMap.get(title) || [];
+    existing.push(giteaIssue);
+    titleFallbackMap.set(title, existing);
+  }
+
   // Get existing labels from Gitea
   const giteaLabelsRes = await httpGet(
     `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repoName}/labels`,
@@ -1848,57 +1895,71 @@ export const mirrorGitRepoIssuesToGitea = async ({
       const issueOriginHeader = `Originally created by @${issueAuthor} on GitHub${
         issueCreatedOn ? ` (${issueCreatedOn})` : ""
       }.`;
+      const issueMarker = `[GH-ISSUE #${issue.number}]`;
+      const mirroredTitle = `${issueMarker} ${issue.title}`;
+      const issueBody = `${issueOriginHeader}\nOriginal GitHub issue: ${issue.html_url}${originalAssignees}\n\n${issue.body ?? ""}`;
 
       const issuePayload: any = {
-        title: issue.title,
-        body: `${issueOriginHeader}${originalAssignees}\n\n${issue.body ?? ""}`,
+        title: mirroredTitle,
+        body: issueBody,
         closed: issue.state === "closed",
         labels: giteaLabelIds,
       };
 
-      // Create the issue in Gitea
-      const createdIssue = await httpPost(
-        `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues`,
-        issuePayload,
-        {
-          Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
-        }
-      );
-
-      // Verify and explicitly close if the issue should be closed but wasn't
-      // Gitea's API creates issues as open first, then closes them - this can fail silently
-      const shouldBeClosed = issue.state === "closed";
-      const isActuallyClosed = createdIssue.data.state === "closed";
-
-      if (shouldBeClosed && !isActuallyClosed) {
-        console.log(
-          `[Issues] Issue #${createdIssue.data.number} was not closed during creation, attempting explicit close`
-        );
-        try {
-          await httpPatch(
-            `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues/${createdIssue.data.number}`,
-            { state: "closed" },
-            {
-              Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
-            }
-          );
+      let existingIssue = giteaIssueByGitHubNumber.get(issue.number);
+      if (!existingIssue) {
+        const titleFallbackCandidates = titleFallbackMap.get(issue.title.trim()) || [];
+        if (titleFallbackCandidates.length === 1) {
+          existingIssue = titleFallbackCandidates[0];
+          giteaIssueByGitHubNumber.set(issue.number, existingIssue);
           console.log(
-            `[Issues] Successfully closed issue #${createdIssue.data.number}`
-          );
-        } catch (closeError) {
-          console.error(
-            `[Issues] Failed to close issue #${createdIssue.data.number}: ${
-              closeError instanceof Error ? closeError.message : String(closeError)
-            }`
+            `[Issues] Matched legacy issue by title for #${issue.number}; converting to marker-based title`
           );
         }
       }
 
-      // Verify body content was synced correctly
-      if (issue.body && (!createdIssue.data.body || createdIssue.data.body.length === 0)) {
-        console.warn(
-          `[Issues] Issue #${createdIssue.data.number} may have missing body content - original had ${issue.body.length} chars`
+      let targetIssueNumber: number;
+      if (existingIssue) {
+        targetIssueNumber = existingIssue.number;
+        await httpPatch(
+          `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues/${targetIssueNumber}`,
+          {
+            title: issuePayload.title,
+            body: issuePayload.body,
+            state: issue.state === "closed" ? "closed" : "open",
+            labels: issuePayload.labels,
+          },
+          {
+            Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
+          }
         );
+      } else {
+        const createdIssue = await httpPost(
+          `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues`,
+          issuePayload,
+          {
+            Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
+          }
+        );
+        targetIssueNumber = createdIssue.data.number;
+
+        if (issue.state === "closed" && createdIssue.data.state !== "closed") {
+          try {
+            await httpPatch(
+              `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues/${targetIssueNumber}`,
+              { state: "closed" },
+              {
+                Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
+              }
+            );
+          } catch (closeError) {
+            console.error(
+              `[Issues] Failed to close issue #${targetIssueNumber}: ${
+                closeError instanceof Error ? closeError.message : String(closeError)
+              }`
+            );
+          }
+        }
       }
 
       // Clone comments
@@ -1924,9 +1985,41 @@ export const mirrorGitRepoIssuesToGitea = async ({
 
       // Process comments sequentially to preserve historical ordering
       if (sortedComments.length > 0) {
+        const existingComments: any[] = [];
+        let commentsPage = 1;
+        const commentsPerPage = 100;
+        while (true) {
+          const existingCommentsRes = await httpGet(
+            `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues/${targetIssueNumber}/comments?page=${commentsPage}&limit=${commentsPerPage}`,
+            {
+              Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
+            }
+          );
+          const pageComments = Array.isArray(existingCommentsRes.data)
+            ? existingCommentsRes.data
+            : [];
+          if (!pageComments.length) break;
+          existingComments.push(...pageComments);
+          if (pageComments.length < commentsPerPage) break;
+          commentsPage += 1;
+        }
+        const mirroredCommentIds = new Set<number>();
+        for (const existingComment of existingComments) {
+          const marker = String(existingComment.body || "").match(
+            /<!--\s*gh-comment-id:(\d+)\s*-->/i
+          );
+          if (marker?.[1]) {
+            const parsed = Number.parseInt(marker[1], 10);
+            if (Number.isFinite(parsed)) mirroredCommentIds.add(parsed);
+          }
+        }
+
         await processWithRetry(
           sortedComments,
           async (comment) => {
+            if (mirroredCommentIds.has(comment.id)) {
+              return comment;
+            }
             const commenter = comment.user?.login ?? "unknown";
             const commentDate = formatDateShort(comment.created_at);
             const commentHeader = `@${commenter} commented on GitHub${
@@ -1934,9 +2027,9 @@ export const mirrorGitRepoIssuesToGitea = async ({
             }:`;
 
             await httpPost(
-              `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues/${createdIssue.data.number}/comments`,
+              `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues/${targetIssueNumber}/comments`,
               {
-                body: `${commentHeader}\n\n${comment.body ?? ""}`,
+                body: `<!-- gh-comment-id:${comment.id} -->\n${commentHeader}\n\n${comment.body ?? ""}`,
               },
               {
                 Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
@@ -2438,6 +2531,34 @@ export async function mirrorGitRepoPullRequestsToGitea({
     }
   }
 
+  const existingPrIssuesByNumber = new Map<number, any>();
+  let prIssuesPage = 1;
+  const prIssuesPerPage = 100;
+  while (true) {
+    const existingIssuesRes = await httpGet(
+      `${config.giteaConfig.url}/api/v1/repos/${giteaOwner}/${repoName}/issues?state=all&page=${prIssuesPage}&limit=${prIssuesPerPage}`,
+      {
+        Authorization: `token ${decryptedConfig.giteaConfig.token}`,
+      }
+    );
+    const pageIssues = Array.isArray(existingIssuesRes.data)
+      ? existingIssuesRes.data
+      : [];
+    if (!pageIssues.length) break;
+
+    for (const issue of pageIssues) {
+      const match = String(issue.title || "").match(/\[PR #(\d+)\]/i);
+      if (!match?.[1]) continue;
+      const prNumber = Number.parseInt(match[1], 10);
+      if (Number.isFinite(prNumber)) {
+        existingPrIssuesByNumber.set(prNumber, issue);
+      }
+    }
+
+    if (pageIssues.length < prIssuesPerPage) break;
+    prIssuesPage += 1;
+  }
+
   const { processWithRetry } = await import("@/lib/utils/concurrency");
 
   const rawPullConcurrency = config.giteaConfig?.pullRequestConcurrency ?? 5;
@@ -2535,40 +2656,51 @@ export async function mirrorGitRepoPullRequestsToGitea({
           closed: pr.state === "closed" || pr.merged_at !== null,
         };
 
-        console.log(`[Pull Requests] Creating enriched issue for PR #${pr.number}: ${pr.title}`);
-        const createdPrIssue = await httpPost(
-          `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues`,
-          issueData,
-          {
-            Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
-          }
-        );
-
-        // Verify and explicitly close if the PR issue should be closed but wasn't
-        const prShouldBeClosed = pr.state === "closed" || pr.merged_at !== null;
-        const prIsActuallyClosed = createdPrIssue.data.state === "closed";
-
-        if (prShouldBeClosed && !prIsActuallyClosed) {
-          console.log(
-            `[Pull Requests] Issue for PR #${pr.number} was not closed during creation, attempting explicit close`
+        const existingPrIssue = existingPrIssuesByNumber.get(pr.number);
+        if (existingPrIssue) {
+          await httpPatch(
+            `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues/${existingPrIssue.number}`,
+            {
+              title: issueData.title,
+              body: issueData.body,
+              state: issueData.closed ? "closed" : "open",
+              labels: issueData.labels,
+            },
+            {
+              Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
+            }
           );
-          try {
-            await httpPatch(
-              `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues/${createdPrIssue.data.number}`,
-              { state: "closed" },
-              {
-                Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
-              }
-            );
-            console.log(
-              `[Pull Requests] Successfully closed issue for PR #${pr.number}`
-            );
-          } catch (closeError) {
-            console.error(
-              `[Pull Requests] Failed to close issue for PR #${pr.number}: ${
-                closeError instanceof Error ? closeError.message : String(closeError)
-              }`
-            );
+        } else {
+          console.log(`[Pull Requests] Creating enriched issue for PR #${pr.number}: ${pr.title}`);
+          const createdPrIssue = await httpPost(
+            `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues`,
+            issueData,
+            {
+              Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
+            }
+          );
+          existingPrIssuesByNumber.set(pr.number, createdPrIssue.data);
+
+          // Verify and explicitly close if the PR issue should be closed but wasn't
+          const prShouldBeClosed = pr.state === "closed" || pr.merged_at !== null;
+          const prIsActuallyClosed = createdPrIssue.data.state === "closed";
+
+          if (prShouldBeClosed && !prIsActuallyClosed) {
+            try {
+              await httpPatch(
+                `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues/${createdPrIssue.data.number}`,
+                { state: "closed" },
+                {
+                  Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
+                }
+              );
+            } catch (closeError) {
+              console.error(
+                `[Pull Requests] Failed to close issue for PR #${pr.number}: ${
+                  closeError instanceof Error ? closeError.message : String(closeError)
+                }`
+              );
+            }
           }
         }
 
@@ -2585,33 +2717,50 @@ export async function mirrorGitRepoPullRequestsToGitea({
         };
         
         try {
-          const createdBasicPrIssue = await httpPost(
-            `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues`,
-            basicIssueData,
-            {
-              Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
-            }
-          );
+          const existingPrIssue = existingPrIssuesByNumber.get(pr.number);
+          if (existingPrIssue) {
+            await httpPatch(
+              `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues/${existingPrIssue.number}`,
+              {
+                title: basicIssueData.title,
+                body: basicIssueData.body,
+                state: basicIssueData.closed ? "closed" : "open",
+                labels: basicIssueData.labels,
+              },
+              {
+                Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
+              }
+            );
+          } else {
+            const createdBasicPrIssue = await httpPost(
+              `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues`,
+              basicIssueData,
+              {
+                Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
+              }
+            );
+            existingPrIssuesByNumber.set(pr.number, createdBasicPrIssue.data);
 
-          // Verify and explicitly close if needed
-          const basicPrShouldBeClosed = pr.state === "closed" || pr.merged_at !== null;
-          const basicPrIsActuallyClosed = createdBasicPrIssue.data.state === "closed";
+            // Verify and explicitly close if needed
+            const basicPrShouldBeClosed = pr.state === "closed" || pr.merged_at !== null;
+            const basicPrIsActuallyClosed = createdBasicPrIssue.data.state === "closed";
 
-          if (basicPrShouldBeClosed && !basicPrIsActuallyClosed) {
-            try {
-              await httpPatch(
-                `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues/${createdBasicPrIssue.data.number}`,
-                { state: "closed" },
-                {
-                  Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
-                }
-              );
-            } catch (closeError) {
-              console.error(
-                `[Pull Requests] Failed to close basic issue for PR #${pr.number}: ${
-                  closeError instanceof Error ? closeError.message : String(closeError)
-                }`
-              );
+            if (basicPrShouldBeClosed && !basicPrIsActuallyClosed) {
+              try {
+                await httpPatch(
+                  `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues/${createdBasicPrIssue.data.number}`,
+                  { state: "closed" },
+                  {
+                    Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
+                  }
+                );
+              } catch (closeError) {
+                console.error(
+                  `[Pull Requests] Failed to close basic issue for PR #${pr.number}: ${
+                    closeError instanceof Error ? closeError.message : String(closeError)
+                  }`
+                );
+              }
             }
           }
 
