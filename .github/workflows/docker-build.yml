@@ -55,6 +55,7 @@ jobs:
           driver-opts: network=host
 
       - name: Log into registry
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -105,7 +106,7 @@ jobs:
         with:
           context: .
           platforms: linux/amd64,linux/arm64
-          push: true
+          push: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -128,13 +129,14 @@ jobs:
 
       # Wait for image to be available in registry
       - name: Wait for image availability
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         run: |
           echo "Waiting for image to be available in registry..."
           sleep 5
 
       # Add comment to PR with image details
       - name: Comment PR with image tag
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
