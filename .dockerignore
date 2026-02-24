@@ -15,6 +15,7 @@ dist
 build
 .next
 out
+www
 
 # Environment variables
 .env

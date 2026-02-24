@@ -1,19 +1,17 @@
 # syntax=docker/dockerfile:1.4
 
-FROM oven/bun:1.3.3-debian AS base
+FROM oven/bun:1.3.9-debian AS base
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
   python3 make g++ gcc wget sqlite3 openssl ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
 # ----------------------------
-FROM base AS deps
+FROM base AS builder
 COPY package.json ./
 COPY bun.lock* ./
 RUN bun install --frozen-lockfile
 
-# ----------------------------
-FROM deps AS builder
 COPY . .
 RUN bun run build
 RUN mkdir -p dist/scripts && \
@@ -22,17 +20,21 @@ RUN mkdir -p dist/scripts && \
   done
 
 # ----------------------------
-FROM deps AS pruner
-RUN bun install --production --frozen-lockfile
+FROM base AS pruner
+COPY package.json ./
+COPY bun.lock* ./
+RUN bun install --production --omit=peer --frozen-lockfile
 
 # ----------------------------
-FROM base AS runner
+FROM oven/bun:1.3.9-debian AS runner
 WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  wget sqlite3 openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 COPY --from=pruner /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
-COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/drizzle ./drizzle
 
 ENV NODE_ENV=production
@@ -44,10 +46,11 @@ ENV DATABASE_URL=file:data/gitea-mirror.db
 RUN mkdir -p /app/certs && \
   chmod +x ./docker-entrypoint.sh && \
   mkdir -p /app/data && \
-  addgroup --system --gid 1001 nodejs && \
-  adduser --system --uid 1001 gitea-mirror && \
+  groupadd --system --gid 1001 nodejs && \
+  useradd --system --uid 1001 --gid 1001 --create-home --home-dir /home/gitea-mirror gitea-mirror && \
   chown -R gitea-mirror:nodejs /app/data && \
-  chown -R gitea-mirror:nodejs /app/certs
+  chown -R gitea-mirror:nodejs /app/certs && \
+  chown -R gitea-mirror:nodejs /home/gitea-mirror
 
 USER gitea-mirror
 
