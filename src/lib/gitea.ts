@@ -1915,6 +1915,17 @@ export const mirrorGitRepoIssuesToGitea = async ({
           console.log(
             `[Issues] Matched legacy issue by title for #${issue.number}; converting to marker-based title`
           );
+        } else if (titleFallbackCandidates.length > 1) {
+          const filtered = titleFallbackCandidates.filter((candidate) =>
+            String(candidate.body || "").startsWith(issueOriginHeader)
+          );
+          if (filtered.length === 1) {
+            existingIssue = filtered[0];
+            giteaIssueByGitHubNumber.set(issue.number, existingIssue);
+            console.log(
+              `[Issues] Matched legacy issue by body prefix for #${issue.number}; converting to marker-based title`
+            );
+          }
         }
       }
 
@@ -2004,7 +2015,10 @@ export const mirrorGitRepoIssuesToGitea = async ({
           commentsPage += 1;
         }
         const mirroredCommentIds = new Set<number>();
+        const existingCommentBodies = new Set<string>();
         for (const existingComment of existingComments) {
+          const body = String(existingComment.body || "");
+          if (body) existingCommentBodies.add(body);
           const marker = String(existingComment.body || "").match(
             /<!--\s*gh-comment-id:(\d+)\s*-->/i
           );
@@ -2025,11 +2039,16 @@ export const mirrorGitRepoIssuesToGitea = async ({
             const commentHeader = `@${commenter} commented on GitHub${
               commentDate ? ` (${commentDate})` : ""
             }:`;
+            const legacyBody = `${commentHeader}\n\n${comment.body ?? ""}`;
+            const markedBody = `<!-- gh-comment-id:${comment.id} -->\n${legacyBody}`;
+            if (existingCommentBodies.has(legacyBody) || existingCommentBodies.has(markedBody)) {
+              return comment;
+            }
 
             await httpPost(
               `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues/${targetIssueNumber}/comments`,
               {
-                body: `<!-- gh-comment-id:${comment.id} -->\n${commentHeader}\n\n${comment.body ?? ""}`,
+                body: markedBody,
               },
               {
                 Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
