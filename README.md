@@ -309,6 +309,7 @@ If sync logs show authentication failures (for example `terminal prompts disable
 
 1. In Gitea/Forgejo, open repository **Settings → Mirror Settings** and update the mirror authorization password/token.
 2. Or delete and re-mirror the repository from Gitea Mirror so it is recreated with current credentials.
+
 ### Re-sync Metadata After Changing Mirror Options
 
 If you enable metadata options (issues/PRs/labels/milestones/releases) after repositories were already mirrored:
@@ -322,6 +323,17 @@ sqlite3 data/gitea-mirror.db "UPDATE repositories SET metadata = NULL;"
 ```
 
 This clears per-repository metadata completion flags so the next sync can re-run metadata import steps.
+
+### Mirror Interval vs Gitea/Forgejo `MIN_INTERVAL`
+
+Gitea Mirror treats the interval configured in **Configuration** (or `GITEA_MIRROR_INTERVAL`) as the source of truth and applies it to mirrored repositories during sync.
+
+If your Gitea/Forgejo server has `mirror.MIN_INTERVAL` set to a higher value (for example `24h`) and Gitea Mirror is set lower (for example `8h`), sync/mirror operations can fail when updating mirror settings.
+
+To avoid this:
+
+1. Set Gitea Mirror interval to a value greater than or equal to your server `MIN_INTERVAL`.
+2. Do not rely on manual per-repository mirror interval edits in Gitea/Forgejo, because Gitea Mirror will overwrite them on sync.
 
 ## Development
 
