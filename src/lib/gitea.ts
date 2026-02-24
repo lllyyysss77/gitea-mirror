@@ -77,8 +77,12 @@ export const getGiteaRepoOwnerAsync = async ({
     throw new Error("User ID is required for organization overrides.");
   }
 
-  // Check if repository is starred - starred repos always go to starredReposOrg (highest priority)
+  // Check if repository is starred
   if (repository.isStarred) {
+    const starredReposMode = config.githubConfig.starredReposMode || "dedicated-org";
+    if (starredReposMode === "preserve-owner") {
+      return repository.organization || repository.owner;
+    }
     return config.githubConfig.starredReposOrg || "starred";
   }
 
@@ -122,8 +126,12 @@ export const getGiteaRepoOwner = ({
     throw new Error("Gitea username is required.");
   }
 
-  // Check if repository is starred - starred repos always go to starredReposOrg
+  // Check if repository is starred
   if (repository.isStarred) {
+    const starredReposMode = config.githubConfig.starredReposMode || "dedicated-org";
+    if (starredReposMode === "preserve-owner") {
+      return repository.organization || repository.owner;
+    }
     return config.githubConfig.starredReposOrg || "starred";
   }
 
@@ -372,7 +380,11 @@ export const mirrorGithubRepoToGitea = async ({
     // Determine the actual repository name to use (handle duplicates for starred repos)
     let targetRepoName = repository.name;
 
-    if (repository.isStarred && config.githubConfig) {
+    if (
+      repository.isStarred &&
+      config.githubConfig &&
+      (config.githubConfig.starredReposMode || "dedicated-org") === "dedicated-org"
+    ) {
       // Extract GitHub owner from full_name (format: owner/repo)
       const githubOwner = repository.fullName.split('/')[0];
 
@@ -990,7 +1002,11 @@ export async function mirrorGitHubRepoToGiteaOrg({
     // Determine the actual repository name to use (handle duplicates for starred repos)
     let targetRepoName = repository.name;
 
-    if (repository.isStarred && config.githubConfig) {
+    if (
+      repository.isStarred &&
+      config.githubConfig &&
+      (config.githubConfig.starredReposMode || "dedicated-org") === "dedicated-org"
+    ) {
       // Extract GitHub owner from full_name (format: owner/repo)
       const githubOwner = repository.fullName.split('/')[0];
 

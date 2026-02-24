@@ -30,15 +30,17 @@ This workflow runs on all branches and pull requests. It:
 
 ### Docker Build and Push (`docker-build.yml`)
 
-This workflow builds and pushes Docker images to GitHub Container Registry (ghcr.io), but only when changes are merged to the main branch.
+This workflow builds Docker images on pushes and pull requests, and pushes to GitHub Container Registry (ghcr.io) when permissions allow (main/tags and same-repo PRs).
 
 **When it runs:**
 - On push to the main branch
 - On tag creation (v*)
+- On pull requests (build + scan; push only for same-repo PRs)
 
 **Key features:**
 - Builds multi-architecture images (amd64 and arm64)
-- Pushes images only on main branch, not for PRs
+- Pushes images for main/tags and same-repo PRs
+- Skips registry push for fork PRs (avoids package write permission failures)
 - Uses build caching to speed up builds
 - Creates multiple tags for each image (latest, semver, sha)
 

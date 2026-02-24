@@ -48,6 +48,7 @@ export function mapUiToDbConfig(
     
     // Starred repos organization
     starredReposOrg: giteaConfig.starredReposOrg,
+    starredReposMode: giteaConfig.starredReposMode || "dedicated-org",
     
     // Mirror strategy
     mirrorStrategy: giteaConfig.mirrorStrategy || "preserve",
@@ -131,6 +132,7 @@ export function mapDbToUiConfig(dbConfig: any): {
     organization: dbConfig.githubConfig?.defaultOrg || "github-mirrors", // Get from GitHub config
     visibility: dbConfig.giteaConfig?.visibility === "default" ? "public" : dbConfig.giteaConfig?.visibility || "public",
     starredReposOrg: dbConfig.githubConfig?.starredReposOrg || "starred", // Get from GitHub config
+    starredReposMode: dbConfig.githubConfig?.starredReposMode || "dedicated-org", // Get from GitHub config
     preserveOrgStructure: dbConfig.giteaConfig?.preserveVisibility || false, // Map preserveVisibility
     mirrorStrategy: dbConfig.githubConfig?.mirrorStrategy || "preserve", // Get from GitHub config
     personalReposOrg: undefined, // Not stored in current schema

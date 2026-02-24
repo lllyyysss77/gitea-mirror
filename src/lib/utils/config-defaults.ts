@@ -71,6 +71,7 @@ export async function createDefaultConfig({ userId, envOverrides = {} }: Default
       includePublic: true,
       includeOrganizations: [],
       starredReposOrg: "starred",
+      starredReposMode: "dedicated-org",
       mirrorStrategy: "preserve",
       defaultOrg: "github-mirrors",
     },

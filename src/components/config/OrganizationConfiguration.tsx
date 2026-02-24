@@ -9,16 +9,18 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { MirrorStrategy, GiteaOrgVisibility } from "@/types/config";
+import type { MirrorStrategy, GiteaOrgVisibility, StarredReposMode } from "@/types/config";
 
 interface OrganizationConfigurationProps {
   strategy: MirrorStrategy;
   destinationOrg?: string;
   starredReposOrg?: string;
+  starredReposMode?: StarredReposMode;
   personalReposOrg?: string;
   visibility: GiteaOrgVisibility;
   onDestinationOrgChange: (org: string) => void;
   onStarredReposOrgChange: (org: string) => void;
+  onStarredReposModeChange: (mode: StarredReposMode) => void;
   onPersonalReposOrgChange: (org: string) => void;
   onVisibilityChange: (visibility: GiteaOrgVisibility) => void;
 }
@@ -33,13 +35,19 @@ export const OrganizationConfiguration: React.FC<OrganizationConfigurationProps>
   strategy,
   destinationOrg,
   starredReposOrg,
+  starredReposMode,
   personalReposOrg,
   visibility,
   onDestinationOrgChange,
   onStarredReposOrgChange,
+  onStarredReposModeChange,
   onPersonalReposOrgChange,
   onVisibilityChange,
 }) => {
+  const activeStarredMode = starredReposMode || "dedicated-org";
+  const showStarredReposOrgInput = activeStarredMode === "dedicated-org";
+  const showDestinationOrgInput = strategy === "single-org" || strategy === "mixed";
+
   return (
     <div className="space-y-4">
       <div>
@@ -49,38 +57,94 @@ export const OrganizationConfiguration: React.FC<OrganizationConfigurationProps>
         </h4>
       </div>
 
-      {/* First row - Organization inputs with consistent layout */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Left column - always shows starred repos org */}
-        <div className="space-y-1">
-          <Label htmlFor="starredReposOrg" className="text-sm font-normal flex items-center gap-2">
-            <Star className="h-3.5 w-3.5" />
-            Starred Repos Organization
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Starred repositories will be organized separately in this organization</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </Label>
-          <Input
-            id="starredReposOrg"
-            value={starredReposOrg || ""}
-            onChange={(e) => onStarredReposOrgChange(e.target.value)}
-            placeholder="starred"
-            className=""
-          />
-          <p className="text-xs text-muted-foreground mt-1">
-            Keep starred repos organized separately
+      <div className="space-y-2">
+        <Label className="text-sm font-normal flex items-center gap-2">
+          Starred Repository Destination
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <Info className="h-3.5 w-3.5 text-muted-foreground" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Choose whether starred repos use one org or keep their source Owner/Org paths</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </Label>
+        <div className="rounded-lg border bg-muted/20 p-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => onStarredReposModeChange("dedicated-org")}
+              aria-pressed={activeStarredMode === "dedicated-org"}
+              className={cn(
+                "text-left px-3 py-2 rounded-md border text-sm transition-all",
+                activeStarredMode === "dedicated-org"
+                  ? "bg-accent border-accent-foreground/30 ring-1 ring-accent-foreground/20 font-medium shadow-sm"
+                  : "bg-background hover:bg-accent/50 border-input"
+              )}
+            >
+              Dedicated Organization
+            </button>
+            <button
+              type="button"
+              onClick={() => onStarredReposModeChange("preserve-owner")}
+              aria-pressed={activeStarredMode === "preserve-owner"}
+              className={cn(
+                "text-left px-3 py-2 rounded-md border text-sm transition-all",
+                activeStarredMode === "preserve-owner"
+                  ? "bg-accent border-accent-foreground/30 ring-1 ring-accent-foreground/20 font-medium shadow-sm"
+                  : "bg-background hover:bg-accent/50 border-input"
+              )}
+            >
+              Preserve Source Owner/Org
+            </button>
+          </div>
+          <p className="mt-2 px-1 text-xs text-muted-foreground">
+            {
+              activeStarredMode === "dedicated-org"
+                ? "All starred repositories go to a single destination organization."
+                : "Starred repositories keep their original GitHub Owner/Org destination."
+            }
           </p>
         </div>
+      </div>
 
-        {/* Right column - shows destination org for single-org/mixed, personal repos org for preserve, empty div for others */}
-        {strategy === "single-org" || strategy === "mixed" ? (
+      {/* First row - Organization inputs */}
+      {(showStarredReposOrgInput || showDestinationOrgInput) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {showStarredReposOrgInput ? (
+            <div className="space-y-1">
+              <Label htmlFor="starredReposOrg" className="text-sm font-normal flex items-center gap-2">
+                <Star className="h-3.5 w-3.5" />
+                Starred Repos Organization
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Starred repositories will be organized separately in this organization</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </Label>
+              <Input
+                id="starredReposOrg"
+                value={starredReposOrg || ""}
+                onChange={(e) => onStarredReposOrgChange(e.target.value)}
+                placeholder="starred"
+                className=""
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Keep starred repos organized separately
+              </p>
+            </div>
+          ) : (
+            <div className="hidden md:block" />
+          )}
+
+          {showDestinationOrgInput ? (
           <div className="space-y-1">
             <Label htmlFor="destinationOrg" className="text-sm font-normal flex items-center gap-2">
               {strategy === "mixed" ? "Personal Repos Organization" : "Destination Organization"}
@@ -114,10 +178,11 @@ export const OrganizationConfiguration: React.FC<OrganizationConfigurationProps>
               }
             </p>
           </div>
-        ) : (
-          <div className="hidden md:block" />
-        )}
-      </div>
+          ) : (
+            <div className="hidden md:block" />
+          )}
+        </div>
+      )}
 
       {/* Second row - Organization Visibility (always shown) */}
       <div className="space-y-2">
@@ -172,4 +237,3 @@ export const OrganizationConfiguration: React.FC<OrganizationConfigurationProps>
     </div>
   );
 };
-

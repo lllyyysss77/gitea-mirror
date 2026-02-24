@@ -142,15 +142,14 @@ export const POST: APIRoute = async ({ request }) => {
 
             console.log(`Importing repo: ${repo.name} to owner: ${owner}`);
 
-            // For single-org and starred repos strategies, or when mirroring to an org,
-            // always use the org mirroring function to ensure proper organization handling
+            // For single-org strategy, or when mirroring to an org,
+            // use the org mirroring function to ensure proper organization handling
             const mirrorStrategy = config.githubConfig?.mirrorStrategy || 
-              (config.githubConfig?.preserveOrgStructure ? "preserve" : "flat-user");
+              (config.giteaConfig?.preserveOrgStructure ? "preserve" : "flat-user");
             
             const shouldUseOrgMirror = 
               owner !== config.giteaConfig?.defaultOwner || // Different owner means org
-              mirrorStrategy === "single-org" || // Single-org strategy always uses org
-              repoData.isStarred; // Starred repos always go to org
+              mirrorStrategy === "single-org"; // Single-org strategy always uses org
 
             if (shouldUseOrgMirror) {
               await mirrorGitHubOrgRepoToGiteaOrg({

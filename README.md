@@ -209,7 +209,7 @@ bun run dev
 3. **Customization**
    - Click edit buttons on organization cards to set custom destinations
    - Override individual repository destinations in the table view
-   - Starred repositories automatically go to a dedicated organization
+   - Starred repositories can go to a dedicated org or preserve source owner/org paths
 
 ## Advanced Features
 

@@ -342,6 +342,8 @@ describe("getGiteaRepoOwner - Organization Override Tests", () => {
       mirrorPublicOrgs: false,
       publicOrgs: [],
       starredCodeOnly: false,
+      starredReposOrg: "starred",
+      starredReposMode: "dedicated-org",
       mirrorStrategy: "preserve"
     },
     giteaConfig: {
@@ -350,7 +352,6 @@ describe("getGiteaRepoOwner - Organization Override Tests", () => {
       token: "gitea-token",
       organization: "github-mirrors",
       visibility: "public",
-      starredReposOrg: "starred",
       preserveVisibility: false
     }
   };
@@ -390,13 +391,41 @@ describe("getGiteaRepoOwner - Organization Override Tests", () => {
     const repo = { ...baseRepo, isStarred: true };
     const configWithoutStarredOrg = {
       ...baseConfig,
-      giteaConfig: {
-        ...baseConfig.giteaConfig,
+      githubConfig: {
+        ...baseConfig.githubConfig,
         starredReposOrg: undefined
       }
     };
     const result = getGiteaRepoOwner({ config: configWithoutStarredOrg, repository: repo });
     expect(result).toBe("starred");
+  });
+
+  test("starred repos preserve owner/org when starredReposMode is preserve-owner", () => {
+    const repo = { ...baseRepo, isStarred: true, owner: "FOO", organization: "FOO", fullName: "FOO/BAR" };
+    const configWithPreserveStarred = {
+      ...baseConfig,
+      githubConfig: {
+        ...baseConfig.githubConfig!,
+        starredReposMode: "preserve-owner" as const,
+      },
+    };
+
+    const result = getGiteaRepoOwner({ config: configWithPreserveStarred, repository: repo });
+    expect(result).toBe("FOO");
+  });
+
+  test("starred personal repos preserve owner when starredReposMode is preserve-owner", () => {
+    const repo = { ...baseRepo, isStarred: true, owner: "alice", organization: undefined, fullName: "alice/demo" };
+    const configWithPreserveStarred = {
+      ...baseConfig,
+      githubConfig: {
+        ...baseConfig.githubConfig!,
+        starredReposMode: "preserve-owner" as const,
+      },
+    };
+
+    const result = getGiteaRepoOwner({ config: configWithPreserveStarred, repository: repo });
+    expect(result).toBe("alice");
   });
 
   // Removed test for personalReposOrg as this field no longer exists
@@ -491,5 +520,25 @@ describe("getGiteaRepoOwner - Organization Override Tests", () => {
     });
 
     expect(result).toBe("custom-org");
+  });
+
+  test("getGiteaRepoOwnerAsync preserves starred owner when preserve-owner mode is enabled", async () => {
+    const configWithUser: Partial<Config> = {
+      ...baseConfig,
+      userId: "user-id",
+      githubConfig: {
+        ...baseConfig.githubConfig!,
+        starredReposMode: "preserve-owner",
+      },
+    };
+
+    const repo = { ...baseRepo, isStarred: true, owner: "FOO", organization: "FOO", fullName: "FOO/BAR" };
+
+    const result = await getGiteaRepoOwnerAsync({
+      config: configWithUser,
+      repository: repo,
+    });
+
+    expect(result).toBe("FOO");
   });
 });
