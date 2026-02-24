@@ -304,7 +304,8 @@ If using a reverse proxy (e.g., nginx proxy manager) and experiencing issues wit
 If you enable metadata options (issues/PRs/labels/milestones/releases) after repositories were already mirrored:
 
 1. Go to **Repositories**, select the repositories, and click **Sync** to run a fresh sync pass.
-2. If some repositories still miss metadata, reset metadata sync state in SQLite and sync again:
+2. For a full metadata refresh, use **Re-run Metadata** on selected repositories. This clears metadata sync state for those repos and immediately starts Sync.
+3. If some repositories still miss metadata, reset metadata sync state in SQLite and sync again:
 
 ```bash
 sqlite3 data/gitea-mirror.db "UPDATE repositories SET metadata = NULL;"
