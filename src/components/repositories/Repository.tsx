@@ -44,6 +44,7 @@ import { toast } from "sonner";
 import type { SyncRepoRequest, SyncRepoResponse } from "@/types/sync";
 import { OwnerCombobox, OrganizationCombobox } from "./RepositoryComboboxes";
 import type { RetryRepoRequest, RetryRepoResponse } from "@/types/retry";
+import type { ResetMetadataRequest, ResetMetadataResponse } from "@/types/reset-metadata";
 import AddRepositoryDialog from "./AddRepositoryDialog";
 
 import { useLiveRefresh } from "@/hooks/useLiveRefresh";
@@ -370,6 +371,67 @@ export default function Repository() {
         setSelectedRepoIds(new Set());
       } else {
         showErrorToast(response.error || "Error starting sync jobs", toast);
+      }
+    } catch (error) {
+      showErrorToast(error, toast);
+    } finally {
+      setLoadingRepoIds(new Set());
+    }
+  };
+
+  const handleBulkRerunMetadata = async () => {
+    if (selectedRepoIds.size === 0) return;
+
+    const selectedRepos = repositories.filter(repo => repo.id && selectedRepoIds.has(repo.id));
+    const eligibleRepos = selectedRepos.filter(
+      repo => ["mirrored", "synced", "archived"].includes(repo.status)
+    );
+
+    if (eligibleRepos.length === 0) {
+      toast.info("No eligible repositories to re-run metadata in selection");
+      return;
+    }
+
+    const repoIds = eligibleRepos.map(repo => repo.id as string);
+
+    setLoadingRepoIds(prev => {
+      const newSet = new Set(prev);
+      repoIds.forEach(id => newSet.add(id));
+      return newSet;
+    });
+
+    try {
+      const resetPayload: ResetMetadataRequest = {
+        userId: user?.id || "",
+        repositoryIds: repoIds,
+      };
+
+      const resetResponse = await apiRequest<ResetMetadataResponse>("/job/reset-metadata", {
+        method: "POST",
+        data: resetPayload,
+      });
+
+      if (!resetResponse.success) {
+        showErrorToast(resetResponse.error || "Failed to reset metadata state", toast);
+        return;
+      }
+
+      const syncResponse = await apiRequest<SyncRepoResponse>("/job/sync-repo", {
+        method: "POST",
+        data: { userId: user?.id, repositoryIds: repoIds },
+      });
+
+      if (syncResponse.success) {
+        toast.success(`Re-running metadata for ${repoIds.length} repositories`);
+        setRepositories(prevRepos =>
+          prevRepos.map(repo => {
+            const updated = syncResponse.repositories.find(r => r.id === repo.id);
+            return updated ? updated : repo;
+          })
+        );
+        setSelectedRepoIds(new Set());
+      } else {
+        showErrorToast(syncResponse.error || "Error starting metadata re-sync", toast);
       }
     } catch (error) {
       showErrorToast(error, toast);
@@ -806,6 +868,10 @@ export default function Repository() {
     if (selectedRepos.some(repo => repo.status === "mirrored" || repo.status === "synced")) {
       actions.push('sync');
     }
+
+    if (selectedRepos.some(repo => ["mirrored", "synced", "archived"].includes(repo.status))) {
+      actions.push('rerun-metadata');
+    }
     
     // Check if any selected repos are failed
     if (selectedRepos.some(repo => repo.status === "failed")) {
@@ -834,6 +900,7 @@ export default function Repository() {
     return {
       mirror: selectedRepos.filter(repo => repo.status === "imported" || repo.status === "failed").length,
       sync: selectedRepos.filter(repo => repo.status === "mirrored" || repo.status === "synced").length,
+      rerunMetadata: selectedRepos.filter(repo => ["mirrored", "synced", "archived"].includes(repo.status)).length,
       retry: selectedRepos.filter(repo => repo.status === "failed").length,
       ignore: selectedRepos.filter(repo => repo.status !== "ignored").length,
       include: selectedRepos.filter(repo => repo.status === "ignored").length,
@@ -1157,6 +1224,18 @@ export default function Repository() {
                     Sync ({actionCounts.sync})
                   </Button>
                 )}
+
+                {availableActions.includes('rerun-metadata') && (
+                  <Button
+                    variant="outline"
+                    size="default"
+                    onClick={handleBulkRerunMetadata}
+                    disabled={loadingRepoIds.size > 0}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Re-run Metadata ({actionCounts.rerunMetadata})
+                  </Button>
+                )}
                 
                 {availableActions.includes('retry') && (
                   <Button
@@ -1238,6 +1317,18 @@ export default function Repository() {
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Sync </span>({actionCounts.sync})
+            </Button>
+          )}
+
+          {availableActions.includes('rerun-metadata') && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBulkRerunMetadata}
+              disabled={loadingRepoIds.size > 0}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Re-run Metadata ({actionCounts.rerunMetadata})
             </Button>
           )}
           
