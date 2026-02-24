@@ -4,9 +4,9 @@ import { Database } from "bun:sqlite";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import { v4 as uuidv4 } from "uuid";
-import { users, configs, repositories, organizations, mirrorJobs, events } from "../src/lib/db/schema";
-import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { users, configs, repositories, organizations, mirrorJobs, events, accounts, sessions } from "../src/lib/db/schema";
+import { and, eq } from "drizzle-orm";
+import { hashPassword } from "better-auth/crypto";
 
 // Command line arguments
 const args = process.argv.slice(2);
@@ -195,6 +195,92 @@ async function fixDatabase() {
 }
 
 /**
+ * Reset a single user's password (admin recovery flow)
+ */
+async function resetPassword() {
+  const emailArg = args.find((arg) => arg.startsWith("--email="));
+  const passwordArg = args.find((arg) => arg.startsWith("--new-password="));
+  const email = emailArg?.split("=")[1]?.trim().toLowerCase();
+  const newPassword = passwordArg?.split("=")[1];
+
+  if (!email || !newPassword) {
+    console.log("❌ Missing required arguments");
+    console.log("Usage:");
+    console.log("  bun run manage-db reset-password --email=user@example.com --new-password='new-secure-password'");
+    process.exit(1);
+  }
+
+  if (newPassword.length < 8) {
+    console.log("❌ Password must be at least 8 characters");
+    process.exit(1);
+  }
+
+  if (!fs.existsSync(dbPath)) {
+    console.log("❌ Database does not exist");
+    process.exit(1);
+  }
+
+  const sqlite = new Database(dbPath);
+  const db = drizzle({ client: sqlite });
+
+  try {
+    const user = await db.query.users.findFirst({
+      where: eq(users.email, email),
+    });
+
+    if (!user) {
+      console.log(`❌ No user found for email: ${email}`);
+      sqlite.close();
+      process.exit(1);
+    }
+
+    const hashedPassword = await hashPassword(newPassword);
+    const now = new Date();
+
+    const credentialAccount = await db.query.accounts.findFirst({
+      where: and(
+        eq(accounts.userId, user.id),
+        eq(accounts.providerId, "credential"),
+      ),
+    });
+
+    if (credentialAccount) {
+      await db
+        .update(accounts)
+        .set({
+          password: hashedPassword,
+          updatedAt: now,
+        })
+        .where(eq(accounts.id, credentialAccount.id));
+    } else {
+      await db.insert(accounts).values({
+        id: uuidv4(),
+        accountId: user.id,
+        userId: user.id,
+        providerId: "credential",
+        password: hashedPassword,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    const deletedSessions = await db
+      .delete(sessions)
+      .where(eq(sessions.userId, user.id))
+      .returning({ id: sessions.id });
+
+    console.log(`✅ Password reset for ${email}`);
+    console.log(`🔒 Cleared ${deletedSessions.length} active session(s)`);
+
+    sqlite.close();
+  } catch (error) {
+    console.error("❌ Error resetting password:", error);
+    sqlite.close();
+    process.exit(1);
+  }
+}
+
+/**
  * Auto mode - check and initialize if needed
  */
 async function autoMode() {
@@ -224,6 +310,9 @@ switch (command) {
   case "cleanup":
     await cleanupDatabase();
     break;
+  case "reset-password":
+    await resetPassword();
+    break;
   case "auto":
     await autoMode();
     break;
@@ -233,6 +322,7 @@ switch (command) {
     console.log("  check        - Check database status");
     console.log("  fix          - Fix database location issues");
     console.log("  reset-users  - Remove all users and related data");
+    console.log("  reset-password - Reset one user's password and clear sessions");
     console.log("  cleanup      - Remove all database files");
     console.log("  auto         - Auto initialize if needed");
     process.exit(1);
