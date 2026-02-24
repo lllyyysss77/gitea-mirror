@@ -145,7 +145,7 @@ export const POST: APIRoute = async ({ request }) => {
             // For single-org strategy, or when mirroring to an org,
             // use the org mirroring function to ensure proper organization handling
             const mirrorStrategy = config.githubConfig?.mirrorStrategy || 
-              (config.githubConfig?.preserveOrgStructure ? "preserve" : "flat-user");
+              (config.giteaConfig?.preserveOrgStructure ? "preserve" : "flat-user");
             
             const shouldUseOrgMirror = 
               owner !== config.giteaConfig?.defaultOwner || // Different owner means org
