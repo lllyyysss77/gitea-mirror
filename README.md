@@ -299,6 +299,14 @@ CLEANUP_DRY_RUN=false                 # Set to true to test without changes
 
 If using a reverse proxy (e.g., nginx proxy manager) and experiencing issues with JavaScript files not loading properly, try enabling HTTP/2 support in your proxy configuration. While not required by the application, some proxy configurations may have better compatibility with HTTP/2 enabled. See [issue #43](https://github.com/RayLabsHQ/gitea-mirror/issues/43) for reference.
 
+### Mirror Token Rotation (GitHub Token Changed)
+
+For existing pull-mirror repositories, changing the GitHub token in Gitea Mirror does not always update stored mirror credentials in Gitea/Forgejo for already-created repositories.
+
+If sync logs show authentication failures (for example `terminal prompts disabled`), do one of the following:
+
+1. In Gitea/Forgejo, open repository **Settings → Mirror Settings** and update the mirror authorization password/token.
+2. Or delete and re-mirror the repository from Gitea Mirror so it is recreated with current credentials.
 ## Development
 
 ```bash

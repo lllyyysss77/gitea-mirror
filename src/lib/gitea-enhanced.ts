@@ -587,12 +587,12 @@ export async function syncGiteaRepoEnhanced({
         userId: config.userId,
         repositoryId: repository.id,
         repositoryName: repository.name,
-        message: `Successfully synced repository: ${repository.name}`,
-        details: `Repository ${repository.name} was synced with Gitea.`,
+        message: `Sync requested for repository: ${repository.name}`,
+        details: `Mirror sync was requested for ${repository.name}. Gitea/Forgejo performs the actual pull asynchronously; check remote logs for pull errors.`,
         status: "synced",
       });
 
-      console.log(`[Sync] Repository ${repository.name} synced successfully`);
+      console.log(`[Sync] Mirror sync requested for repository ${repository.name}`);
       return response.data;
     } catch (syncError) {
       if (syncError instanceof HttpError && syncError.status === 400) {
