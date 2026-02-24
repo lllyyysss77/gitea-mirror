@@ -335,6 +335,20 @@ bun run build
 - Never stored in plaintext
 - Secure cookie-based session management
 
+### Admin Password Recovery (CLI)
+If email delivery is not configured, an admin with server access can reset a user password from the command line:
+
+```bash
+bun run reset-password -- --email=user@example.com --new-password='new-secure-password'
+```
+
+What this does:
+- Updates the credential password hash for the matching user
+- Creates a credential account if one does not already exist
+- Invalidates all active sessions for that user (forces re-login)
+
+Use this only from trusted server/admin environments.
+
 ## Authentication
 
 Gitea Mirror supports multiple authentication methods. **Email/password authentication is the default and always enabled.**
