@@ -282,6 +282,8 @@ CLEANUP_DRY_RUN=false                 # Set to true to test without changes
 **Important Notes**:
 - **Auto-Start**: When `SCHEDULE_ENABLED=true` or `GITEA_MIRROR_INTERVAL` is set, the service automatically imports all GitHub repositories and mirrors them on startup. No manual "Import" or "Mirror" button clicks required!
 - The scheduler checks every minute for tasks to run. The `GITEA_MIRROR_INTERVAL` determines how often each repository is actually synced. For example, with `8h`, each repo syncs every 8 hours from its last successful sync.
+- **Large repo bootstrap**: For first-time mirroring of large repositories (especially with metadata/LFS), avoid very short intervals (for example `5m`). Start with a longer interval (`1h` to `8h`) or temporarily disable scheduling during the initial import/mirror run, then enable your regular interval after the first pass completes.
+- **Why this matters**: If your Gitea instance takes a long time to complete migrations/imports, aggressive schedules can cause repeated retries and duplicate-looking mirror attempts.
 
 **🛡️ Backup Protection Features**:
 - **No Accidental Deletions**: Repository cleanup is automatically skipped if GitHub is inaccessible (account deleted, banned, or API errors)
@@ -307,6 +309,20 @@ If sync logs show authentication failures (for example `terminal prompts disable
 
 1. In Gitea/Forgejo, open repository **Settings → Mirror Settings** and update the mirror authorization password/token.
 2. Or delete and re-mirror the repository from Gitea Mirror so it is recreated with current credentials.
+### Re-sync Metadata After Changing Mirror Options
+
+If you enable metadata options (issues/PRs/labels/milestones/releases) after repositories were already mirrored:
+
+1. Go to **Repositories**, select the repositories, and click **Sync** to run a fresh sync pass.
+2. For a full metadata refresh, use **Re-run Metadata** on selected repositories. This clears metadata sync state for those repos and immediately starts Sync.
+3. If some repositories still miss metadata, reset metadata sync state in SQLite and sync again:
+
+```bash
+sqlite3 data/gitea-mirror.db "UPDATE repositories SET metadata = NULL;"
+```
+
+This clears per-repository metadata completion flags so the next sync can re-run metadata import steps.
+
 ## Development
 
 ```bash
@@ -342,6 +358,20 @@ bun run build
 - User passwords are securely hashed by Better Auth
 - Never stored in plaintext
 - Secure cookie-based session management
+
+### Admin Password Recovery (CLI)
+If email delivery is not configured, an admin with server access can reset a user password from the command line:
+
+```bash
+bun run reset-password -- --email=user@example.com --new-password='new-secure-password'
+```
+
+What this does:
+- Updates the credential password hash for the matching user
+- Creates a credential account if one does not already exist
+- Invalidates all active sessions for that user (forces re-login)
+
+Use this only from trusted server/admin environments.
 
 ## Authentication
 
