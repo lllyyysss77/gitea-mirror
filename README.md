@@ -282,6 +282,8 @@ CLEANUP_DRY_RUN=false                 # Set to true to test without changes
 **Important Notes**:
 - **Auto-Start**: When `SCHEDULE_ENABLED=true` or `GITEA_MIRROR_INTERVAL` is set, the service automatically imports all GitHub repositories and mirrors them on startup. No manual "Import" or "Mirror" button clicks required!
 - The scheduler checks every minute for tasks to run. The `GITEA_MIRROR_INTERVAL` determines how often each repository is actually synced. For example, with `8h`, each repo syncs every 8 hours from its last successful sync.
+- **Large repo bootstrap**: For first-time mirroring of large repositories (especially with metadata/LFS), avoid very short intervals (for example `5m`). Start with a longer interval (`1h` to `8h`) or temporarily disable scheduling during the initial import/mirror run, then enable your regular interval after the first pass completes.
+- **Why this matters**: If your Gitea instance takes a long time to complete migrations/imports, aggressive schedules can cause repeated retries and duplicate-looking mirror attempts.
 
 **🛡️ Backup Protection Features**:
 - **No Accidental Deletions**: Repository cleanup is automatically skipped if GitHub is inaccessible (account deleted, banned, or API errors)
