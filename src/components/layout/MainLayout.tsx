@@ -159,7 +159,7 @@ function AppWithProviders({ page: initialPage }: AppProps) {
             {currentPage === "activity-log" && <ActivityLog />}
           </section>
         </div>
-        <Toaster />
+        <Toaster position="top-right" />
       </main>
     </NavigationContext.Provider>
   );

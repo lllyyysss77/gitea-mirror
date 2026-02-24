@@ -579,7 +579,7 @@ export const mirrorGithubRepoToGitea = async ({
       lfs: config.giteaConfig?.lfs || false,
       private: repository.isPrivate,
       repo_owner: repoOwner,
-      description: "",
+      description: repository.description?.trim() || "",
       service: "git",
     };
 
