@@ -361,12 +361,10 @@ export async function syncGiteaRepoEnhanced({
         !!config.giteaConfig?.mirrorReleases && !skipMetadataForStarred;
       const shouldMirrorIssuesThisRun =
         !!config.giteaConfig?.mirrorIssues &&
-        !skipMetadataForStarred &&
-        !metadataState.components.issues;
+        !skipMetadataForStarred;
       const shouldMirrorPullRequests =
         !!config.giteaConfig?.mirrorPullRequests &&
-        !skipMetadataForStarred &&
-        !metadataState.components.pullRequests;
+        !skipMetadataForStarred;
       const shouldMirrorLabels =
         !!config.giteaConfig?.mirrorLabels &&
         !skipMetadataForStarred &&
@@ -440,13 +438,6 @@ export async function syncGiteaRepoEnhanced({
             );
           }
         }
-      } else if (
-        config.giteaConfig?.mirrorIssues &&
-        metadataState.components.issues
-      ) {
-        console.log(
-          `[Sync] Issues already mirrored for ${repository.name}; skipping`
-        );
       }
 
       if (shouldMirrorPullRequests) {
@@ -477,13 +468,6 @@ export async function syncGiteaRepoEnhanced({
             );
           }
         }
-      } else if (
-        config.giteaConfig?.mirrorPullRequests &&
-        metadataState.components.pullRequests
-      ) {
-        console.log(
-          `[Sync] Pull requests already mirrored for ${repository.name}; skipping`
-        );
       }
 
       if (shouldMirrorLabels) {
