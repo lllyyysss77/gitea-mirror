@@ -66,36 +66,47 @@ export const OrganizationConfiguration: React.FC<OrganizationConfigurationProps>
                 <Info className="h-3.5 w-3.5 text-muted-foreground" />
               </TooltipTrigger>
               <TooltipContent>
-                <p>Choose whether starred repos use one org or keep their source owner paths</p>
+                <p>Choose whether starred repos use one org or keep their source Owner/Org paths</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </Label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => onStarredReposModeChange("dedicated-org")}
-            className={cn(
-              "text-left px-3 py-2 rounded-md border text-sm transition-colors",
+        <div className="rounded-lg border bg-muted/20 p-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => onStarredReposModeChange("dedicated-org")}
+              aria-pressed={activeStarredMode === "dedicated-org"}
+              className={cn(
+                "text-left px-3 py-2 rounded-md border text-sm transition-all",
+                activeStarredMode === "dedicated-org"
+                  ? "bg-accent border-accent-foreground/30 ring-1 ring-accent-foreground/20 font-medium shadow-sm"
+                  : "bg-background hover:bg-accent/50 border-input"
+              )}
+            >
+              Dedicated Organization
+            </button>
+            <button
+              type="button"
+              onClick={() => onStarredReposModeChange("preserve-owner")}
+              aria-pressed={activeStarredMode === "preserve-owner"}
+              className={cn(
+                "text-left px-3 py-2 rounded-md border text-sm transition-all",
+                activeStarredMode === "preserve-owner"
+                  ? "bg-accent border-accent-foreground/30 ring-1 ring-accent-foreground/20 font-medium shadow-sm"
+                  : "bg-background hover:bg-accent/50 border-input"
+              )}
+            >
+              Preserve Source Owner/Org
+            </button>
+          </div>
+          <p className="mt-2 px-1 text-xs text-muted-foreground">
+            {
               activeStarredMode === "dedicated-org"
-                ? "bg-accent border-accent-foreground/20"
-                : "bg-background hover:bg-accent/50 border-input"
-            )}
-          >
-            Dedicated organization
-          </button>
-          <button
-            type="button"
-            onClick={() => onStarredReposModeChange("preserve-owner")}
-            className={cn(
-              "text-left px-3 py-2 rounded-md border text-sm transition-colors",
-              activeStarredMode === "preserve-owner"
-                ? "bg-accent border-accent-foreground/20"
-                : "bg-background hover:bg-accent/50 border-input"
-            )}
-          >
-            Preserve source owner/org
-          </button>
+                ? "All starred repositories go to a single destination organization."
+                : "Starred repositories keep their original GitHub Owner/Org destination."
+            }
+          </p>
         </div>
       </div>
 
