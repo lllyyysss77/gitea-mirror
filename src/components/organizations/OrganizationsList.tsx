@@ -67,7 +67,8 @@ export function OrganizationList({
 
   // Helper function to construct Gitea organization URL
   const getGiteaOrgUrl = (organization: Organization): string | null => {
-    if (!giteaConfig?.url) {
+    const rawBaseUrl = giteaConfig?.externalUrl || giteaConfig?.url;
+    if (!rawBaseUrl) {
       return null;
     }
 
@@ -84,9 +85,9 @@ export function OrganizationList({
     }
 
     // Ensure the base URL doesn't have a trailing slash
-    const baseUrl = giteaConfig.url.endsWith('/')
-      ? giteaConfig.url.slice(0, -1)
-      : giteaConfig.url;
+    const baseUrl = rawBaseUrl.endsWith("/")
+      ? rawBaseUrl.slice(0, -1)
+      : rawBaseUrl;
 
     return `${baseUrl}/${orgName}`;
   };

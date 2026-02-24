@@ -35,6 +35,7 @@ export const githubConfigSchema = z.object({
 
 export const giteaConfigSchema = z.object({
   url: z.url(),
+  externalUrl: z.url().optional(),
   token: z.string(),
   defaultOwner: z.string(),
   organization: z.string().optional(),

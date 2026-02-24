@@ -88,6 +88,7 @@ Settings for the destination Gitea instance.
 | Variable | Description | Default | Options |
 |----------|-------------|---------|---------|
 | `GITEA_URL` | Gitea instance URL | - | Valid URL |
+| `GITEA_EXTERNAL_URL` | Optional external/browser URL used for dashboard links. API and mirroring still use `GITEA_URL`. | - | Valid URL |
 | `GITEA_TOKEN` | Gitea access token | - | - |
 | `GITEA_USERNAME` | Gitea username | - | - |
 | `GITEA_ORGANIZATION` | Default organization for single-org strategy | `github-mirrors` | Any string |

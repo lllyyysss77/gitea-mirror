@@ -61,6 +61,7 @@ export function mapUiToDbConfig(
   // Map Gitea config to match database schema
   const dbGiteaConfig: DbGiteaConfig = {
     url: giteaConfig.url,
+    externalUrl: giteaConfig.externalUrl?.trim() || undefined,
     token: giteaConfig.token,
     defaultOwner: giteaConfig.username, // Map username to defaultOwner
     organization: giteaConfig.organization, // Add organization field
@@ -127,6 +128,7 @@ export function mapDbToUiConfig(dbConfig: any): {
   // Map from database Gitea config to UI fields
   const giteaConfig: GiteaConfig = {
     url: dbConfig.giteaConfig?.url || "",
+    externalUrl: dbConfig.giteaConfig?.externalUrl || "",
     username: dbConfig.giteaConfig?.defaultOwner || "", // Map defaultOwner to username
     token: dbConfig.giteaConfig?.token || "",
     organization: dbConfig.githubConfig?.defaultOrg || "github-mirrors", // Get from GitHub config

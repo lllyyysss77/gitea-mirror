@@ -15,7 +15,8 @@ export function RepositoryList({ repositories }: RepositoryListProps) {
 
   // Helper function to construct Gitea repository URL
   const getGiteaRepoUrl = (repository: Repository): string | null => {
-    if (!giteaConfig?.url) {
+    const rawBaseUrl = giteaConfig?.externalUrl || giteaConfig?.url;
+    if (!rawBaseUrl) {
       return null;
     }
 
@@ -38,9 +39,9 @@ export function RepositoryList({ repositories }: RepositoryListProps) {
     }
 
     // Ensure the base URL doesn't have a trailing slash
-    const baseUrl = giteaConfig.url.endsWith('/')
-      ? giteaConfig.url.slice(0, -1)
-      : giteaConfig.url;
+    const baseUrl = rawBaseUrl.endsWith("/")
+      ? rawBaseUrl.slice(0, -1)
+      : rawBaseUrl;
 
     return `${baseUrl}/${repoPath}`;
   };
