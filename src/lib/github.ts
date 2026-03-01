@@ -22,22 +22,30 @@ if (process.env.NODE_ENV !== "test") {
 // Fallback to base Octokit if .plugin is not present
 const MyOctokit: any = (Octokit as any)?.plugin?.call
   ? (Octokit as any).plugin(throttling)
-  : Octokit as any;
+  : (Octokit as any);
 
 /**
  * Creates an authenticated Octokit instance with rate limit tracking and throttling
  */
-export function createGitHubClient(token: string, userId?: string, username?: string): Octokit {
+export function createGitHubClient(
+  token: string,
+  userId?: string,
+  username?: string,
+): Octokit {
   // Create a proper User-Agent to identify our application
   // This helps GitHub understand our traffic patterns and can provide better rate limits
-  const userAgent = username 
-    ? `gitea-mirror/3.5.4 (user:${username})` 
+  const userAgent = username
+    ? `gitea-mirror/3.5.4 (user:${username})`
     : "gitea-mirror/3.5.4";
-  
+
+  // Support GH_API_URL (preferred) or GITHUB_API_URL (may conflict with GitHub Actions)
+  // GitHub Actions sets GITHUB_API_URL to https://api.github.com by default
+  const baseUrl = process.env.GH_API_URL || process.env.GITHUB_API_URL || "https://api.github.com";
+
   const octokit = new MyOctokit({
     auth: token, // Always use token for authentication (5000 req/hr vs 60 for unauthenticated)
     userAgent, // Identify our application and user
-    baseUrl: "https://api.github.com", // Explicitly set the API endpoint
+    baseUrl, // Configurable for E2E testing
     log: {
       debug: () => {},
       info: console.log,
@@ -52,14 +60,19 @@ export function createGitHubClient(token: string, userId?: string, username?: st
       },
     },
     throttle: {
-      onRateLimit: async (retryAfter: number, options: any, octokit: any, retryCount: number) => {
+      onRateLimit: async (
+        retryAfter: number,
+        options: any,
+        octokit: any,
+        retryCount: number,
+      ) => {
         const isSearch = options.url.includes("/search/");
         const maxRetries = isSearch ? 5 : 3; // Search endpoints get more retries
-        
+
         console.warn(
-          `[GitHub] Rate limit hit for ${options.method} ${options.url}. Retry ${retryCount + 1}/${maxRetries}`
+          `[GitHub] Rate limit hit for ${options.method} ${options.url}. Retry ${retryCount + 1}/${maxRetries}`,
         );
-        
+
         // Update rate limit status and notify UI (if available)
         if (userId && RateLimitManager) {
           await RateLimitManager.updateFromResponse(userId, {
@@ -68,7 +81,7 @@ export function createGitHubClient(token: string, userId?: string, username?: st
             "x-ratelimit-reset": (Date.now() / 1000 + retryAfter).toString(),
           });
         }
-        
+
         if (userId && publishEvent) {
           await publishEvent({
             userId,
@@ -83,22 +96,29 @@ export function createGitHubClient(token: string, userId?: string, username?: st
             },
           });
         }
-        
+
         // Retry with exponential backoff
         if (retryCount < maxRetries) {
           console.log(`[GitHub] Waiting ${retryAfter}s before retry...`);
           return true;
         }
-        
+
         // Max retries reached
-        console.error(`[GitHub] Max retries (${maxRetries}) reached for ${options.url}`);
+        console.error(
+          `[GitHub] Max retries (${maxRetries}) reached for ${options.url}`,
+        );
         return false;
       },
-      onSecondaryRateLimit: async (retryAfter: number, options: any, octokit: any, retryCount: number) => {
+      onSecondaryRateLimit: async (
+        retryAfter: number,
+        options: any,
+        octokit: any,
+        retryCount: number,
+      ) => {
         console.warn(
-          `[GitHub] Secondary rate limit hit for ${options.method} ${options.url}`
+          `[GitHub] Secondary rate limit hit for ${options.method} ${options.url}`,
         );
-        
+
         // Update status and notify UI (if available)
         if (userId && publishEvent) {
           await publishEvent({
@@ -114,13 +134,15 @@ export function createGitHubClient(token: string, userId?: string, username?: st
             },
           });
         }
-        
+
         // Retry up to 2 times for secondary rate limits
         if (retryCount < 2) {
-          console.log(`[GitHub] Waiting ${retryAfter}s for secondary rate limit...`);
+          console.log(
+            `[GitHub] Waiting ${retryAfter}s for secondary rate limit...`,
+          );
           return true;
         }
-        
+
         return false;
       },
       // Throttle options to prevent hitting limits
@@ -129,50 +151,57 @@ export function createGitHubClient(token: string, userId?: string, username?: st
       retryAfterBaseValue: 1000, // Base retry in ms
     },
   });
-  
-  // Add additional rate limit tracking if userId is provided and RateLimitManager is available
+
+  // Add rate limit tracking hooks if userId is provided and RateLimitManager is available
   if (userId && RateLimitManager) {
-    octokit.hook.after("request", async (response: any, options: any) => {
-      // Update rate limit from response headers
+    octokit.hook.after("request", async (response: any, _options: any) => {
       if (response.headers) {
         await RateLimitManager.updateFromResponse(userId, response.headers);
       }
     });
-    
+
     octokit.hook.error("request", async (error: any, options: any) => {
       // Handle rate limit errors
       if (error.status === 403 || error.status === 429) {
         const message = error.message || "";
-        
-        if (message.includes("rate limit") || message.includes("API rate limit")) {
-          console.error(`[GitHub] Rate limit error for user ${userId}: ${message}`);
-          
+
+        if (
+          message.includes("rate limit") ||
+          message.includes("API rate limit")
+        ) {
+          console.error(
+            `[GitHub] Rate limit error for user ${userId}: ${message}`,
+          );
+
           // Update rate limit status from error response (if available)
           if (error.response?.headers && RateLimitManager) {
-            await RateLimitManager.updateFromResponse(userId, error.response.headers);
+            await RateLimitManager.updateFromResponse(
+              userId,
+              error.response.headers,
+            );
           }
-          
+
           // Create error event for UI (if available)
           if (publishEvent) {
             await publishEvent({
               userId,
-            channel: "rate-limit",
-            payload: {
-              type: "error",
-              provider: "github",
-              error: message,
-              endpoint: options.url,
-              message: `Rate limit exceeded: ${message}`,
-            },
-          });
+              channel: "rate-limit",
+              payload: {
+                type: "error",
+                provider: "github",
+                error: message,
+                endpoint: options.url,
+                message: `Rate limit exceeded: ${message}`,
+              },
+            });
           }
         }
       }
-      
+
       throw error;
     });
   }
-  
+
   return octokit;
 }
 
@@ -213,7 +242,7 @@ export async function getGithubRepositories({
   try {
     const repos = await octokit.paginate(
       octokit.repos.listForAuthenticatedUser,
-      { per_page: 100 }
+      { per_page: 100 },
     );
 
     const skipForks = config.githubConfig?.skipForks ?? false;
@@ -265,7 +294,7 @@ export async function getGithubRepositories({
     throw new Error(
       `Error fetching repositories: ${
         error instanceof Error ? error.message : String(error)
-      }`
+      }`,
     );
   }
 }
@@ -282,7 +311,7 @@ export async function getGithubStarredRepositories({
       octokit.activity.listReposStarredByAuthenticatedUser,
       {
         per_page: 100,
-      }
+      },
     );
 
     return starredRepos.map((repo) => ({
@@ -326,7 +355,7 @@ export async function getGithubStarredRepositories({
     throw new Error(
       `Error fetching starred repositories: ${
         error instanceof Error ? error.message : String(error)
-      }`
+      }`,
     );
   }
 }
@@ -349,13 +378,15 @@ export async function getGithubOrganizations({
     // Get excluded organizations from environment variable
     const excludedOrgsEnv = process.env.GITHUB_EXCLUDED_ORGS;
     const excludedOrgs = excludedOrgsEnv
-      ? excludedOrgsEnv.split(',').map(org => org.trim().toLowerCase())
+      ? excludedOrgsEnv.split(",").map((org) => org.trim().toLowerCase())
       : [];
 
     // Filter out excluded organizations
-    const filteredOrgs = orgs.filter(org => {
+    const filteredOrgs = orgs.filter((org) => {
       if (excludedOrgs.includes(org.login.toLowerCase())) {
-        console.log(`Skipping organization ${org.login} - excluded via GITHUB_EXCLUDED_ORGS environment variable`);
+        console.log(
+          `Skipping organization ${org.login} - excluded via GITHUB_EXCLUDED_ORGS environment variable`,
+        );
         return false;
       }
       return true;
@@ -381,7 +412,7 @@ export async function getGithubOrganizations({
           createdAt: new Date(),
           updatedAt: new Date(),
         };
-      })
+      }),
     );
 
     return organizations;
@@ -389,7 +420,7 @@ export async function getGithubOrganizations({
     throw new Error(
       `Error fetching organizations: ${
         error instanceof Error ? error.message : String(error)
-      }`
+      }`,
     );
   }
 }
@@ -451,7 +482,7 @@ export async function getGithubOrganizationRepositories({
     throw new Error(
       `Error fetching organization repositories: ${
         error instanceof Error ? error.message : String(error)
-      }`
+      }`,
     );
   }
 }
