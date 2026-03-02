@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Button } from './ui/button';
-import { Copy, Check, Terminal, Container, Cloud } from 'lucide-react';
+import { Copy, Check, Terminal, Container, Cloud, Ship, Snowflake } from 'lucide-react';
 
-type InstallMethod = 'docker' | 'manual' | 'proxmox';
+type InstallMethod = 'docker' | 'helm' | 'nix' | 'manual' | 'proxmox';
 
 export function Installation() {
   const [activeMethod, setActiveMethod] = useState<InstallMethod>('docker');
@@ -34,6 +34,50 @@ export function Installation() {
           title: "Access the application",
           command: "# Open http://localhost:4321 in your browser",
           id: "docker-access"
+        }
+      ]
+    },
+    helm: {
+      icon: Ship,
+      title: "Helm",
+      description: "Deploy to Kubernetes",
+      steps: [
+        {
+          title: "Clone the repository",
+          command: "git clone https://github.com/RayLabsHQ/gitea-mirror.git && cd gitea-mirror",
+          id: "helm-clone"
+        },
+        {
+          title: "Install the chart",
+          command: "helm upgrade --install gitea-mirror ./helm/gitea-mirror \\\n  --namespace gitea-mirror --create-namespace",
+          id: "helm-install"
+        },
+        {
+          title: "Access the application",
+          command: "kubectl port-forward svc/gitea-mirror 4321:4321 -n gitea-mirror",
+          id: "helm-access"
+        }
+      ]
+    },
+    nix: {
+      icon: Snowflake,
+      title: "Nix",
+      description: "Zero-config with Nix flakes",
+      steps: [
+        {
+          title: "Run directly with Nix",
+          command: "nix run github:RayLabsHQ/gitea-mirror",
+          id: "nix-run"
+        },
+        {
+          title: "Or install to your profile",
+          command: "nix profile install github:RayLabsHQ/gitea-mirror",
+          id: "nix-install"
+        },
+        {
+          title: "Access the application",
+          command: "# Open http://localhost:4321 in your browser",
+          id: "nix-access"
         }
       ]
     },

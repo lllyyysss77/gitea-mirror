@@ -1,6 +1,5 @@
 import { Button } from "./ui/button";
 import { ArrowRight, Shield, RefreshCw, HardDrive } from "lucide-react";
-import { GitHubLogoIcon } from "@radix-ui/react-icons";
 import React, { Suspense } from 'react';
 
 const Spline = React.lazy(() => import('@splinetool/react-spline'));

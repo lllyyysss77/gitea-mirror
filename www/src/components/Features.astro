@@ -1,11 +1,11 @@
 ---
-import { 
-  RefreshCw, 
-  Building2, 
-  FolderTree, 
-  Activity, 
-  Lock, 
-  Heart,
+import {
+  RefreshCw,
+  FileText,
+  ShieldCheck,
+  Activity,
+  Lock,
+  HardDrive,
 } from 'lucide-react';
 
 const features = [
@@ -17,37 +17,37 @@ const features = [
     iconColor: "text-primary"
   },
   {
-    title: "Bulk Operations", 
-    description: "Mirror entire organizations or user accounts with a single configuration.",
-    icon: Building2,
+    title: "Metadata Preservation",
+    description: "Mirror issues, pull requests, releases, labels, milestones, and wiki pages alongside your code.",
+    icon: FileText,
     gradient: "from-accent/10 to-accent-teal/10",
     iconColor: "text-accent"
   },
   {
-    title: "Preserve Structure",
-    description: "Maintain your GitHub organization structure or customize how repos are organized.",
-    icon: FolderTree,
+    title: "Force-Push Protection",
+    description: "Detect upstream force-pushes and automatically snapshot repos before destructive changes.",
+    icon: ShieldCheck,
     gradient: "from-accent-teal/10 to-primary/10",
     iconColor: "text-accent-teal"
   },
   {
-    title: "Real-time Status",
-    description: "Monitor mirror progress with live updates and detailed activity logs.",
+    title: "Real-time Dashboard",
+    description: "Monitor mirror progress with live updates, activity logs, and per-repo status tracking.",
     icon: Activity,
     gradient: "from-accent-coral/10 to-primary/10",
     iconColor: "text-accent-coral"
   },
   {
-    title: "Secure & Private",
-    description: "Self-hosted solution keeps your code on your infrastructure with full control.",
+    title: "Secure & Self-Hosted",
+    description: "Tokens encrypted at rest with AES-256-GCM. Your code stays on your infrastructure.",
     icon: Lock,
     gradient: "from-accent-purple/10 to-primary/10",
     iconColor: "text-accent-purple"
   },
   {
-    title: "Open Source",
-    description: "Free, transparent, and community-driven development. Contribute and customize.",
-    icon: Heart,
+    title: "Git LFS Support",
+    description: "Mirror large files and binary assets alongside your repositories with full LFS support.",
+    icon: HardDrive,
     gradient: "from-primary/10 to-accent-purple/10",
     iconColor: "text-primary"
   }
