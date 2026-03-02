@@ -9,12 +9,14 @@ on:
       - 'README.md'
       - 'docs/**'
       - 'www/**'
+      - 'helm/**'
   pull_request:
     branches: [main]
     paths-ignore:
       - 'README.md'
       - 'docs/**'
       - 'www/**'
+      - 'helm/**'
 
 permissions:
   contents: read

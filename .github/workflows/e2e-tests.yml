@@ -9,6 +9,7 @@ on:
       - "CHANGELOG.md"
       - "LICENSE"
       - "www/**"
+      - "helm/**"
   pull_request:
     branches: ["*"]
     paths-ignore:
@@ -17,6 +18,7 @@ on:
       - "CHANGELOG.md"
       - "LICENSE"
       - "www/**"
+      - "helm/**"
   workflow_dispatch:
     inputs:
       debug_enabled:
