@@ -13,6 +13,7 @@ import type { Repository } from '@/lib/db/schema';
 import { repoStatusEnum, repositoryVisibilityEnum } from '@/types/Repository';
 import { mergeGitReposPreferStarred, normalizeGitRepoToInsert, calcBatchSizeForInsert } from '@/lib/repo-utils';
 import { isMirrorableGitHubRepo } from '@/lib/repo-eligibility';
+import { createMirrorJob } from '@/lib/helpers';
 
 let schedulerInterval: NodeJS.Timeout | null = null;
 let isSchedulerRunning = false;
@@ -128,6 +129,19 @@ async function runScheduledSync(config: any): Promise<void> {
               .onConflictDoNothing({ target: [repositories.userId, repositories.normalizedFullName] });
           }
           console.log(`[Scheduler] Successfully imported ${newRepos.length} new repositories for user ${userId}`);
+
+          // Log activity for each newly imported repo
+          for (const repo of newRepos) {
+            const sourceLabel = repo.isStarred ? 'starred' : 'owned';
+            await createMirrorJob({
+              userId,
+              repositoryName: repo.fullName,
+              message: `Auto-imported ${sourceLabel} repository: ${repo.fullName}`,
+              details: `Repository ${repo.fullName} was discovered and imported during scheduled sync.`,
+              status: 'imported',
+              skipDuplicateEvent: true,
+            });
+          }
         } else {
           console.log(`[Scheduler] No new repositories found for user ${userId}`);
         }
@@ -176,7 +190,7 @@ async function runScheduledSync(config: any): Promise<void> {
     if (scheduleConfig.autoMirror) {
       try {
         console.log(`[Scheduler] Auto-mirror enabled - checking for repositories to mirror for user ${userId}...`);
-        const reposNeedingMirror = await db
+        let reposNeedingMirror = await db
           .select()
           .from(repositories)
           .where(
@@ -189,6 +203,19 @@ async function runScheduledSync(config: any): Promise<void> {
               )
             )
           );
+
+        // Filter out starred repos from auto-mirror when autoMirrorStarred is disabled
+        if (!config.githubConfig?.autoMirrorStarred) {
+          const githubOwner = config.githubConfig?.owner || '';
+          const beforeCount = reposNeedingMirror.length;
+          reposNeedingMirror = reposNeedingMirror.filter(
+            repo => !repo.isStarred || repo.owner === githubOwner
+          );
+          const skippedCount = beforeCount - reposNeedingMirror.length;
+          if (skippedCount > 0) {
+            console.log(`[Scheduler] Skipped ${skippedCount} starred repositories from auto-mirror (autoMirrorStarred is disabled)`);
+          }
+        }
 
         if (reposNeedingMirror.length > 0) {
           console.log(`[Scheduler] Found ${reposNeedingMirror.length} repositories that need initial mirroring`);
@@ -484,6 +511,19 @@ async function performInitialAutoStart(): Promise<void> {
               .onConflictDoNothing({ target: [repositories.userId, repositories.normalizedFullName] });
           }
           console.log(`[Scheduler] Successfully imported ${reposToImport.length} repositories`);
+
+          // Log activity for each newly imported repo
+          for (const repo of reposToImport) {
+            const sourceLabel = repo.isStarred ? 'starred' : 'owned';
+            await createMirrorJob({
+              userId: config.userId,
+              repositoryName: repo.fullName,
+              message: `Auto-imported ${sourceLabel} repository: ${repo.fullName}`,
+              details: `Repository ${repo.fullName} was discovered and imported during auto-start.`,
+              status: 'imported',
+              skipDuplicateEvent: true,
+            });
+          }
         } else {
           console.log(`[Scheduler] No new repositories to import for user ${config.userId}`);
         }
@@ -491,7 +531,7 @@ async function performInitialAutoStart(): Promise<void> {
         if (skippedDisabledCount > 0) {
           console.log(`[Scheduler] Skipped ${skippedDisabledCount} disabled GitHub repositories for user ${config.userId}`);
         }
-        
+
         // Check if we already have mirrored repositories (indicating this isn't first run)
         const mirroredRepos = await db
           .select()
@@ -534,8 +574,34 @@ async function performInitialAutoStart(): Promise<void> {
         }
         
         // Step 2: Trigger mirror for all repositories that need mirroring
+        // Only auto-mirror if autoMirror is enabled in schedule config
+        if (!config.scheduleConfig?.autoMirror) {
+          console.log(`[Scheduler] Step 2: Skipping initial mirror - autoMirror is disabled for user ${config.userId}`);
+
+          // Still update schedule config timestamps
+          const currentTime2 = new Date();
+          const intervalSource2 = config.scheduleConfig?.interval ||
+                                config.giteaConfig?.mirrorInterval ||
+                                '8h';
+          const interval2 = parseScheduleInterval(intervalSource2);
+          const nextRun2 = new Date(currentTime2.getTime() + interval2);
+
+          await db.update(configs).set({
+            scheduleConfig: {
+              ...config.scheduleConfig,
+              enabled: true,
+              lastRun: currentTime2,
+              nextRun: nextRun2,
+            },
+            updatedAt: currentTime2,
+          }).where(eq(configs.id, config.id));
+
+          console.log(`[Scheduler] Scheduling enabled for user ${config.userId}, next sync at ${nextRun2.toISOString()}`);
+          continue;
+        }
+
         console.log(`[Scheduler] Step 2: Triggering mirror for repositories that need mirroring...`);
-        const reposNeedingMirror = await db
+        let reposNeedingMirror = await db
           .select()
           .from(repositories)
           .where(
@@ -548,7 +614,20 @@ async function performInitialAutoStart(): Promise<void> {
               )
             )
           );
-        
+
+        // Filter out starred repos from auto-mirror when autoMirrorStarred is disabled
+        if (!config.githubConfig?.autoMirrorStarred) {
+          const githubOwner = config.githubConfig?.owner || '';
+          const beforeCount = reposNeedingMirror.length;
+          reposNeedingMirror = reposNeedingMirror.filter(
+            repo => !repo.isStarred || repo.owner === githubOwner
+          );
+          const skippedCount = beforeCount - reposNeedingMirror.length;
+          if (skippedCount > 0) {
+            console.log(`[Scheduler] Skipped ${skippedCount} starred repositories from initial auto-mirror (autoMirrorStarred is disabled)`);
+          }
+        }
+
         if (reposNeedingMirror.length > 0) {
           console.log(`[Scheduler] Found ${reposNeedingMirror.length} repositories that need mirroring`);
           
