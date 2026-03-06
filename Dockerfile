@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.4
 
-FROM oven/bun:1.3.9-debian AS base
+FROM oven/bun:1.3.10-debian AS base
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
   python3 make g++ gcc wget sqlite3 openssl ca-certificates \
@@ -26,7 +26,7 @@ COPY bun.lock* ./
 RUN bun install --production --omit=peer --frozen-lockfile
 
 # ----------------------------
-FROM oven/bun:1.3.9-debian AS runner
+FROM oven/bun:1.3.10-debian AS runner
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
   git git-lfs wget sqlite3 openssl ca-certificates \

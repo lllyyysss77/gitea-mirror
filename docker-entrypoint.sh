@@ -139,16 +139,29 @@ fi
 
 # Initialize configuration from environment variables if provided
 echo "Checking for environment configuration..."
-if [ -f "dist/scripts/startup-env-config.js" ]; then
-  echo "Loading configuration from environment variables..."
-  bun dist/scripts/startup-env-config.js
-  ENV_CONFIG_EXIT_CODE=$?
-elif [ -f "scripts/startup-env-config.ts" ]; then
-  echo "Loading configuration from environment variables..."
-  bun scripts/startup-env-config.ts
-  ENV_CONFIG_EXIT_CODE=$?
+
+# Only run the env config script if relevant env vars are set
+# This avoids spawning a heavy Bun process on memory-constrained systems
+HAS_ENV_CONFIG=false
+if [ -n "$GITHUB_USERNAME" ] || [ -n "$GITHUB_TOKEN" ] || [ -n "$GITEA_URL" ] || [ -n "$GITEA_USERNAME" ] || [ -n "$GITEA_TOKEN" ]; then
+  HAS_ENV_CONFIG=true
+fi
+
+if [ "$HAS_ENV_CONFIG" = "true" ]; then
+  if [ -f "dist/scripts/startup-env-config.js" ]; then
+    echo "Loading configuration from environment variables..."
+    bun dist/scripts/startup-env-config.js || ENV_CONFIG_EXIT_CODE=$?
+    ENV_CONFIG_EXIT_CODE=${ENV_CONFIG_EXIT_CODE:-0}
+  elif [ -f "scripts/startup-env-config.ts" ]; then
+    echo "Loading configuration from environment variables..."
+    bun scripts/startup-env-config.ts || ENV_CONFIG_EXIT_CODE=$?
+    ENV_CONFIG_EXIT_CODE=${ENV_CONFIG_EXIT_CODE:-0}
+  else
+    echo "Environment configuration script not found. Skipping."
+    ENV_CONFIG_EXIT_CODE=0
+  fi
 else
-  echo "Environment configuration script not found. Skipping."
+  echo "No GitHub/Gitea environment variables found, skipping env config initialization."
   ENV_CONFIG_EXIT_CODE=0
 fi
 
@@ -161,17 +174,15 @@ fi
 
 # Run startup recovery to handle any interrupted jobs
 echo "Running startup recovery..."
+RECOVERY_EXIT_CODE=0
 if [ -f "dist/scripts/startup-recovery.js" ]; then
   echo "Running startup recovery using compiled script..."
-  bun dist/scripts/startup-recovery.js --timeout=30000
-  RECOVERY_EXIT_CODE=$?
+  bun dist/scripts/startup-recovery.js --timeout=30000 || RECOVERY_EXIT_CODE=$?
 elif [ -f "scripts/startup-recovery.ts" ]; then
   echo "Running startup recovery using TypeScript script..."
-  bun scripts/startup-recovery.ts --timeout=30000
-  RECOVERY_EXIT_CODE=$?
+  bun scripts/startup-recovery.ts --timeout=30000 || RECOVERY_EXIT_CODE=$?
 else
   echo "Warning: Startup recovery script not found. Skipping recovery."
-  RECOVERY_EXIT_CODE=0
 fi
 
 # Log recovery result
@@ -185,17 +196,15 @@ fi
 
 # Run repository status repair to fix any inconsistent mirroring states
 echo "Running repository status repair..."
+REPAIR_EXIT_CODE=0
 if [ -f "dist/scripts/repair-mirrored-repos.js" ]; then
   echo "Running repository repair using compiled script..."
-  bun dist/scripts/repair-mirrored-repos.js --startup
-  REPAIR_EXIT_CODE=$?
+  bun dist/scripts/repair-mirrored-repos.js --startup || REPAIR_EXIT_CODE=$?
 elif [ -f "scripts/repair-mirrored-repos.ts" ]; then
   echo "Running repository repair using TypeScript script..."
-  bun scripts/repair-mirrored-repos.ts --startup
-  REPAIR_EXIT_CODE=$?
+  bun scripts/repair-mirrored-repos.ts --startup || REPAIR_EXIT_CODE=$?
 else
   echo "Warning: Repository repair script not found. Skipping repair."
-  REPAIR_EXIT_CODE=0
 fi
 
 # Log repair result
