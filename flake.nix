@@ -49,6 +49,20 @@
             bunNix = ./bun.nix;
           };
 
+          # bun2nix defaults to isolated installs on Linux, which can be
+          # very slow in CI for larger dependency trees and may appear stuck.
+          # Use hoisted linker and fail fast on lockfile drift.
+          bunInstallFlags = if pkgs.stdenv.hostPlatform.isDarwin then [
+            "--linker=hoisted"
+            "--backend=copyfile"
+            "--frozen-lockfile"
+            "--no-progress"
+          ] else [
+            "--linker=hoisted"
+            "--frozen-lockfile"
+            "--no-progress"
+          ];
+
           # Let the bun2nix hook handle dependency installation via the
           # pre-fetched cache, but skip its default build/check/install
           # phases since we have custom ones.
