@@ -5,18 +5,18 @@ on:
     branches: [main, nix]
     tags:
       - 'v*'
-    paths-ignore:
-      - 'README.md'
-      - 'docs/**'
-      - 'www/**'
-      - 'helm/**'
+    paths:
+      - 'flake.nix'
+      - 'flake.lock'
+      - 'bun.nix'
+      - '.github/workflows/nix-build.yml'
   pull_request:
     branches: [main]
-    paths-ignore:
-      - 'README.md'
-      - 'docs/**'
-      - 'www/**'
-      - 'helm/**'
+    paths:
+      - 'flake.nix'
+      - 'flake.lock'
+      - 'bun.nix'
+      - '.github/workflows/nix-build.yml'
 
 permissions:
   contents: read
