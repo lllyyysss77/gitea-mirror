@@ -26,23 +26,31 @@ COPY bun.lock* ./
 RUN bun install --production --omit=peer --frozen-lockfile
 
 # ----------------------------
+# Build git-lfs from source with patched Go to resolve Go stdlib CVEs
+FROM debian:trixie-slim AS git-lfs-builder
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  wget ca-certificates git make \
+  && rm -rf /var/lib/apt/lists/*
+ARG GO_VERSION=1.25.8
+ARG GIT_LFS_VERSION=3.7.1
+RUN ARCH="$(dpkg --print-architecture)" \
+  && wget -qO /tmp/go.tar.gz "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz" \
+  && tar -C /usr/local -xzf /tmp/go.tar.gz \
+  && rm /tmp/go.tar.gz
+ENV PATH="/usr/local/go/bin:${PATH}"
+RUN git clone --branch "v${GIT_LFS_VERSION}" --depth 1 https://github.com/git-lfs/git-lfs.git /tmp/git-lfs \
+  && cd /tmp/git-lfs \
+  && make \
+  && install -m 755 /tmp/git-lfs/bin/git-lfs /usr/local/bin/git-lfs
+
+# ----------------------------
 FROM oven/bun:1.3.10-debian AS runner
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
   git wget sqlite3 openssl ca-certificates \
-  && rm -rf /var/lib/apt/lists/* \
-  && GIT_LFS_VERSION="3.7.1" \
-  && ARCH="$(dpkg --print-architecture)" \
-  && case "${ARCH}" in \
-       amd64) LFS_ARCH="amd64" ;; \
-       arm64) LFS_ARCH="arm64" ;; \
-       *) echo "Unsupported architecture: ${ARCH}" && exit 1 ;; \
-     esac \
-  && wget -qO /tmp/git-lfs.tar.gz "https://github.com/git-lfs/git-lfs/releases/download/v${GIT_LFS_VERSION}/git-lfs-linux-${LFS_ARCH}-v${GIT_LFS_VERSION}.tar.gz" \
-  && tar -xzf /tmp/git-lfs.tar.gz -C /tmp \
-  && install -m 755 /tmp/git-lfs-${GIT_LFS_VERSION}/git-lfs /usr/local/bin/git-lfs \
-  && rm -rf /tmp/git-lfs* \
-  && git lfs install
+  && rm -rf /var/lib/apt/lists/*
+COPY --from=git-lfs-builder /usr/local/bin/git-lfs /usr/local/bin/git-lfs
+RUN git lfs install
 COPY --from=pruner /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package.json ./package.json
