@@ -1,7 +1,7 @@
 <p align="center">
   <img src=".github/assets/logo.png" alt="Gitea Mirror Logo" width="120" />
   <h1>Gitea Mirror</h1>
-  <p><i>Automatically mirror repositories from GitHub to your self-hosted Gitea instance.</i></p>
+  <p><i>Automatically mirror repositories from GitHub to your self-hosted Gitea/Forgejo instance.</i></p>
   <p align="center">
     <a href="https://github.com/RayLabsHQ/gitea-mirror/releases/latest"><img src="https://img.shields.io/github/v/tag/RayLabsHQ/gitea-mirror?label=release" alt="release"/></a>
     <a href="https://github.com/RayLabsHQ/gitea-mirror/actions/workflows/astro-build-test.yml"><img src="https://img.shields.io/github/actions/workflow/status/RayLabsHQ/gitea-mirror/astro-build-test.yml?branch=main" alt="build"/></a>
@@ -19,7 +19,7 @@ docker compose -f docker-compose.alt.yml up -d
 # Access at http://localhost:4321
 ```
 
-First user signup becomes admin. Configure GitHub and Gitea through the web interface!
+First user signup becomes admin. Configure GitHub and Gitea/Forgejo through the web interface!
 
 <p align="center">
   <img src=".github/assets/dashboard.png" alt="Dashboard" width="600" />
@@ -28,7 +28,7 @@ First user signup becomes admin. Configure GitHub and Gitea through the web inte
 
 ## ✨ Features
 
-- 🔁 Mirror public, private, and starred GitHub repos to Gitea
+- 🔁 Mirror public, private, and starred GitHub repos to Gitea/Forgejo
 - 🏢 Mirror entire organizations with flexible strategies
 - 🎯 Custom destination control for repos and organizations
 - 📦 **Git LFS support** - Mirror large files with Git LFS
@@ -199,12 +199,12 @@ bun run dev
 1. **First Time Setup**
    - Navigate to http://localhost:4321
    - Create admin account (first user signup)
-   - Configure GitHub and Gitea connections
+   - Configure GitHub and Gitea/Forgejo connections
 
 2. **Mirror Strategies**
    - **Preserve Structure**: Maintains GitHub organization structure
-   - **Single Organization**: All repos go to one Gitea organization
-   - **Flat User**: All repos under your Gitea user account
+   - **Single Organization**: All repos go to one Gitea/Forgejo organization
+   - **Flat User**: All repos under your Gitea/Forgejo user account
    - **Mixed Mode**: Personal repos in one org, organization repos preserve structure
 
 3. **Customization**
@@ -217,13 +217,13 @@ bun run dev
 ### Git LFS (Large File Storage)
 Mirror Git LFS objects along with your repositories:
 - Enable "Mirror LFS" option in Settings → Mirror Options
-- Requires Gitea server with LFS enabled (`LFS_START_SERVER = true`)
+- Requires Gitea/Forgejo server with LFS enabled (`LFS_START_SERVER = true`)
 - Requires Git v2.1.2+ on the server
 
 ### Metadata Mirroring
-Transfer complete repository metadata from GitHub to Gitea:
+Transfer complete repository metadata from GitHub to Gitea/Forgejo:
 - **Issues** - Mirror all issues with comments and labels
-- **Pull Requests** - Transfer PR discussions to Gitea
+- **Pull Requests** - Transfer PR discussions to Gitea/Forgejo
 - **Labels** - Preserve repository labels
 - **Milestones** - Keep project milestones
 - **Wiki** - Mirror wiki content
@@ -243,7 +243,7 @@ Gitea Mirror provides powerful automatic synchronization features:
 #### Features (v3.4.0+)
 - **Auto-discovery**: Automatically discovers and imports new GitHub repositories
 - **Repository cleanup**: Removes repositories that no longer exist in GitHub
-- **Proper intervals**: Mirrors respect your configured sync intervals (not Gitea's default 24h)
+- **Proper intervals**: Mirrors respect your configured sync intervals (not Gitea/Forgejo's default 24h)
 - **Smart scheduling**: Only syncs repositories that need updating
 - **Auto-start on boot** (v3.5.3+): Automatically imports and mirrors all repositories when `SCHEDULE_ENABLED=true` or `GITEA_MIRROR_INTERVAL` is set - no manual clicks required!
 
@@ -254,7 +254,7 @@ Navigate to the Configuration page and enable "Automatic Syncing" with your pref
 
 **🚀 Set it and forget it!** With these environment variables, Gitea Mirror will automatically:
 1. **Import** all your GitHub repositories on startup (no manual import needed!)
-2. **Mirror** them to Gitea immediately  
+2. **Mirror** them to Gitea/Forgejo immediately  
 3. **Keep them synchronized** based on your interval
 4. **Auto-discover** new repos you create/star on GitHub
 5. **Clean up** repos you delete from GitHub
@@ -284,16 +284,16 @@ CLEANUP_DRY_RUN=false                 # Set to true to test without changes
 - **Auto-Start**: When `SCHEDULE_ENABLED=true` or `GITEA_MIRROR_INTERVAL` is set, the service automatically imports all GitHub repositories and mirrors them on startup. No manual "Import" or "Mirror" button clicks required!
 - The scheduler checks every minute for tasks to run. The `GITEA_MIRROR_INTERVAL` determines how often each repository is actually synced. For example, with `8h`, each repo syncs every 8 hours from its last successful sync.
 - **Large repo bootstrap**: For first-time mirroring of large repositories (especially with metadata/LFS), avoid very short intervals (for example `5m`). Start with a longer interval (`1h` to `8h`) or temporarily disable scheduling during the initial import/mirror run, then enable your regular interval after the first pass completes.
-- **Why this matters**: If your Gitea instance takes a long time to complete migrations/imports, aggressive schedules can cause repeated retries and duplicate-looking mirror attempts.
+- **Why this matters**: If your Gitea/Forgejo instance takes a long time to complete migrations/imports, aggressive schedules can cause repeated retries and duplicate-looking mirror attempts.
 
 **🛡️ Backup Protection Features**:
 - **No Accidental Deletions**: Repository cleanup is automatically skipped if GitHub is inaccessible (account deleted, banned, or API errors)
 - **Archive Never Deletes Data**: The `archive` action preserves all repository data:
-  - Regular repositories: Made read-only using Gitea's archive feature
-  - Mirror repositories: Renamed with `archived-` prefix (Gitea API limitation prevents archiving mirrors)
+  - Regular repositories: Made read-only using Gitea/Forgejo's archive feature
+  - Mirror repositories: Renamed with `archived-` prefix (Gitea/Forgejo API limitation prevents archiving mirrors)
   - Failed operations: Repository remains fully accessible even if marking as archived fails
-- **Manual Sync on Demand**: Archived mirrors stay in Gitea with automatic syncs disabled; trigger `Manual Sync` from the Repositories page whenever you need fresh data.
-- **The Whole Point of Backups**: Your Gitea mirrors are preserved even when GitHub sources disappear - that's why you have backups!
+- **Manual Sync on Demand**: Archived mirrors stay in Gitea/Forgejo with automatic syncs disabled; trigger `Manual Sync` from the Repositories page whenever you need fresh data.
+- **The Whole Point of Backups**: Your Gitea/Forgejo mirrors are preserved even when GitHub sources disappear - that's why you have backups!
 - **Strongly Recommended**: Always use `CLEANUP_ORPHANED_REPO_ACTION=archive` (default) instead of `delete`
 
 ## Troubleshooting
@@ -309,7 +309,7 @@ For existing pull-mirror repositories, changing the GitHub token in Gitea Mirror
 If sync logs show authentication failures (for example `terminal prompts disabled`), do one of the following:
 
 1. In Gitea/Forgejo, open repository **Settings → Mirror Settings** and update the mirror authorization password/token.
-2. Or delete and re-mirror the repository from Gitea Mirror so it is recreated with current credentials.
+2. Or delete and re-mirror the repository so it is recreated with current credentials.
 
 ### Re-sync Metadata After Changing Mirror Options
 
@@ -334,7 +334,7 @@ If your Gitea/Forgejo server has `mirror.MIN_INTERVAL` set to a higher value (fo
 To avoid this:
 
 1. Set Gitea Mirror interval to a value greater than or equal to your server `MIN_INTERVAL`.
-2. Do not rely on manual per-repository mirror interval edits in Gitea/Forgejo, because Gitea Mirror will overwrite them on sync.
+2. Do not rely on manual per-repository mirror interval edits in Gitea/Forgejo, as they will be overwritten on sync.
 
 ## Development
 
@@ -356,13 +356,13 @@ bun run build
 
 - **Frontend**: Astro, React, Shadcn UI, Tailwind CSS v4
 - **Backend**: Bun runtime, SQLite, Drizzle ORM
-- **APIs**: GitHub (Octokit), Gitea REST API
+- **APIs**: GitHub (Octokit), Gitea/Forgejo REST API
 - **Auth**: Better Auth with session-based authentication
 
 ## Security
 
 ### Token Encryption
-- All GitHub and Gitea API tokens are encrypted at rest using AES-256-GCM
+- All GitHub and Gitea/Forgejo API tokens are encrypted at rest using AES-256-GCM
 - Encryption is automatic and transparent to users
 - Set `ENCRYPTION_SECRET` environment variable for production deployments
 - Falls back to `BETTER_AUTH_SECRET` if not set
@@ -456,13 +456,13 @@ Gitea Mirror can also act as an OIDC provider for other applications. Register O
 ## Known Limitations
 
 ### Pull Request Mirroring Implementation
-Pull requests **cannot be created as actual PRs** in Gitea due to API limitations. Instead, they are mirrored as **enriched issues** with comprehensive metadata.
+Pull requests **cannot be created as actual PRs** in Gitea/Forgejo due to API limitations. Instead, they are mirrored as **enriched issues** with comprehensive metadata.
 
 **Why real PR mirroring isn't possible:**
-- Gitea's API doesn't support creating pull requests from external sources
+- Gitea/Forgejo's API doesn't support creating pull requests from external sources
 - Real PRs require actual Git branches with commits to exist in the repository
 - Would require complex branch synchronization and commit replication
-- The mirror relationship is one-way (GitHub → Gitea) for repository content
+- The mirror relationship is one-way (GitHub → Gitea/Forgejo) for repository content
 
 **How we handle Pull Requests:**
 PRs are mirrored as issues with rich metadata including:
@@ -476,7 +476,7 @@ PRs are mirrored as issues with rich metadata including:
 - 🔀 Base and head branch information
 - ✅ Merge status tracking
 
-This approach preserves all important PR information while working within Gitea's API constraints. The PRs appear in Gitea's issue tracker with clear visual distinction and comprehensive details.
+This approach preserves all important PR information while working within Gitea/Forgejo's API constraints. The PRs appear in the issue tracker with clear visual distinction and comprehensive details.
 
 ## Contributing
 
