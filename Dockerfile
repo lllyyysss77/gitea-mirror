@@ -37,9 +37,13 @@ RUN ARCH="$(dpkg --print-architecture)" \
   && wget -qO /tmp/go.tar.gz "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz" \
   && tar -C /usr/local -xzf /tmp/go.tar.gz \
   && rm /tmp/go.tar.gz
-ENV PATH="/usr/local/go/bin:${PATH}"
+ENV PATH="/usr/local/go/bin:/root/go/bin:${PATH}"
+# Force using our installed Go (not the version in go.mod toolchain directive)
+ENV GOTOOLCHAIN=local
 RUN git clone --branch "v${GIT_LFS_VERSION}" --depth 1 https://github.com/git-lfs/git-lfs.git /tmp/git-lfs \
   && cd /tmp/git-lfs \
+  && go get golang.org/x/crypto@latest \
+  && go mod tidy \
   && make \
   && install -m 755 /tmp/git-lfs/bin/git-lfs /usr/local/bin/git-lfs
 
