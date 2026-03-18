@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -19,6 +20,7 @@ import {
   Zap,
   Info,
   Archive,
+  Globe,
 } from "lucide-react";
 import {
   Tooltip,
@@ -28,6 +30,10 @@ import {
 } from "@/components/ui/tooltip";
 import type { ScheduleConfig, DatabaseCleanupConfig } from "@/types/config";
 import { formatDate } from "@/lib/utils";
+import {
+  buildClockCronExpression,
+  getNextCronOccurrence,
+} from "@/lib/utils/schedule-utils";
 
 interface AutomationSettingsProps {
   scheduleConfig: ScheduleConfig;
@@ -38,15 +44,13 @@ interface AutomationSettingsProps {
   isAutoSavingCleanup?: boolean;
 }
 
-const scheduleIntervals = [
-  { label: "Every hour", value: 3600 },
-  { label: "Every 2 hours", value: 7200 },
-  { label: "Every 4 hours", value: 14400 },
-  { label: "Every 8 hours", value: 28800 },
-  { label: "Every 12 hours", value: 43200 },
-  { label: "Daily", value: 86400 },
-  { label: "Every 2 days", value: 172800 },
-  { label: "Weekly", value: 604800 },
+const clockFrequencies = [
+  { label: "Every hour", value: 1 },
+  { label: "Every 2 hours", value: 2 },
+  { label: "Every 4 hours", value: 4 },
+  { label: "Every 8 hours", value: 8 },
+  { label: "Every 12 hours", value: 12 },
+  { label: "Daily", value: 24 },
 ];
 
 const retentionPeriods = [
@@ -85,6 +89,27 @@ export function AutomationSettings({
   isAutoSavingSchedule,
   isAutoSavingCleanup,
 }: AutomationSettingsProps) {
+  const browserTimezone =
+    typeof Intl !== "undefined"
+      ? Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
+      : "UTC";
+
+  // Use saved timezone, but treat "UTC" as unset for users who never chose it
+  const effectiveTimezone = scheduleConfig.timezone || browserTimezone;
+
+  const nextScheduledRun = useMemo(() => {
+    if (!scheduleConfig.enabled) return null;
+    const startTime = scheduleConfig.startTime || "22:00";
+    const frequencyHours = scheduleConfig.clockFrequencyHours || 24;
+    const cronExpression = buildClockCronExpression(startTime, frequencyHours);
+    if (!cronExpression) return null;
+    try {
+      return getNextCronOccurrence(cronExpression, new Date(), effectiveTimezone);
+    } catch {
+      return null;
+    }
+  }, [scheduleConfig.enabled, scheduleConfig.startTime, scheduleConfig.clockFrequencyHours, effectiveTimezone]);
+
   // Update nextRun for cleanup when settings change
   useEffect(() => {
     if (cleanupConfig.enabled && !cleanupConfig.nextRun) {
@@ -125,7 +150,7 @@ export function AutomationSettings({
   <CardContent className="space-y-6">
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Automatic Syncing Section */}
-      <div className="space-y-4 p-4 border border-border rounded-lg bg-card/50">
+      <div className="flex flex-col gap-4 p-4 border border-border rounded-lg bg-card/50">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium flex items-center gap-2">
             <RefreshCw className="h-4 w-4 text-primary" />
@@ -136,14 +161,21 @@ export function AutomationSettings({
               )}
             </div>
 
-            <div className="space-y-4">
+            <div className="flex-1 flex flex-col gap-4">
               <div className="flex items-start space-x-3">
                 <Checkbox
                   id="enable-auto-mirror"
                   checked={scheduleConfig.enabled}
                   className="mt-1.25"
                   onCheckedChange={(checked) =>
-                    onScheduleChange({ ...scheduleConfig, enabled: !!checked })
+                    onScheduleChange({
+                      ...scheduleConfig,
+                      enabled: !!checked,
+                      timezone: checked ? browserTimezone : scheduleConfig.timezone,
+                      startTime: scheduleConfig.startTime || "22:00",
+                      clockFrequencyHours: scheduleConfig.clockFrequencyHours || 24,
+                      scheduleMode: "clock",
+                    })
                   }
                 />
                 <div className="space-y-0.5 flex-1">
@@ -154,79 +186,123 @@ export function AutomationSettings({
                     Enable automatic repository syncing
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Periodically check GitHub for changes and mirror them to Gitea
+                    Periodically sync GitHub changes to Gitea
                   </p>
                 </div>
               </div>
 
               {scheduleConfig.enabled && (
-                <div className="ml-6 space-y-3">
-                  <div>
-                    <Label htmlFor="mirror-interval" className="text-sm">
-                      Sync frequency
-                    </Label>
-                    <Select
-                      value={scheduleConfig.interval.toString()}
-                      onValueChange={(value) =>
-                        onScheduleChange({
-                          ...scheduleConfig,
-                          interval: parseInt(value, 10),
-                        })
-                      }
-                    >
-                      <SelectTrigger id="mirror-interval" className="mt-1.5">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {scheduleIntervals.map((option) => (
-                          <SelectItem
-                            key={option.value}
-                            value={option.value.toString()}
-                          >
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      Schedule
+                    </p>
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 px-2.5 py-0.5 text-[11px] text-muted-foreground">
+                      <Globe className="h-3 w-3" />
+                      {effectiveTimezone}
+                    </span>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label
+                        htmlFor="clock-frequency"
+                        className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                      >
+                        Frequency
+                      </Label>
+                      <Select
+                        value={String(scheduleConfig.clockFrequencyHours || 24)}
+                        onValueChange={(value) =>
+                          onScheduleChange({
+                            ...scheduleConfig,
+                            scheduleMode: "clock",
+                            clockFrequencyHours: parseInt(value, 10),
+                            startTime: scheduleConfig.startTime || "22:00",
+                            timezone: effectiveTimezone,
+                          })
+                        }
+                      >
+                        <SelectTrigger id="clock-frequency" className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {clockFrequencies.map((option) => (
+                            <SelectItem
+                              key={option.value}
+                              value={option.value.toString()}
+                            >
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label
+                        htmlFor="clock-start-time"
+                        className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                      >
+                        Start time
+                      </Label>
+                      <div className="relative">
+                        <div className="text-muted-foreground pointer-events-none absolute inset-y-0 left-0 flex items-center justify-center pl-3">
+                          <Clock className="size-4" />
+                        </div>
+                        <Input
+                          id="clock-start-time"
+                          type="time"
+                          value={scheduleConfig.startTime || "22:00"}
+                          onChange={(event) =>
+                            onScheduleChange({
+                              ...scheduleConfig,
+                              scheduleMode: "clock",
+                              startTime: event.target.value,
+                              clockFrequencyHours:
+                                scheduleConfig.clockFrequencyHours || 24,
+                              timezone: effectiveTimezone,
+                            })
+                          }
+                          className="appearance-none pl-9 dark:bg-input/30 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
 
-              <div className="space-y-2 p-3 bg-muted/30 dark:bg-muted/10 rounded-md border border-border/50">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="flex items-center gap-1.5">
-                    <Clock className="h-3.5 w-3.5" />
-                    Last sync
-                  </span>
-                  <span className="font-medium text-muted-foreground">
+              <div className="mt-auto flex items-center justify-between border-t border-border/50 pt-3 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5" />
+                  Last sync{" "}
+                  <span className="font-medium">
                     {scheduleConfig.lastRun
                       ? formatDate(scheduleConfig.lastRun)
                       : "Never"}
                   </span>
-                </div>
+                </span>
                 {scheduleConfig.enabled ? (
-                  scheduleConfig.nextRun && (
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="flex items-center gap-1.5">
-                        <Calendar className="h-3.5 w-3.5" />
-                        Next sync
-                      </span>
-                      <span className="font-medium">
-                        {formatDate(scheduleConfig.nextRun)}
-                      </span>
-                    </div>
-                  )
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5" />
+                    Next sync{" "}
+                    <span className="font-medium text-primary">
+                      {scheduleConfig.nextRun
+                        ? formatDate(scheduleConfig.nextRun)
+                        : nextScheduledRun
+                          ? formatDate(nextScheduledRun)
+                          : "Calculating..."}
+                    </span>
+                  </span>
                 ) : (
-                  <div className="text-xs text-muted-foreground">
-                    Enable automatic syncing to schedule periodic repository updates
-                  </div>
+                  <span>Enable syncing to schedule updates</span>
                 )}
-          </div>
+              </div>
         </div>
       </div>
 
       {/* Database Cleanup Section */}
-      <div className="space-y-4 p-4 border border-border rounded-lg bg-card/50">
+      <div className="flex flex-col gap-4 p-4 border border-border rounded-lg bg-card/50">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium flex items-center gap-2">
             <Database className="h-4 w-4 text-primary" />
@@ -237,7 +313,7 @@ export function AutomationSettings({
               )}
             </div>
 
-            <div className="space-y-4">
+            <div className="flex-1 flex flex-col gap-4">
               <div className="flex items-start space-x-3">
                 <Checkbox
                   id="enable-auto-cleanup"
@@ -255,13 +331,13 @@ export function AutomationSettings({
                     Enable automatic database cleanup
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Remove old activity logs and events to optimize storage
+                    Remove old activity logs to optimize storage
                   </p>
                 </div>
               </div>
 
               {cleanupConfig.enabled && (
-                <div className="ml-6 space-y-5">
+                <div className="space-y-5">
                   <div className="space-y-2">
                     <Label htmlFor="retention-period" className="text-sm flex items-center gap-2">
                       Data retention period
@@ -312,7 +388,7 @@ export function AutomationSettings({
                 </div>
               )}
 
-              <div className="space-y-2 p-3 bg-muted/30 dark:bg-muted/10 rounded-md border border-border/50">
+              <div className="mt-auto space-y-2 pt-3 border-t border-border/50">
                 <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-1.5">
                     <Clock className="h-3.5 w-3.5" />
