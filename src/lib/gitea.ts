@@ -10,7 +10,7 @@ import type { Organization, Repository } from "./db/schema";
 import { httpPost, httpGet, httpDelete, httpPut, httpPatch } from "./http-client";
 import { createMirrorJob } from "./helpers";
 import { db, organizations, repositories } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 import { decryptConfigTokens } from "./utils/config-encryption";
 import { formatDateShort } from "./utils";
 import {
@@ -586,6 +586,7 @@ export const mirrorGithubRepoToGitea = async ({
         orgName: repoOwner,
         baseName: repository.name,
         githubOwner,
+        fullName: repository.fullName,
         strategy: config.githubConfig.starredDuplicateStrategy,
       });
 
@@ -825,6 +826,10 @@ export const mirrorGithubRepoToGitea = async ({
       migratePayload.auth_token = decryptedConfig.githubConfig.token;
     }
 
+    // Track whether the Gitea migrate call succeeded so the catch block
+    // knows whether to clear mirroredLocation (only safe before migrate succeeds)
+    let migrateSucceeded = false;
+
     const response = await httpPost(
       apiUrl,
       migratePayload,
@@ -832,6 +837,8 @@ export const mirrorGithubRepoToGitea = async ({
         Authorization: `token ${decryptedConfig.giteaConfig.token}`,
       }
     );
+
+    migrateSucceeded = true;
 
     await syncRepositoryMetadataToGitea({
       config,
@@ -1075,14 +1082,21 @@ export const mirrorGithubRepoToGitea = async ({
       }`
     );
 
-    // Mark repos as "failed" in DB
+    // Mark repos as "failed" in DB. Only clear mirroredLocation if the Gitea
+    // migrate call itself failed (repo doesn't exist in Gitea). If migrate
+    // succeeded but metadata mirroring failed, preserve the location since
+    // the repo physically exists and we need the location for recovery/retry.
+    const failureUpdate: Record<string, any> = {
+      status: repoStatusEnum.parse("failed"),
+      updatedAt: new Date(),
+      errorMessage: error instanceof Error ? error.message : "Unknown error",
+    };
+    if (!migrateSucceeded) {
+      failureUpdate.mirroredLocation = "";
+    }
     await db
       .update(repositories)
-      .set({
-        status: repoStatusEnum.parse("failed"),
-        updatedAt: new Date(),
-        errorMessage: error instanceof Error ? error.message : "Unknown error",
-      })
+      .set(failureUpdate)
       .where(eq(repositories.id, repository.id!));
 
     // Append log for failure
@@ -1133,29 +1147,103 @@ export async function getOrCreateGiteaOrg({
 }
 
 /**
- * Generate a unique repository name for starred repos with duplicate names
+ * Check if a candidate mirroredLocation is already claimed by another repository
+ * in the local database. This prevents race conditions during concurrent batch
+ * mirroring where two repos could both claim the same name before either
+ * finishes creating in Gitea.
+ */
+async function isMirroredLocationClaimedInDb({
+  userId,
+  candidateLocation,
+  excludeFullName,
+}: {
+  userId: string;
+  candidateLocation: string;
+  excludeFullName: string;
+}): Promise<boolean> {
+  try {
+    const existing = await db
+      .select({ id: repositories.id })
+      .from(repositories)
+      .where(
+        and(
+          eq(repositories.userId, userId),
+          eq(repositories.mirroredLocation, candidateLocation),
+          ne(repositories.fullName, excludeFullName)
+        )
+      )
+      .limit(1);
+
+    return existing.length > 0;
+  } catch (error) {
+    console.error(
+      `Error checking DB for mirroredLocation "${candidateLocation}":`,
+      error
+    );
+    // Fail-closed: assume claimed to be conservative and prevent collisions
+    return true;
+  }
+}
+
+/**
+ * Generate a unique repository name for starred repos with duplicate names.
+ * Checks both the Gitea instance (HTTP) and the local DB (mirroredLocation)
+ * to reduce collisions during concurrent batch mirroring.
+ *
+ * NOTE: This function only checks availability — it does NOT claim the name.
+ * The actual claim happens later when mirroredLocation is written at the
+ * status="mirroring" DB update, which is protected by a unique partial index
+ * on (userId, mirroredLocation) WHERE mirroredLocation != ''.
  */
 async function generateUniqueRepoName({
   config,
   orgName,
   baseName,
   githubOwner,
+  fullName,
   strategy,
 }: {
   config: Partial<Config>;
   orgName: string;
   baseName: string;
   githubOwner: string;
+  fullName: string;
   strategy?: string;
 }): Promise<string> {
+  if (!fullName?.includes("/")) {
+    throw new Error(
+      `Invalid fullName "${fullName}" for starred repo dedup — expected "owner/repo" format`
+    );
+  }
+
   const duplicateStrategy = strategy || "suffix";
+  const userId = config.userId || "";
+
+  // Helper: check both Gitea and local DB for a candidate name
+  const isNameTaken = async (candidateName: string): Promise<boolean> => {
+    const existsInGitea = await isRepoPresentInGitea({
+      config,
+      owner: orgName,
+      repoName: candidateName,
+    });
+    if (existsInGitea) return true;
+
+    // Also check local DB to catch concurrent batch operations
+    // where another repo claimed this location but hasn't created it in Gitea yet
+    if (userId) {
+      const claimedInDb = await isMirroredLocationClaimedInDb({
+        userId,
+        candidateLocation: `${orgName}/${candidateName}`,
+        excludeFullName: fullName,
+      });
+      if (claimedInDb) return true;
+    }
+
+    return false;
+  };
 
   // First check if base name is available
-  const baseExists = await isRepoPresentInGitea({
-    config,
-    owner: orgName,
-    repoName: baseName,
-  });
+  const baseExists = await isNameTaken(baseName);
 
   if (!baseExists) {
     return baseName;
@@ -1187,11 +1275,7 @@ async function generateUniqueRepoName({
         break;
     }
 
-    const exists = await isRepoPresentInGitea({
-      config,
-      owner: orgName,
-      repoName: candidateName,
-    });
+    const exists = await isNameTaken(candidateName);
 
     if (!exists) {
       console.log(`Found unique name for duplicate starred repo: ${candidateName}`);
@@ -1254,6 +1338,7 @@ export async function mirrorGitHubRepoToGiteaOrg({
         orgName,
         baseName: repository.name,
         githubOwner,
+        fullName: repository.fullName,
         strategy: config.githubConfig.starredDuplicateStrategy,
       });
 
@@ -1421,6 +1506,8 @@ export async function mirrorGitHubRepoToGiteaOrg({
       migratePayload.auth_token = decryptedConfig.githubConfig.token;
     }
 
+    let migrateSucceeded = false;
+
     const migrateRes = await httpPost(
       apiUrl,
       migratePayload,
@@ -1428,6 +1515,8 @@ export async function mirrorGitHubRepoToGiteaOrg({
         Authorization: `token ${decryptedConfig.giteaConfig.token}`,
       }
     );
+
+    migrateSucceeded = true;
 
     await syncRepositoryMetadataToGitea({
       config,
@@ -1676,14 +1765,23 @@ export async function mirrorGitHubRepoToGiteaOrg({
         error instanceof Error ? error.message : String(error)
       }`
     );
-    // Mark repos as "failed" in DB
+    // Mark repos as "failed" in DB. For starred repos, clear mirroredLocation
+    // to release the name claim for retry. For non-starred repos, preserve it
+    // since the Gitea repo may partially exist and we need the location for recovery.
+    const failureUpdate2: Record<string, any> = {
+      status: repoStatusEnum.parse("failed"),
+      updatedAt: new Date(),
+      errorMessage: error instanceof Error ? error.message : "Unknown error",
+    };
+    // Only clear mirroredLocation if the Gitea migrate call itself failed.
+    // If migrate succeeded but metadata mirroring failed, preserve the
+    // location since the repo physically exists in Gitea.
+    if (!migrateSucceeded) {
+      failureUpdate2.mirroredLocation = "";
+    }
     await db
       .update(repositories)
-      .set({
-        status: repoStatusEnum.parse("failed"),
-        updatedAt: new Date(),
-        errorMessage: error instanceof Error ? error.message : "Unknown error",
-      })
+      .set(failureUpdate2)
       .where(eq(repositories.id, repository.id!));
 
     // Append log for failure
