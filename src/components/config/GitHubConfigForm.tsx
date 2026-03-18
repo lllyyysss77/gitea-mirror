@@ -234,7 +234,7 @@ export function GitHubConfigForm({
                   {
                     value: "always",
                     label: "Always Backup",
-                    desc: "Snapshot before every sync",
+                    desc: "Snapshot before every sync (high disk usage)",
                   },
                   {
                     value: "on-force-push",
@@ -272,7 +272,7 @@ export function GitHubConfigForm({
 
               {(giteaConfig.backupStrategy ?? "on-force-push") !== "disabled" && (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label htmlFor="backup-retention" className="block text-sm font-medium mb-1.5">
                         Snapshot retention count
@@ -282,17 +282,39 @@ export function GitHubConfigForm({
                         name="backupRetentionCount"
                         type="number"
                         min={1}
-                        value={giteaConfig.backupRetentionCount ?? 20}
+                        value={giteaConfig.backupRetentionCount ?? 5}
                         onChange={(e) => {
                           const newConfig = {
                             ...giteaConfig,
-                            backupRetentionCount: Math.max(1, Number.parseInt(e.target.value, 10) || 20),
+                            backupRetentionCount: Math.max(1, Number.parseInt(e.target.value, 10) || 5),
                           };
                           setGiteaConfig(newConfig);
                           if (onGiteaAutoSave) onGiteaAutoSave(newConfig);
                         }}
                         className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                       />
+                    </div>
+                    <div>
+                      <label htmlFor="backup-retention-days" className="block text-sm font-medium mb-1.5">
+                        Snapshot retention days
+                      </label>
+                      <input
+                        id="backup-retention-days"
+                        name="backupRetentionDays"
+                        type="number"
+                        min={0}
+                        value={giteaConfig.backupRetentionDays ?? 30}
+                        onChange={(e) => {
+                          const newConfig = {
+                            ...giteaConfig,
+                            backupRetentionDays: Math.max(0, Number.parseInt(e.target.value, 10) || 0),
+                          };
+                          setGiteaConfig(newConfig);
+                          if (onGiteaAutoSave) onGiteaAutoSave(newConfig);
+                        }}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">0 = no time-based limit</p>
                     </div>
                     <div>
                       <label htmlFor="backup-directory" className="block text-sm font-medium mb-1.5">
