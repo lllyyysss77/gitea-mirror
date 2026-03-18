@@ -6,6 +6,31 @@ import { db, configs } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { decrypt } from "@/lib/utils/encryption";
 
+function sanitizeTestNotificationError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "Failed to send test notification";
+  }
+
+  const safeErrorPatterns = [
+    /topic is required/i,
+    /url and token are required/i,
+    /unknown provider/i,
+    /bad request/i,
+    /unauthorized/i,
+    /forbidden/i,
+    /not found/i,
+    /timeout/i,
+    /network error/i,
+    /invalid/i,
+  ];
+
+  if (safeErrorPatterns.some((pattern) => pattern.test(error.message))) {
+    return error.message;
+  }
+
+  return "Failed to send test notification";
+}
+
 /**
  * Sends a notification using the configured provider.
  * NEVER throws -- all errors are caught and logged.
@@ -63,8 +88,7 @@ export async function testNotification(
     }
     return { success: true };
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return { success: false, error: message };
+    return { success: false, error: sanitizeTestNotificationError(error) };
   }
 }
 

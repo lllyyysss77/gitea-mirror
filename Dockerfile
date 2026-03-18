@@ -2,7 +2,7 @@
 
 FROM oven/bun:1.3.10-debian AS base
 WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get -y upgrade && apt-get install -y --no-install-recommends \
   python3 make g++ gcc wget sqlite3 openssl ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
@@ -28,7 +28,7 @@ RUN bun install --production --omit=peer --frozen-lockfile
 # ----------------------------
 # Build git-lfs from source with patched Go to resolve Go stdlib CVEs
 FROM debian:trixie-slim AS git-lfs-builder
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get -y upgrade && apt-get install -y --no-install-recommends \
   wget ca-certificates git make \
   && rm -rf /var/lib/apt/lists/*
 ARG GO_VERSION=1.25.8
@@ -50,7 +50,7 @@ RUN git clone --branch "v${GIT_LFS_VERSION}" --depth 1 https://github.com/git-lf
 # ----------------------------
 FROM oven/bun:1.3.10-debian AS runner
 WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get -y upgrade && apt-get install -y --no-install-recommends \
   git wget sqlite3 openssl ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 COPY --from=git-lfs-builder /usr/local/bin/git-lfs /usr/local/bin/git-lfs
