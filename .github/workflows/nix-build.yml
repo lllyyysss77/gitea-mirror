@@ -44,7 +44,7 @@ jobs:
         uses: DeterminateSystems/magic-nix-cache-action@main
 
       - name: Regenerate bun.nix from bun.lock
-        run: nix run github:nix-community/bun2nix -- -o bun.nix --accept-flake-config
+        run: nix run --accept-flake-config github:nix-community/bun2nix -- -o bun.nix
 
       - name: Check flake
         run: nix flake check --accept-flake-config
