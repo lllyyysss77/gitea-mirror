@@ -31,7 +31,7 @@
         # Build the application
         gitea-mirror = pkgs.stdenv.mkDerivation {
           pname = "gitea-mirror";
-          version = "3.9.6";
+          version = "3.14.1";
 
           src = ./.;
 
