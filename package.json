@@ -1,7 +1,7 @@
 {
   "name": "gitea-mirror",
   "type": "module",
-  "version": "3.14.1",
+  "version": "3.14.2",
   "engines": {
     "bun": ">=1.2.9"
   },
