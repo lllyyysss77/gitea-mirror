@@ -36,8 +36,8 @@ Essential application settings required for running Gitea Mirror.
 | `BASE_URL` | Application base path. Use `/` for root deployments, or a prefix such as `/mirror` when serving behind a reverse-proxy path prefix. | `/` | No |
 | `DATABASE_URL` | Database connection URL | `sqlite://data/gitea-mirror.db` | No |
 | `BETTER_AUTH_SECRET` | Secret key for session signing (generate with: `openssl rand -base64 32`) | - | Yes |
-| `BETTER_AUTH_URL` | Primary base URL for authentication. This should be the main URL where your application is accessed. | `http://localhost:4321` | No |
-| `PUBLIC_BETTER_AUTH_URL` | Client-side auth URL for multi-origin access. Set this to your primary domain when you need to access the app from different origins (e.g., both IP and domain). The client will use this URL for all auth requests instead of the current browser origin. | - | No |
+| `BETTER_AUTH_URL` | Authentication origin (scheme + host only, e.g. `https://git.example.com`). Do **not** include a path — any path is automatically stripped, and `BASE_URL` is applied separately. | `http://localhost:4321` | No |
+| `PUBLIC_BETTER_AUTH_URL` | Client-side auth origin for multi-origin access (same rule: origin only, no path). Set this to your primary domain when you need to access the app from different origins (e.g., both IP and domain). The client will use this URL for all auth requests instead of the current browser origin. | - | No |
 | `BETTER_AUTH_TRUSTED_ORIGINS` | Trusted origins for authentication requests. Comma-separated list of URLs. Use this to specify additional access URLs (e.g., local IP + domain: `http://10.10.20.45:4321,https://gitea-mirror.mydomain.tld`), SSO providers, reverse proxies, etc. | - | No |
 | `ENCRYPTION_SECRET` | Optional encryption key for tokens (generate with: `openssl rand -base64 48`) | - | No |
 
@@ -377,14 +377,17 @@ This setup allows you to:
 If you serve Gitea Mirror under a subpath such as `https://git.example.com/mirror`, set:
 
 ```bash
+# BASE_URL handles the path prefix — auth URLs stay as origin only
 BASE_URL=/mirror
 BETTER_AUTH_URL=https://git.example.com
 PUBLIC_BETTER_AUTH_URL=https://git.example.com
 BETTER_AUTH_TRUSTED_ORIGINS=https://git.example.com
+# → Auth endpoints resolve to: https://git.example.com/mirror/api/auth/*
 ```
 
 Notes:
-- `BETTER_AUTH_TRUSTED_ORIGINS` must contain origins only (no path).
+- `BETTER_AUTH_URL` and `PUBLIC_BETTER_AUTH_URL` must be **origin only** (scheme + host). Do not include the base path — it is applied automatically from `BASE_URL`. Any path accidentally included is stripped.
+- `BETTER_AUTH_TRUSTED_ORIGINS` must also contain origins only (no path).
 - `BASE_URL` is applied at runtime, so prebuilt images can be reused with different path prefixes.
 
 ### Trusted Origins

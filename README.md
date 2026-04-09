@@ -303,15 +303,18 @@ CLEANUP_DRY_RUN=false                 # Set to true to test without changes
 If you run behind a reverse proxy on a subpath (for example `https://git.example.com/mirror`), configure:
 
 ```bash
+# BASE_URL handles the path prefix — auth URLs stay as origin only
 BASE_URL=/mirror
 BETTER_AUTH_URL=https://git.example.com
 PUBLIC_BETTER_AUTH_URL=https://git.example.com
 BETTER_AUTH_TRUSTED_ORIGINS=https://git.example.com
+# → Auth endpoints resolve to: https://git.example.com/mirror/api/auth/*
 ```
 
 Notes:
 - `BASE_URL` sets the application path prefix.
-- `BETTER_AUTH_TRUSTED_ORIGINS` should contain origins only (no path).
+- `BETTER_AUTH_URL` and `PUBLIC_BETTER_AUTH_URL` should be **origin only** (e.g. `https://git.example.com`). Do not include the base path — it is applied automatically from `BASE_URL`. Any path accidentally included is stripped.
+- `BETTER_AUTH_TRUSTED_ORIGINS` should also contain origins only (no path).
 - `BASE_URL` is runtime configuration, so prebuilt registry images can be reused across different subpaths.
 
 ### Mirror Token Rotation (GitHub Token Changed)
