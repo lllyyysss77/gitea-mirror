@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import type { APIRoute } from "astro";
+import { stripBasePath, withBase } from "@/lib/base-path";
 
 export const ALL: APIRoute = async (ctx) => {
   // If you want to use rate limiting, make sure to set the 'x-forwarded-for' header
@@ -9,7 +10,11 @@ export const ALL: APIRoute = async (ctx) => {
   }
   
   try {
-    return await auth.handler(ctx.request);
+    const requestUrl = new URL(ctx.request.url);
+    requestUrl.pathname = withBase(stripBasePath(requestUrl.pathname));
+    const authRequest = new Request(requestUrl, ctx.request);
+
+    return await auth.handler(authRequest);
   } catch (error) {
     console.error("Auth handler error:", error);
     
@@ -18,7 +23,7 @@ export const ALL: APIRoute = async (ctx) => {
     if (url.pathname.includes('/sso/callback')) {
       // Redirect to error page for SSO errors
       return Response.redirect(
-        `${ctx.url.origin}/auth-error?error=sso_callback_failed&error_description=${encodeURIComponent(
+        `${ctx.url.origin}${withBase('/auth-error')}?error=sso_callback_failed&error_description=${encodeURIComponent(
           error instanceof Error ? error.message : "SSO authentication failed"
         )}`,
         302
