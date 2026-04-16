@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.4
 
-FROM oven/bun:1.3.10-debian AS base
+FROM oven/bun:1.3.12-debian AS base
 WORKDIR /app
 RUN apt-get update && apt-get -y upgrade && apt-get install -y --no-install-recommends \
   python3 make g++ gcc wget sqlite3 openssl ca-certificates \
@@ -32,7 +32,7 @@ FROM debian:trixie-slim AS git-lfs-builder
 RUN apt-get update && apt-get -y upgrade && apt-get install -y --no-install-recommends \
   wget ca-certificates git make \
   && rm -rf /var/lib/apt/lists/*
-ARG GO_VERSION=1.25.8
+ARG GO_VERSION=1.25.9
 ARG GIT_LFS_VERSION=3.7.1
 RUN ARCH="$(dpkg --print-architecture)" \
   && wget -qO /tmp/go.tar.gz "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz" \
@@ -49,7 +49,7 @@ RUN git clone --branch "v${GIT_LFS_VERSION}" --depth 1 https://github.com/git-lf
   && install -m 755 /tmp/git-lfs/bin/git-lfs /usr/local/bin/git-lfs
 
 # ----------------------------
-FROM oven/bun:1.3.10-debian AS runner
+FROM oven/bun:1.3.12-debian AS runner
 WORKDIR /app
 RUN apt-get update && apt-get -y upgrade && apt-get install -y --no-install-recommends \
   git wget sqlite3 openssl ca-certificates \
