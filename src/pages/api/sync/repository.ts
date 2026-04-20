@@ -88,7 +88,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const configId = config.id;
 
-    const octokit = new Octokit(); // No auth for public repos
+    // Unauthenticated one-shot lookup for public repos.
+    // Uses bare Octokit (not createGitHubClient) to preserve fast-fail on the
+    // 60 req/hr public rate limit — this endpoint is user-facing, we don't
+    // want the throttling plugin to wait multiple retry-after windows.
+    // Still respects GH_API_URL / GITHUB_API_URL for GHES / GHEC data residency.
+    const baseUrl =
+      process.env.GH_API_URL ||
+      process.env.GITHUB_API_URL ||
+      "https://api.github.com";
+    const octokit = new Octokit({ baseUrl });
 
     const { data: repoData } = await octokit.rest.repos.get({
       owner: trimmedOwner,
