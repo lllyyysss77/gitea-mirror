@@ -16,6 +16,7 @@ When environment variables are set:
 ## Table of Contents
 
 - [Core Configuration](#core-configuration)
+- [HTTPS / TLS](#https--tls)
 - [GitHub Configuration](#github-configuration)
 - [Gitea Configuration](#gitea-configuration)
 - [Mirror Options](#mirror-options)
@@ -41,6 +42,30 @@ Essential application settings required for running Gitea Mirror.
 | `BETTER_AUTH_TRUSTED_ORIGINS` | Trusted origins for authentication requests. Comma-separated list of URLs. Use this to specify additional access URLs (e.g., local IP + domain: `http://10.10.20.45:4321,https://gitea-mirror.mydomain.tld`), SSO providers, reverse proxies, etc. | - | No |
 | `ENCRYPTION_SECRET` | Optional encryption key for tokens (generate with: `openssl rand -base64 48`) | - | No |
 
+## HTTPS / TLS
+
+Gitea Mirror can terminate TLS directly via the underlying `@astrojs/node` adapter — useful when you don't want a separate reverse proxy. When both variables below are set, the server starts as a real HTTPS listener instead of HTTP.
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `SERVER_CERT_PATH` | Absolute path to the TLS certificate (PEM). Set together with `SERVER_KEY_PATH` to enable HTTPS. | - | No |
+| `SERVER_KEY_PATH` | Absolute path to the TLS private key (PEM). Set together with `SERVER_CERT_PATH` to enable HTTPS. | - | No |
+
+**Example (systemd or `.env`):**
+
+```bash
+SERVER_CERT_PATH=/etc/ssl/gitea-mirror/cert.pem
+SERVER_KEY_PATH=/etc/ssl/gitea-mirror/key.pem
+PORT=443
+BETTER_AUTH_URL=https://mirror.example.com
+BETTER_AUTH_TRUSTED_ORIGINS=https://mirror.example.com
+```
+
+Notes:
+- The process must have read access to both files. When binding to `PORT=443`, grant the binary the `CAP_NET_BIND_SERVICE` capability (or run as a user allowed to bind privileged ports) rather than running as root.
+- If you already terminate TLS at a reverse proxy (nginx, Traefik, Caddy), leave these unset and let the proxy handle certificates.
+- Works in Docker too — mount your certs and set both paths to locations inside the container.
+
 ## GitHub Configuration
 
 Settings for connecting to and configuring GitHub repository sources.
@@ -52,6 +77,21 @@ Settings for connecting to and configuring GitHub repository sources.
 | `GITHUB_USERNAME` | Your GitHub username | - | - |
 | `GITHUB_TOKEN` | GitHub personal access token (requires repo and admin:org scopes) | - | - |
 | `GITHUB_TYPE` | GitHub account type | `personal` | `personal`, `organization` |
+| `GH_API_URL` | GitHub API base URL. Override this to point at GitHub Enterprise Server or Enterprise Cloud with data residency. | `https://api.github.com` | e.g. `https://ghe.example.com/api/v3`, `https://api.TENANT.ghe.com` |
+
+### GitHub Enterprise (GHES / GHEC with data residency)
+
+Set `GH_API_URL` to point Octokit at a non-`github.com` API endpoint:
+
+```bash
+# GitHub Enterprise Server (self-hosted)
+GH_API_URL=https://ghe.example.com/api/v3
+
+# GitHub Enterprise Cloud with data residency
+GH_API_URL=https://api.TENANT.ghe.com
+```
+
+Standard GitHub Enterprise Cloud on `github.com` works with the default — no override needed. Use a personal access token issued by the target Enterprise instance for `GITHUB_TOKEN`.
 
 ### Repository Selection
 

@@ -29,6 +29,7 @@ First user signup becomes admin. Configure GitHub and Gitea/Forgejo through the 
 ## ✨ Features
 
 - 🔁 Mirror public, private, and starred GitHub repos to Gitea/Forgejo
+- 🏛️ **GitHub Enterprise support** - Works with GHES and GHEC with data residency via `GH_API_URL`
 - 🏢 Mirror entire organizations with flexible strategies
 - 🎯 Custom destination control for repos and organizations
 - 📦 **Git LFS support** - Mirror large files with Git LFS
@@ -295,6 +296,20 @@ CLEANUP_DRY_RUN=false                 # Set to true to test without changes
 - **Manual Sync on Demand**: Archived mirrors stay in Gitea/Forgejo with automatic syncs disabled; trigger `Manual Sync` from the Repositories page whenever you need fresh data.
 - **The Whole Point of Backups**: Your Gitea/Forgejo mirrors are preserved even when GitHub sources disappear - that's why you have backups!
 - **Strongly Recommended**: Always use `CLEANUP_ORPHANED_REPO_ACTION=archive` (default) instead of `delete`
+
+### GitHub Enterprise (GHES / GHEC with Data Residency)
+
+Gitea Mirror works with non-`github.com` GitHub deployments. Point the client at your Enterprise API via the `GH_API_URL` environment variable:
+
+```bash
+# GitHub Enterprise Server (self-hosted)
+GH_API_URL=https://ghe.example.com/api/v3
+
+# GitHub Enterprise Cloud with data residency
+GH_API_URL=https://api.TENANT.ghe.com
+```
+
+Standard GitHub Enterprise Cloud on `github.com` needs no override. Use a token issued by the target Enterprise instance for `GITHUB_TOKEN`.
 
 ## Troubleshooting
 
