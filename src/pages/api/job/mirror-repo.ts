@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import type { MirrorRepoRequest, MirrorRepoResponse } from "@/types/mirror";
 import { db, configs, repositories } from "@/lib/db";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { repositoryVisibilityEnum, repoStatusEnum } from "@/types/Repository";
 import {
   mirrorGithubRepoToGitea,
@@ -43,11 +43,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
       );
     }
 
-    // Fetch config
+    // Fetch config — prefer active and most-recently-updated to avoid picking
+    // a stale inactive stub when multiple rows exist (see issue #271).
     const configResult = await db
       .select()
       .from(configs)
       .where(eq(configs.userId, userId))
+      .orderBy(sql`${configs.isActive} DESC`, sql`${configs.updatedAt} DESC`)
       .limit(1);
 
     const config = configResult[0];

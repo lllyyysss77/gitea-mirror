@@ -3,7 +3,7 @@ import type { NotificationEvent } from "./providers/ntfy";
 import { sendNtfyNotification } from "./providers/ntfy";
 import { sendAppriseNotification } from "./providers/apprise";
 import { db, configs } from "@/lib/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { decrypt } from "@/lib/utils/encryption";
 
 function sanitizeTestNotificationError(error: unknown): string {
@@ -120,11 +120,13 @@ export async function triggerJobNotification({
       return;
     }
 
-    // Fetch user's config from database
+    // Fetch user's config from database — prefer active and most-recently-updated
+    // to avoid picking a stale inactive stub when multiple rows exist (see issue #271).
     const configResults = await db
       .select()
       .from(configs)
       .where(eq(configs.userId, userId))
+      .orderBy(sql`${configs.isActive} DESC`, sql`${configs.updatedAt} DESC`)
       .limit(1);
 
     if (configResults.length === 0) {

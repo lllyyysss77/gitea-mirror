@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { db, configs, repositories } from "@/lib/db";
 import { repositoryVisibilityEnum, repoStatusEnum } from "@/types/Repository";
 import type { ResetMetadataRequest, ResetMetadataResponse } from "@/types/reset-metadata";
@@ -35,10 +35,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
       );
     }
 
+    // Prefer active and most-recently-updated config to avoid picking a stale
+    // inactive stub when multiple rows exist (see issue #271).
     const configResult = await db
       .select()
       .from(configs)
       .where(eq(configs.userId, userId))
+      .orderBy(sql`${configs.isActive} DESC`, sql`${configs.updatedAt} DESC`)
       .limit(1);
 
     const config = configResult[0];

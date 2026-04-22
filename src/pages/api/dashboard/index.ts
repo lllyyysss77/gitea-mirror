@@ -38,7 +38,12 @@ export const GET: APIRoute = async ({ request, locals }) => {
         .where(eq(mirrorJobs.userId, userId))
         .orderBy(sql`${mirrorJobs.timestamp} DESC`)
         .limit(10),
-      db.select().from(configs).where(eq(configs.userId, userId)).limit(1),
+      db
+        .select()
+        .from(configs)
+        .where(eq(configs.userId, userId))
+        .orderBy(sql`${configs.isActive} DESC`, sql`${configs.updatedAt} DESC`)
+        .limit(1),
       db
         .select({ value: count() })
         .from(repositories)

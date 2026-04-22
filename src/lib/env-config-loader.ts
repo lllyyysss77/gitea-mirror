@@ -4,7 +4,7 @@
  */
 
 import { db, configs, users } from '@/lib/db';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { encrypt } from '@/lib/utils/encryption';
 
@@ -224,10 +224,12 @@ export async function initializeConfigFromEnv(): Promise<void> {
 
     console.log('[ENV Config Loader] Found environment configuration, initializing...');
 
-    // Get the first user (admin user)
+    // Get the first user (admin user) — deterministic order so we always pick the
+    // same row across restarts even if multiple users exist.
     const firstUser = await db
       .select()
       .from(users)
+      .orderBy(sql`${users.createdAt} ASC`)
       .limit(1);
 
     if (firstUser.length === 0) {
@@ -237,11 +239,14 @@ export async function initializeConfigFromEnv(): Promise<void> {
 
     const userId = firstUser[0].id;
 
-    // Check if config already exists for this user
+    // Check if config already exists for this user — prefer the active config and
+    // fall back to most-recently-updated so we never write env values into a stale
+    // inactive stub while the populated active row sits untouched (see issue #271).
     const existingConfig = await db
       .select()
       .from(configs)
       .where(eq(configs.userId, userId))
+      .orderBy(sql`${configs.isActive} DESC`, sql`${configs.updatedAt} DESC`)
       .limit(1);
 
     // Determine mirror strategy based on environment variables or use explicit value

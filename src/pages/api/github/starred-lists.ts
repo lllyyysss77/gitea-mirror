@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import { db, configs } from "@/lib/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import {
   createGitHubClient,
   getGithubStarredListNames,
@@ -15,10 +15,13 @@ export const GET: APIRoute = async ({ request, locals }) => {
     if ("response" in authResult) return authResult.response;
     const userId = authResult.userId;
 
+    // Prefer active and most-recently-updated config to avoid picking a stale
+    // inactive stub when multiple rows exist (see issue #271).
     const [config] = await db
       .select()
       .from(configs)
       .where(eq(configs.userId, userId))
+      .orderBy(sql`${configs.isActive} DESC`, sql`${configs.updatedAt} DESC`)
       .limit(1);
 
     if (!config) {

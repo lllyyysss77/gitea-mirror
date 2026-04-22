@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { db, configs, users } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { createSecureErrorResponse } from "@/lib/utils";
 import { 
   mapUiToDbConfig, 
@@ -83,11 +83,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
       }
     }
 
-    // Fetch existing config
+    // Fetch existing config — prefer the active config; fall back to most-recently-updated
+    // so a stale inactive stub never wins over a populated active row (see issue #271).
     const existingConfigResult = await db
       .select()
       .from(configs)
       .where(eq(configs.userId, userId))
+      .orderBy(sql`${configs.isActive} DESC`, sql`${configs.updatedAt} DESC`)
       .limit(1);
 
     const existingConfig = existingConfigResult[0];
@@ -255,11 +257,14 @@ export const GET: APIRoute = async ({ request, locals }) => {
     if ("response" in authResult) return authResult.response;
     const userId = authResult.userId;
 
-    // Fetch the configuration for the user
+    // Fetch the configuration for the user — prefer the active config; fall back to
+    // most-recently-updated so a stale inactive stub never wins over a populated
+    // active row (see issue #271).
     const config = await db
       .select()
       .from(configs)
       .where(eq(configs.userId, userId))
+      .orderBy(sql`${configs.isActive} DESC`, sql`${configs.updatedAt} DESC`)
       .limit(1);
 
     if (config.length === 0) {

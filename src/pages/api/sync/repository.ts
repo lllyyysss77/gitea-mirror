@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 import { Octokit } from "@octokit/rest";
 import { configs, db, repositories } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { type Repository } from "@/lib/db/schema";
 import { jsonResponse, createSecureErrorResponse } from "@/lib/utils";
 import type {
@@ -72,11 +72,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
       });
     }
 
-    // Get user's active config
+    // Get user's active config — prefer active and most-recently-updated to avoid
+    // picking a stale inactive stub when multiple rows exist (see issue #271).
     const [config] = await db
       .select()
       .from(configs)
       .where(eq(configs.userId, userId))
+      .orderBy(sql`${configs.isActive} DESC`, sql`${configs.updatedAt} DESC`)
       .limit(1);
 
     if (!config) {

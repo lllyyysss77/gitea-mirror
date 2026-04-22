@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import { db, rateLimits } from "@/lib/db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { jsonResponse, createSecureErrorResponse } from "@/lib/utils";
 import { RateLimitManager } from "@/lib/rate-limit-manager";
 import { createGitHubClient } from "@/lib/github";
@@ -19,10 +19,13 @@ export const GET: APIRoute = async ({ request, locals }) => {
   try {
     // If refresh is requested, fetch current rate limit from GitHub
     if (refresh) {
+      // Prefer active and most-recently-updated config to avoid picking a stale
+      // inactive stub when multiple rows exist (see issue #271).
       const [config] = await db
         .select()
         .from(configs)
         .where(eq(configs.userId, userId))
+        .orderBy(sql`${configs.isActive} DESC`, sql`${configs.updatedAt} DESC`)
         .limit(1);
 
       if (config && config.githubConfig?.token) {

@@ -5,7 +5,7 @@
 
 import { findInterruptedJobs, resumeInterruptedJob } from './helpers';
 import { db, repositories, organizations, mirrorJobs, configs } from './db';
-import { eq, and, lt, inArray } from 'drizzle-orm';
+import { eq, and, lt, inArray, sql } from 'drizzle-orm';
 import { mirrorGithubRepoToGitea, mirrorGitHubOrgRepoToGiteaOrg, syncGiteaRepo } from './gitea';
 import { createGitHubClient } from './github';
 import { processWithResilience } from './utils/concurrency';
@@ -216,11 +216,13 @@ async function recoverMirrorJob(job: any, remainingItemIds: string[]) {
   console.log(`Recovering mirror job ${job.id} with ${remainingItemIds.length} remaining items`);
 
   try {
-    // Get the config for this user with better error handling
+    // Get the config for this user — prefer active and most-recently-updated
+    // to avoid picking a stale inactive stub when multiple rows exist (see issue #271).
     const userConfigs = await db
       .select()
       .from(configs)
       .where(eq(configs.userId, job.userId))
+      .orderBy(sql`${configs.isActive} DESC`, sql`${configs.updatedAt} DESC`)
       .limit(1);
 
     if (userConfigs.length === 0) {
@@ -347,11 +349,13 @@ async function recoverSyncJob(job: any, remainingItemIds: string[]) {
   console.log(`Recovering sync job ${job.id} with ${remainingItemIds.length} remaining items`);
 
   try {
-    // Get the config for this user with better error handling
+    // Get the config for this user — prefer active and most-recently-updated
+    // to avoid picking a stale inactive stub when multiple rows exist (see issue #271).
     const userConfigs = await db
       .select()
       .from(configs)
       .where(eq(configs.userId, job.userId))
+      .orderBy(sql`${configs.isActive} DESC`, sql`${configs.updatedAt} DESC`)
       .limit(1);
 
     if (userConfigs.length === 0) {

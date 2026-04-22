@@ -3,6 +3,46 @@ import type { MirrorRepoRequest } from "@/types/mirror";
 import { POST } from "./mirror-repo";
 
 // Mock the database module
+const mockConfigRow = [{
+  id: "config-id",
+  userId: "user-id",
+  githubConfig: {
+    token: "github-token",
+    preserveOrgStructure: false,
+    mirrorIssues: false
+  },
+  giteaConfig: {
+    url: "https://gitea.example.com",
+    token: "gitea-token",
+    username: "giteauser"
+  }
+}];
+
+const mockRepoRows = [
+  {
+    id: "repo-id-1",
+    name: "test-repo-1",
+    visibility: "public",
+    status: "pending",
+    organization: null,
+    lastMirrored: null,
+    errorMessage: null,
+    forkedFrom: null,
+    mirroredLocation: ""
+  },
+  {
+    id: "repo-id-2",
+    name: "test-repo-2",
+    visibility: "public",
+    status: "pending",
+    organization: null,
+    lastMirrored: null,
+    errorMessage: null,
+    forkedFrom: null,
+    mirroredLocation: ""
+  }
+];
+
 const mockDb = {
   select: mock(() => ({
     from: mock((table: any) => ({
@@ -10,47 +50,14 @@ const mockDb = {
         // Return config for configs table
         if (table === mockConfigs) {
           return {
-            limit: mock(() => Promise.resolve([{
-              id: "config-id",
-              userId: "user-id",
-              githubConfig: {
-                token: "github-token",
-                preserveOrgStructure: false,
-                mirrorIssues: false
-              },
-              giteaConfig: {
-                url: "https://gitea.example.com",
-                token: "gitea-token",
-                username: "giteauser"
-              }
-            }]))
+            orderBy: mock(() => ({
+              limit: mock(() => Promise.resolve(mockConfigRow))
+            })),
+            limit: mock(() => Promise.resolve(mockConfigRow))
           };
         }
         // Return repositories for repositories table
-        return Promise.resolve([
-          {
-            id: "repo-id-1",
-            name: "test-repo-1",
-            visibility: "public",
-            status: "pending",
-            organization: null,
-            lastMirrored: null,
-            errorMessage: null,
-            forkedFrom: null,
-            mirroredLocation: ""
-          },
-          {
-            id: "repo-id-2",
-            name: "test-repo-2",
-            visibility: "public",
-            status: "pending",
-            organization: null,
-            lastMirrored: null,
-            errorMessage: null,
-            forkedFrom: null,
-            mirroredLocation: ""
-          }
-        ]);
+        return Promise.resolve(mockRepoRows);
       })
     }))
   }))

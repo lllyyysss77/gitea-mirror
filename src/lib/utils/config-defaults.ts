@@ -1,5 +1,5 @@
 import { db, configs } from "@/lib/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { encrypt } from "@/lib/utils/encryption";
 import { getNextScheduledRun, normalizeTimezone } from "@/lib/utils/schedule-utils";
@@ -25,11 +25,13 @@ export interface DefaultConfigOptions {
  * Environment variables can override these defaults
  */
 export async function createDefaultConfig({ userId, envOverrides = {} }: DefaultConfigOptions) {
-  // Check if config already exists
+  // Check if config already exists — prefer active and most-recently-updated
+  // to avoid returning a stale inactive stub when multiple rows exist (see issue #271).
   const existingConfig = await db
     .select()
     .from(configs)
     .where(eq(configs.userId, userId))
+    .orderBy(sql`${configs.isActive} DESC`, sql`${configs.updatedAt} DESC`)
     .limit(1);
 
   if (existingConfig.length > 0) {
