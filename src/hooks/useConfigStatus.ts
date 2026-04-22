@@ -65,14 +65,16 @@ export function useConfigStatus(): ConfigStatus {
     if (isCacheValid && hasCheckedRef.current) {
       const configResponse = configCache.data!;
 
-      const isGitHubConfigured = !!(
-        configResponse?.githubConfig?.username &&
-        configResponse?.githubConfig?.token
-      );
+      // Only token/url are actually required at runtime: the GitHub token is
+      // self-authenticating for listForAuthenticatedUser, and a Gitea username
+      // isn't needed under single-org / flat mirror strategies. Users who
+      // configure via env vars without GITHUB_USERNAME / GITEA_USERNAME set
+      // (or who otherwise left those blank) were being locked out of the
+      // dashboard even though mirroring worked fine (see issue #271).
+      const isGitHubConfigured = !!configResponse?.githubConfig?.token;
 
       const isGiteaConfigured = !!(
         configResponse?.giteaConfig?.url &&
-        configResponse?.giteaConfig?.username &&
         configResponse?.giteaConfig?.token
       );
 
@@ -108,14 +110,16 @@ export function useConfigStatus(): ConfigStatus {
         userId: user.id
       };
 
-      const isGitHubConfigured = !!(
-        configResponse?.githubConfig?.username &&
-        configResponse?.githubConfig?.token
-      );
+      // Only token/url are actually required at runtime: the GitHub token is
+      // self-authenticating for listForAuthenticatedUser, and a Gitea username
+      // isn't needed under single-org / flat mirror strategies. Users who
+      // configure via env vars without GITHUB_USERNAME / GITEA_USERNAME set
+      // (or who otherwise left those blank) were being locked out of the
+      // dashboard even though mirroring worked fine (see issue #271).
+      const isGitHubConfigured = !!configResponse?.githubConfig?.token;
 
       const isGiteaConfigured = !!(
         configResponse?.giteaConfig?.url &&
-        configResponse?.giteaConfig?.username &&
         configResponse?.giteaConfig?.token
       );
 
