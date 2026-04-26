@@ -2,6 +2,25 @@ import type { APIRoute } from 'astro';
 import { httpGet, HttpError } from '@/lib/http-client';
 import { createSecureErrorResponse } from '@/lib/utils';
 
+// Forgejo reports `15.0.0+gitea-1.22.0`; pure Gitea reports just `1.22.0`.
+// Forgejo < 15.0.0 has a known bug where pull-mirror credentials sent via
+// /api/v1/repos/migrate are not persisted, so subsequent sync of private
+// repos fails with `terminal prompts disabled`. Fixed upstream in v15.0.0
+// via PR #11909 (codeberg.org/forgejo/forgejo/pulls/11909).
+function parseServerInfo(versionString: string) {
+  const forgejoMatch = versionString.match(/^(\d+)\.(\d+)\.(\d+)\+gitea-/);
+  if (forgejoMatch) {
+    const major = Number(forgejoMatch[1]);
+    return {
+      type: 'forgejo' as const,
+      version: `${forgejoMatch[1]}.${forgejoMatch[2]}.${forgejoMatch[3]}`,
+      raw: versionString,
+      hasMirrorCredBug: major < 15,
+    };
+  }
+  return { type: 'gitea' as const, version: versionString, raw: versionString, hasMirrorCredBug: false };
+}
+
 export const POST: APIRoute = async ({ request }) => {
   try {
     const body = await request.json();
@@ -49,7 +68,18 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Return success response with user data
+    let serverInfo: ReturnType<typeof parseServerInfo> | undefined;
+    try {
+      const versionResp = await httpGet(`${baseUrl}/api/v1/version`, {
+        'Accept': 'application/json',
+      });
+      if (typeof versionResp.data?.version === 'string') {
+        serverInfo = parseServerInfo(versionResp.data.version);
+      }
+    } catch {
+      // Version probe is best-effort; older or non-standard servers may not expose it.
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -59,6 +89,7 @@ export const POST: APIRoute = async ({ request }) => {
           name: data.full_name,
           avatar_url: data.avatar_url,
         },
+        serverInfo,
       }),
       {
         status: 200,

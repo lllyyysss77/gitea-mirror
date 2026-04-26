@@ -6,7 +6,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { giteaApi } from "@/lib/api";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
+import { giteaApi, type GiteaServerInfo } from "@/lib/api";
 import type { GiteaConfig, MirrorStrategy } from "@/types/config";
 import { toast } from "sonner";
 import { OrganizationStrategy } from "./OrganizationStrategy";
@@ -23,6 +25,7 @@ interface GiteaConfigFormProps {
 
 export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving, githubUsername }: GiteaConfigFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [serverInfo, setServerInfo] = useState<GiteaServerInfo | null>(null);
   
   // Derive the mirror strategy from existing config for backward compatibility
   const getMirrorStrategy = (): MirrorStrategy => {
@@ -128,13 +131,16 @@ export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving, g
     try {
       const result = await giteaApi.testConnection(config.url, config.token);
       if (result.success) {
+        setServerInfo(result.serverInfo ?? null);
         toast.success("Successfully connected to Gitea!");
       } else {
+        setServerInfo(null);
         toast.error(
           "Failed to connect to Gitea. Please check your URL and token."
         );
       }
     } catch (error) {
+      setServerInfo(null);
       toast.error(
         error instanceof Error ? error.message : "An unknown error occurred"
       );
@@ -162,6 +168,31 @@ export function GiteaConfigForm({ config, setConfig, onAutoSave, isAutoSaving, g
       </CardHeader>
 
       <CardContent className="flex flex-col gap-y-6 flex-1">
+        {serverInfo?.type === "forgejo" && serverInfo.hasMirrorCredBug && (
+          <Alert variant="warning">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>
+              Forgejo {serverInfo.version} has a known mirror-credential bug
+            </AlertTitle>
+            <AlertDescription>
+              <p>
+                Pull-mirror credentials sent via Forgejo's migrate API aren't persisted on this version, so subsequent syncs of private repos fail with <code className="text-xs font-mono bg-amber-100 dark:bg-amber-900/40 px-1 py-0.5 rounded">terminal prompts disabled</code>. Fixed in Forgejo 15.0.0 (
+                <a
+                  href="https://codeberg.org/forgejo/forgejo/pulls/11909"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-2"
+                >
+                  PR #11909
+                </a>
+                ).
+              </p>
+              <p>
+                Upgrade Forgejo to 15.0.0 or later, then delete and re-mirror affected repos — or open each repo's Settings → Mirror Settings in Forgejo and re-enter the GitHub token once.
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
         <div>
           <label
             htmlFor="gitea-username"

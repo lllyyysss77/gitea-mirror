@@ -87,12 +87,22 @@ export const githubApi = {
 };
 
 // Gitea API
+export interface GiteaServerInfo {
+  type: "forgejo" | "gitea";
+  version: string;
+  raw: string;
+  hasMirrorCredBug: boolean;
+}
+
 export const giteaApi = {
   testConnection: (url: string, token: string) =>
-    apiRequest<{ success: boolean }>("/gitea/test-connection", {
-      method: "POST",
-      body: JSON.stringify({ url, token }),
-    }),
+    apiRequest<{ success: boolean; serverInfo?: GiteaServerInfo; message?: string }>(
+      "/gitea/test-connection",
+      {
+        method: "POST",
+        body: JSON.stringify({ url, token }),
+      }
+    ),
 };
 
 // Health API
