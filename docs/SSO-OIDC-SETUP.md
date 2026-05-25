@@ -4,15 +4,16 @@ This guide explains how to configure Single Sign-On (SSO) and OpenID Connect (OI
 
 ## Overview
 
-Gitea Mirror supports three authentication methods:
+Gitea Mirror supports four authentication methods:
 
 1. **Email & Password** - Traditional authentication (always enabled)
 2. **SSO (Single Sign-On)** - Allow users to authenticate using external OIDC providers
-3. **OIDC Provider** - Allow other applications to authenticate users through Gitea Mirror
+3. **Header / Forward Authentication** - Trust pre-authenticated requests from a reverse proxy (Authentik, Authelia, oauth2-proxy, etc.)
+4. **OIDC Provider** - Allow other applications to authenticate users through Gitea Mirror
 
 ## Configuration
 
-All SSO and OIDC settings are managed through the web UI in the Configuration page under the "Authentication" tab.
+SSO and OIDC Provider settings are managed through the web UI in the Configuration page under the "Authentication" tab. Header / Forward Authentication is configured via environment variables only — see [Setting up Header / Forward Authentication](#setting-up-header--forward-authentication) below.
 
 ## Setting up SSO (Single Sign-On)
 
@@ -100,6 +101,77 @@ Notes:
 - Make sure `BETTER_AUTH_URL` and (if you serve the UI from multiple origins) `BETTER_AUTH_TRUSTED_ORIGINS` point at the public URL users reach. A mismatch can surface as 500 errors after redirect.
 - Authentik must report the user’s email as verified (default behavior) so Gitea Mirror can auto-link accounts.
 - If you created an Authentik provider before v3.8.10 you should delete it and re-add it after upgrading; older versions saved incomplete endpoint data which leads to the `url.startsWith` error explained in the Troubleshooting section.
+
+## Setting up Header / Forward Authentication
+
+Header authentication trusts a reverse proxy (Authentik, Authelia, oauth2-proxy, Traefik forward-auth, etc.) to authenticate users upstream and pass identity in HTTP headers. When enabled, Gitea Mirror reads the configured headers on each request and resolves the user automatically — no login form, no callback.
+
+> **Important — operator-controlled by design.** Header auth is configured via environment variables only, not the UI. This is intentional: trusting a header means trusting whatever upstream sets it, and that decision belongs to the operator who controls the reverse proxy, not to a logged-in user inside the app. Make sure your reverse proxy strips these headers from inbound client requests, otherwise anyone can spoof them.
+
+### Environment variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `HEADER_AUTH_ENABLED` | Master switch — must be `true` to enable | `false` |
+| `HEADER_AUTH_USER_HEADER` | Header containing the username | `X-Authentik-Username` |
+| `HEADER_AUTH_EMAIL_HEADER` | Header containing the email address | `X-Authentik-Email` |
+| `HEADER_AUTH_NAME_HEADER` | Header containing the display name | `X-Authentik-Name` |
+| `HEADER_AUTH_AUTO_PROVISION` | If `true`, create a new user when an unknown username arrives. If `false`, unknown users are rejected. | `false` |
+| `HEADER_AUTH_ALLOWED_DOMAINS` | Comma-separated email domain allowlist. Empty = allow any. | _(empty)_ |
+
+See also: [`docs/ENVIRONMENT_VARIABLES.md`](./ENVIRONMENT_VARIABLES.md#header-authentication-reverse-proxy-sso).
+
+### Example: Docker Compose with Authentik
+
+```yaml
+services:
+  gitea-mirror:
+    image: ghcr.io/raylabshq/gitea-mirror:latest
+    environment:
+      HEADER_AUTH_ENABLED: "true"
+      HEADER_AUTH_USER_HEADER: "X-Authentik-Username"
+      HEADER_AUTH_EMAIL_HEADER: "X-Authentik-Email"
+      HEADER_AUTH_NAME_HEADER: "X-Authentik-Name"
+      HEADER_AUTH_AUTO_PROVISION: "true"
+      HEADER_AUTH_ALLOWED_DOMAINS: "example.com,example.org"
+```
+
+The defaults are Authentik-shaped, so for an Authentik proxy provider you generally only need to set `HEADER_AUTH_ENABLED=true` (and `HEADER_AUTH_AUTO_PROVISION=true` if you want first-login self-registration).
+
+### Example: Authelia
+
+Authelia uses different header names — override them:
+
+```yaml
+environment:
+  HEADER_AUTH_ENABLED: "true"
+  HEADER_AUTH_USER_HEADER: "Remote-User"
+  HEADER_AUTH_EMAIL_HEADER: "Remote-Email"
+  HEADER_AUTH_NAME_HEADER: "Remote-Name"
+  HEADER_AUTH_AUTO_PROVISION: "true"
+```
+
+Then configure Authelia's `authz` rules to protect the gitea-mirror route and inject the `Remote-*` headers.
+
+### Behaviour and lookup order
+
+- The middleware checks for a cookie session **first**. Header auth only fires when there is no existing session, so users who logged in via password or SSO are not affected.
+- Lookup is by `HEADER_AUTH_USER_HEADER` value matched against `users.username`; if no match and `HEADER_AUTH_EMAIL_HEADER` is set, a second lookup is tried against `users.email`.
+- If neither matches:
+  - With `HEADER_AUTH_AUTO_PROVISION=true`, a new user row is created (email defaults to `<username>@header-auth.local` if no email header is present).
+  - With `HEADER_AUTH_AUTO_PROVISION=false`, the request is rejected with a warning logged.
+- If `HEADER_AUTH_ALLOWED_DOMAINS` is non-empty and the email header arrives, the email's domain must be in the list or the request is rejected.
+
+### Verifying it's enabled
+
+When header auth is active, the Authentication settings page renders a green "Header Authentication / Via reverse proxy" badge under the auth-methods status block. You can also probe `/api/auth/header-status`, which returns `{ "enabled": true, ... }` once the env vars are set.
+
+### Security checklist
+
+1. **Strip the headers at your edge.** Your reverse proxy must remove inbound `HEADER_AUTH_USER_HEADER` / email / name headers from client requests before re-injecting its own. Otherwise any unauthenticated client can set `X-Authentik-Username: admin` and walk in.
+2. **Bind the app to the proxy only.** Don't expose Gitea Mirror's port directly to the network when header auth is on; only the trusted proxy should reach it.
+3. **Use HTTPS between proxy and clients.** Headers travel in plaintext on the link they cross.
+4. **Be conservative with `HEADER_AUTH_AUTO_PROVISION`.** With it off, you provision users in the UI/DB once and the proxy fills in sessions thereafter — safer for shared deployments.
 
 ## Setting up OIDC Provider
 
