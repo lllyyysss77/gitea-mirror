@@ -152,24 +152,13 @@ export async function POST(context: APIContext) {
       headers.set("cookie", cookieHeader);
     }
 
-    // Register the SSO provider using Better Auth's API
-    const response = await auth.api.registerSSOProvider({
+    // Register the SSO provider using Better Auth's API.
+    // auth.api.* returns the parsed result directly (not a fetch Response); it
+    // throws APIError on failure, which createSecureErrorResponse handles below.
+    const result = await auth.api.registerSSOProvider({
       body: registrationBody,
       headers,
     });
-
-    if (!response.ok) {
-      const error = await response.text();
-      return new Response(
-        JSON.stringify({ error: `Failed to register SSO provider: ${error}` }),
-        {
-          status: response.status,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    const result = await response.json();
 
     // Mirror provider entry into local SSO table for UI listing
     try {
@@ -183,6 +172,13 @@ export async function POST(context: APIContext) {
         issuer: registrationBody.issuer,
         domain: registrationBody.domain,
         organizationId: registrationBody.organizationId,
+        // Mark this provider as trusted for the `domain` it was registered
+        // under. Better Auth's SSO plugin gates account auto-linking on this
+        // flag together with an email-domain match (validateEmailDomain), so
+        // sign-ins from users outside the registered domain are NOT
+        // auto-linked even though the provider is trusted. The plugin's own
+        // create call hardcodes this to false, so we set it here.
+        domainVerified: true,
         updatedAt: new Date(),
       };
 
@@ -210,6 +206,7 @@ export async function POST(context: APIContext) {
           userId: user.id,
           providerId: registrationBody.providerId,
           organizationId: registrationBody.organizationId,
+          domainVerified: true,
         });
       }
     } catch (mirroringError) {

@@ -618,68 +618,120 @@ export const verifications = sqliteTable("verifications", {
 
 // ===== OIDC Provider Tables =====
 
-// OAuth Applications table
-export const oauthApplications = sqliteTable("oauth_applications", {
+// ===== OAuth 2.1 / OIDC Provider tables (@better-auth/oauth-provider) =====
+//
+// These back the OAuth/OIDC *provider* feature (gitea-mirror acting as an
+// identity provider for other apps). They are managed entirely by Better
+// Auth's drizzle adapter, so:
+//   - the exported binding name must equal the plugin model name pluralized
+//     under `usePlural: true` (oauthClient -> oauthClients, jwks -> jwkss);
+//   - the object property names must match the plugin field names (camelCase),
+//     while the SQL column names may be snake_case;
+//   - `string[]` and `json` fields are serialized to JSON text by the adapter,
+//     so they are plain `text` columns here.
+//
+// Migrated from the deprecated `oidc-provider` plugin (tables
+// oauth_applications / oauth_access_tokens / oauth_consent). See the
+// accompanying Drizzle migration for the data-preserving upgrade path.
+
+// OAuth clients (replaces the old `oauth_applications` table)
+export const oauthClients = sqliteTable("oauth_clients", {
   id: text("id").primaryKey(),
   clientId: text("client_id").notNull().unique(),
-  clientSecret: text("client_secret").notNull(),
-  name: text("name").notNull(),
-  redirectURLs: text("redirect_urls").notNull(), // Comma-separated list
-  metadata: text("metadata"), // JSON string
-  type: text("type").notNull(), // web, mobile, etc
-  disabled: integer("disabled", { mode: "boolean" }).notNull().default(false),
-  userId: text("user_id"), // Optional - owner of the application
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
+  clientSecret: text("client_secret"),
+  name: text("name"),
+  disabled: integer("disabled", { mode: "boolean" }).default(false),
+  skipConsent: integer("skip_consent", { mode: "boolean" }),
+  enableEndSession: integer("enable_end_session", { mode: "boolean" }),
+  subjectType: text("subject_type"),
+  scopes: text("scopes"), // JSON string[]
+  userId: text("user_id").references(() => users.id),
+  uri: text("uri"),
+  icon: text("icon"),
+  contacts: text("contacts"), // JSON string[]
+  tos: text("tos"),
+  policy: text("policy"),
+  softwareId: text("software_id"),
+  softwareVersion: text("software_version"),
+  softwareStatement: text("software_statement"),
+  redirectUris: text("redirect_uris").notNull(), // JSON string[]
+  postLogoutRedirectUris: text("post_logout_redirect_uris"), // JSON string[]
+  tokenEndpointAuthMethod: text("token_endpoint_auth_method"),
+  grantTypes: text("grant_types"), // JSON string[]
+  responseTypes: text("response_types"), // JSON string[]
+  public: integer("public", { mode: "boolean" }),
+  type: text("type"),
+  requirePKCE: integer("require_pkce", { mode: "boolean" }),
+  referenceId: text("reference_id"),
+  metadata: text("metadata"), // JSON
+  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
 }, (table) => [
-  index("idx_oauth_applications_client_id").on(table.clientId),
-  index("idx_oauth_applications_user_id").on(table.userId),
+  index("idx_oauth_clients_client_id").on(table.clientId),
+  index("idx_oauth_clients_user_id").on(table.userId),
 ]);
 
-// OAuth Access Tokens table
+// OAuth access tokens
 export const oauthAccessTokens = sqliteTable("oauth_access_tokens", {
   id: text("id").primaryKey(),
-  accessToken: text("access_token").notNull(),
-  refreshToken: text("refresh_token"),
-  accessTokenExpiresAt: integer("access_token_expires_at", { mode: "timestamp" }).notNull(),
-  refreshTokenExpiresAt: integer("refresh_token_expires_at", { mode: "timestamp" }),
+  token: text("token").unique(),
   clientId: text("client_id").notNull(),
-  userId: text("user_id").notNull().references(() => users.id),
-  scopes: text("scopes").notNull(), // Comma-separated list
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
+  sessionId: text("session_id"),
+  userId: text("user_id").references(() => users.id),
+  referenceId: text("reference_id"),
+  refreshId: text("refresh_id"),
+  expiresAt: integer("expires_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
+  scopes: text("scopes").notNull(), // JSON string[]
 }, (table) => [
-  index("idx_oauth_access_tokens_access_token").on(table.accessToken),
-  index("idx_oauth_access_tokens_user_id").on(table.userId),
+  index("idx_oauth_access_tokens_token").on(table.token),
   index("idx_oauth_access_tokens_client_id").on(table.clientId),
+  index("idx_oauth_access_tokens_user_id").on(table.userId),
 ]);
 
-// OAuth Consent table
-export const oauthConsent = sqliteTable("oauth_consent", {
+// OAuth refresh tokens (new in the OAuth 2.1 provider)
+export const oauthRefreshTokens = sqliteTable("oauth_refresh_tokens", {
   id: text("id").primaryKey(),
-  userId: text("user_id").notNull().references(() => users.id),
+  token: text("token").notNull().unique(),
   clientId: text("client_id").notNull(),
-  scopes: text("scopes").notNull(), // Comma-separated list
-  consentGiven: integer("consent_given", { mode: "boolean" }).notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
+  sessionId: text("session_id"),
+  userId: text("user_id").notNull().references(() => users.id),
+  referenceId: text("reference_id"),
+  expiresAt: integer("expires_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
+  revoked: integer("revoked", { mode: "timestamp" }),
+  authTime: integer("auth_time", { mode: "timestamp" }),
+  scopes: text("scopes").notNull(), // JSON string[]
 }, (table) => [
-  index("idx_oauth_consent_user_id").on(table.userId),
-  index("idx_oauth_consent_client_id").on(table.clientId),
-  index("idx_oauth_consent_user_client").on(table.userId, table.clientId),
+  index("idx_oauth_refresh_tokens_token").on(table.token),
+  index("idx_oauth_refresh_tokens_client_id").on(table.clientId),
+  index("idx_oauth_refresh_tokens_user_id").on(table.userId),
 ]);
+
+// OAuth consent records
+export const oauthConsents = sqliteTable("oauth_consents", {
+  id: text("id").primaryKey(),
+  clientId: text("client_id").notNull(),
+  userId: text("user_id").references(() => users.id),
+  referenceId: text("reference_id"),
+  scopes: text("scopes").notNull(), // JSON string[]
+  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
+}, (table) => [
+  index("idx_oauth_consents_client_id").on(table.clientId),
+  index("idx_oauth_consents_user_id").on(table.userId),
+]);
+
+// JWKS keypairs for signing OIDC id_tokens (better-auth `jwt` plugin).
+// Model name "jwks" pluralizes to the binding name "jwkss" under usePlural,
+// while the physical table stays "jwks".
+export const jwkss = sqliteTable("jwks", {
+  id: text("id").primaryKey(),
+  publicKey: text("public_key").notNull(),
+  privateKey: text("private_key").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull().default(sql`(unixepoch())`),
+  expiresAt: integer("expires_at", { mode: "timestamp" }),
+});
 
 // ===== SSO Provider Tables =====
 
@@ -689,6 +741,15 @@ export const ssoProviders = sqliteTable("sso_providers", {
   issuer: text("issuer").notNull(),
   domain: text("domain").notNull(),
   oidcConfig: text("oidc_config").notNull(), // JSON string with OIDC configuration
+  // The upgraded @better-auth/sso plugin writes this on every insert (null for OIDC providers).
+  // Drizzle's adapter rejects unknown fields, so the column must exist.
+  samlConfig: text("saml_config"),
+  // Used by the SSO plugin's account-linking trust check: a sign-in is treated
+  // as trusted when this is true AND the user's email domain matches `domain`
+  // above. We set this to true on register (see /api/auth/sso/register.ts) so
+  // domain-scoped auto-linking works out of the box; the column default keeps
+  // existing rows trusted after upgrade.
+  domainVerified: integer("domain_verified", { mode: "boolean" }).notNull().default(true),
   userId: text("user_id").notNull(), // Admin who created this provider
   providerId: text("provider_id").notNull().unique(), // Unique identifier for the provider
   organizationId: text("organization_id"), // Optional - if provider is linked to an organization
