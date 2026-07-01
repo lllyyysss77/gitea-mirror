@@ -2186,6 +2186,98 @@ export const syncGiteaRepo = async ({
   }
 };
 
+/**
+ * Build the JSON body for creating/updating a Gitea release.
+ *
+ * Gitea/Forgejo expose the release title through the JSON field `name`, not
+ * `title` (the API Go struct is `Title string \`json:"name"\``); sending `title`
+ * is silently ignored and leaves the release name blank (#334). Create and update
+ * send the same fields; `target` is intentionally omitted (see #331/#333) so Gitea
+ * attaches the release to the already-synced tag instead of 404-ing on the target.
+ */
+export function buildGiteaReleasePayload(
+  release: { tag_name: string; name?: string | null; draft?: boolean; prerelease?: boolean },
+  releaseNote: string
+): { tag_name: string; name: string; body: string; draft?: boolean; prerelease?: boolean } {
+  return {
+    tag_name: release.tag_name,
+    name: release.name || release.tag_name,
+    body: releaseNote,
+    draft: release.draft,
+    prerelease: release.prerelease,
+  };
+}
+
+/**
+ * Build the JSON body for a Gitea issue / PR-as-issue edit (PATCH .../issues/{index}).
+ *
+ * Deliberately excludes `labels`: Gitea's `EditIssueOption` has no `labels` field
+ * (only `CreateIssueOption` does), so any `labels` key here is silently dropped —
+ * the same class of bug as the release `title` mix-up (#334 sibling). Labels are
+ * applied separately via the labels sub-resource (see buildGiteaIssueLabelsPayload).
+ */
+export function buildGiteaIssueEditPayload(opts: {
+  title: string;
+  body: string;
+  closed: boolean;
+}): { title: string; body: string; state: "open" | "closed" } {
+  return { title: opts.title, body: opts.body, state: opts.closed ? "closed" : "open" };
+}
+
+/**
+ * Build the JSON body for the Gitea issue labels sub-resource
+ * (PUT .../issues/{index}/labels), which replaces the full label set idempotently.
+ */
+export function buildGiteaIssueLabelsPayload(labelIds: number[]): { labels: number[] } {
+  return { labels: labelIds ?? [] };
+}
+
+/**
+ * Replace the label set on an existing Gitea issue (or PR-as-issue) via the
+ * dedicated labels sub-resource.
+ *
+ * Gitea/Forgejo's `EditIssueOption` has no `labels` field (only
+ * `CreateIssueOption` does), so a `labels` key in a `PATCH .../issues/{index}`
+ * body is silently dropped by the JSON decoder — the same class of bug as the
+ * release `title` vs `name` mix-up (#334). Label changes on an already-mirrored
+ * issue therefore have to go through `PUT .../issues/{index}/labels`, which
+ * replaces the whole set idempotently: it both applies newly added labels and
+ * removes ones deleted upstream.
+ *
+ * Best-effort: labels are secondary metadata, so a transient failure here is
+ * logged and left to self-heal on the next sync rather than failing (and
+ * retrying) the entire issue + comment mirror.
+ */
+async function reconcileGiteaIssueLabels({
+  config,
+  decryptedConfig,
+  giteaOwner,
+  repoName,
+  issueNumber,
+  labelIds,
+}: {
+  config: Partial<Config>;
+  decryptedConfig: Config;
+  giteaOwner: string;
+  repoName: string;
+  issueNumber: number;
+  labelIds: number[];
+}): Promise<void> {
+  try {
+    await httpPut(
+      `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues/${issueNumber}/labels`,
+      buildGiteaIssueLabelsPayload(labelIds),
+      { Authorization: `token ${decryptedConfig.giteaConfig!.token}` }
+    );
+  } catch (error) {
+    console.warn(
+      `[Labels] Failed to reconcile labels on issue #${issueNumber}: ${
+        error instanceof Error ? error.message : String(error)
+      } (will retry on next sync)`
+    );
+  }
+}
+
 export const mirrorGitRepoIssuesToGitea = async ({
   config,
   octokit,
@@ -2437,12 +2529,11 @@ export const mirrorGitRepoIssuesToGitea = async ({
         targetIssueNumber = existingIssue.number;
         await httpPatch(
           `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues/${targetIssueNumber}`,
-          {
+          buildGiteaIssueEditPayload({
             title: issuePayload.title,
             body: issuePayload.body,
-            state: issue.state === "closed" ? "closed" : "open",
-            labels: issuePayload.labels,
-          },
+            closed: issue.state === "closed",
+          }),
           {
             Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
           }
@@ -2487,12 +2578,11 @@ export const mirrorGitRepoIssuesToGitea = async ({
           );
           await httpPatch(
             `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues/${targetIssueNumber}`,
-            {
+            buildGiteaIssueEditPayload({
               title: issuePayload.title,
               body: issuePayload.body,
-              state: issue.state === "closed" ? "closed" : "open",
-              labels: issuePayload.labels,
-            },
+              closed: issue.state === "closed",
+            }),
             {
               Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
             }
@@ -2529,6 +2619,21 @@ export const mirrorGitRepoIssuesToGitea = async ({
             }
           }
         }
+      }
+
+      // Gitea's EditIssueOption ignores `labels`, so the PATCH above can't change
+      // them on an already-mirrored issue — reconcile via the labels sub-resource.
+      // Only needed on the update paths; a freshly POSTed issue already got its
+      // labels from CreateIssueOption. (#334 sibling)
+      if (existingIssue) {
+        await reconcileGiteaIssueLabels({
+          config,
+          decryptedConfig,
+          giteaOwner,
+          repoName,
+          issueNumber: targetIssueNumber,
+          labelIds: giteaLabelIds,
+        });
       }
 
       // Clone comments
@@ -2995,15 +3100,7 @@ export async function mirrorGitHubReleasesToGitea({
           
           await httpPatch(
             `${config.giteaConfig.url}/api/v1/repos/${repoOwner}/${repoName}/releases/${existingRelease.id}`,
-            {
-              tag_name: release.tag_name,
-              // Omit `target` — the release already exists and is anchored to its tag;
-              // re-sending target_commitish risks the same "target not found" 404 (#331).
-              title: release.name || release.tag_name,
-              body: releaseNote,
-              draft: release.draft,
-              prerelease: release.prerelease,
-            },
+            buildGiteaReleasePayload(release, releaseNote),
             {
               Authorization: `token ${decryptedConfig.giteaConfig.token}`,
             }
@@ -3074,16 +3171,7 @@ export async function mirrorGitHubReleasesToGitea({
 
       const createReleaseResponse = await httpPost(
         `${config.giteaConfig.url}/api/v1/repos/${repoOwner}/${repoName}/releases`,
-        {
-          tag_name: release.tag_name,
-          // Intentionally omit `target`: the tag already exists (verified above), so
-          // Gitea attaches the release to it. Sending target_commitish can 404 with
-          // "The target couldn't be found" on some Gitea/Forgejo versions (#331).
-          title: release.name || release.tag_name,
-          body: releaseNote,
-          draft: release.draft,
-          prerelease: release.prerelease,
-        },
+        buildGiteaReleasePayload(release, releaseNote),
         {
           Authorization: `token ${decryptedConfig.giteaConfig.token}`,
         }
@@ -3471,12 +3559,11 @@ export async function mirrorGitRepoPullRequestsToGitea({
         if (existingPrIssue) {
           await httpPatch(
             `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues/${existingPrIssue.number}`,
-            {
+            buildGiteaIssueEditPayload({
               title: issueData.title,
               body: issueData.body,
-              state: issueData.closed ? "closed" : "open",
-              labels: issueData.labels,
-            },
+              closed: issueData.closed,
+            }),
             {
               Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
             }
@@ -3513,6 +3600,20 @@ export async function mirrorGitRepoPullRequestsToGitea({
               );
             }
           }
+        }
+
+        // Gitea drops `labels` on issue edit, so the "pull-request" marker label
+        // can't be set via the PATCH above — reconcile it on the update path.
+        // (#334 sibling)
+        if (existingPrIssue) {
+          await reconcileGiteaIssueLabels({
+            config,
+            decryptedConfig,
+            giteaOwner,
+            repoName,
+            issueNumber: existingPrIssue.number,
+            labelIds: issueData.labels,
+          });
         }
 
         successCount++;
@@ -3559,12 +3660,11 @@ export async function mirrorGitRepoPullRequestsToGitea({
           if (existingPrIssue) {
             await httpPatch(
               `${config.giteaConfig!.url}/api/v1/repos/${giteaOwner}/${repoName}/issues/${existingPrIssue.number}`,
-              {
+              buildGiteaIssueEditPayload({
                 title: basicIssueData.title,
                 body: basicIssueData.body,
-                state: basicIssueData.closed ? "closed" : "open",
-                labels: basicIssueData.labels,
-              },
+                closed: basicIssueData.closed,
+              }),
               {
                 Authorization: `token ${decryptedConfig.giteaConfig!.token}`,
               }
@@ -3600,6 +3700,19 @@ export async function mirrorGitRepoPullRequestsToGitea({
                 );
               }
             }
+          }
+
+          // Same as the enriched path — reconcile the marker label via the labels
+          // sub-resource since PATCH ignores it. (#334 sibling)
+          if (existingPrIssue) {
+            await reconcileGiteaIssueLabels({
+              config,
+              decryptedConfig,
+              giteaOwner,
+              repoName,
+              issueNumber: existingPrIssue.number,
+              labelIds: basicIssueData.labels,
+            });
           }
 
           successCount++;
