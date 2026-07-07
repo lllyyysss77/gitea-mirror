@@ -1,0 +1,327 @@
+# Instincts generated from https://github.com/lllyyysss77/gitea-mirror
+# Generated: 2026-07-01T04:06:21.914Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: gitea-mirror-commit-conventional
+trigger: "when writing a commit message"
+confidence: 0.85
+domain: git
+source: repo-analysis
+source_repo: https://github.com/lllyyysss77/gitea-mirror
+---
+
+# Gitea Mirror Commit Conventional
+
+## Action
+
+Use conventional commit format with prefixes: fix, chore
+
+## Evidence
+
+- 2 commits analyzed
+- Detected conventional commit pattern
+- Examples: fix: correctly mirror Gitea release titles and issue/PR labels (#334 + sibling) (#335), chore: bump version to 3.20.3
+
+---
+id: gitea-mirror-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/lllyyysss77/gitea-mirror
+---
+
+# Gitea Mirror Commit Length
+
+## Action
+
+Write moderate-length commit messages (~58 characters)
+
+## Evidence
+
+- Average commit message length: 58 chars
+- Based on 2 commits
+
+---
+id: gitea-mirror-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/lllyyysss77/gitea-mirror
+---
+
+# Gitea Mirror Naming Files
+
+## Action
+
+Use camelCase naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: camelCase
+
+---
+id: gitea-mirror-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/lllyyysss77/gitea-mirror
+---
+
+# Gitea Mirror Export Style
+
+## Action
+
+Prefer named exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: named
+
+---
+id: gitea-mirror-arch-type-based
+trigger: "when adding new code"
+confidence: 0.8
+domain: architecture
+source: repo-analysis
+source_repo: https://github.com/lllyyysss77/gitea-mirror
+---
+
+# Gitea Mirror Arch Type Based
+
+## Action
+
+Place code in the appropriate type folder (components/, services/, utils/, etc.)
+
+## Evidence
+
+- Type-based module organization detected
+- Folders: lib
+
+---
+id: gitea-mirror-test-colocate
+trigger: "when writing tests"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/lllyyysss77/gitea-mirror
+---
+
+# Gitea Mirror Test Colocate
+
+## Action
+
+Place test file next to the source file (e.g., Button.test.tsx next to Button.tsx)
+
+## Evidence
+
+- Colocated test pattern detected
+- Tests live alongside source files
+
+---
+id: gitea-mirror-instinct-file-naming
+trigger: "When creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: lllyyysss77/gitea-mirror
+---
+
+# Gitea Mirror Instinct File Naming
+
+## Action
+
+Name the file using camelCase
+
+## Evidence
+
+- Pattern in namingConventions.files
+- TypeScript files in 'src' folder
+
+---
+id: gitea-mirror-instinct-function-naming
+trigger: "When defining a new function"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: lllyyysss77/gitea-mirror
+---
+
+# Gitea Mirror Instinct Function Naming
+
+## Action
+
+Name the function using camelCase
+
+## Evidence
+
+- Pattern in namingConventions.functions
+- Functions in TypeScript files
+
+---
+id: gitea-mirror-instinct-class-naming
+trigger: "When defining a new class"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: lllyyysss77/gitea-mirror
+---
+
+# Gitea Mirror Instinct Class Naming
+
+## Action
+
+Name the class using PascalCase
+
+## Evidence
+
+- Pattern in namingConventions.classes
+- Classes in TypeScript files
+
+---
+id: gitea-mirror-instinct-constant-naming
+trigger: "When declaring a constant"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: lllyyysss77/gitea-mirror
+---
+
+# Gitea Mirror Instinct Constant Naming
+
+## Action
+
+Name the constant using SCREAMING_SNAKE_CASE
+
+## Evidence
+
+- Pattern in namingConventions.constants
+- Constants in TypeScript files
+
+---
+id: gitea-mirror-instinct-import-style
+trigger: "When importing modules"
+confidence: 0.6
+domain: code-style
+source: repo-analysis
+source_repo: lllyyysss77/gitea-mirror
+---
+
+# Gitea Mirror Instinct Import Style
+
+## Action
+
+Use mixed import styles as appropriate
+
+## Evidence
+
+- Pattern in importStyle: mixed
+- Imports in TypeScript files
+
+---
+id: gitea-mirror-instinct-export-style
+trigger: "When exporting modules or functions"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: lllyyysss77/gitea-mirror
+---
+
+# Gitea Mirror Instinct Export Style
+
+## Action
+
+Use named exports
+
+## Evidence
+
+- Pattern in exportStyle: named
+- Exports in TypeScript files
+
+---
+id: gitea-mirror-instinct-test-location
+trigger: "When adding tests for a module"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: lllyyysss77/gitea-mirror
+---
+
+# Gitea Mirror Instinct Test Location
+
+## Action
+
+Place test files colocated with the source files
+
+## Evidence
+
+- Pattern in architecture.folderStructure.testLocation: colocated
+- Test files next to source files
+
+---
+id: gitea-mirror-instinct-commit-format
+trigger: "When writing a commit message"
+confidence: 0.9
+domain: git
+source: repo-analysis
+source_repo: lllyyysss77/gitea-mirror
+---
+
+# Gitea Mirror Instinct Commit Format
+
+## Action
+
+Use the conventional commit format with a prefix such as 'fix' or 'chore', followed by a colon and a concise description
+
+## Evidence
+
+- fix: correctly mirror Gitea release titles and issue/PR labels (#334 + sibling) (#335)
+- chore: bump version to 3.20.3
+
+---
+id: gitea-mirror-instinct-commit-length
+trigger: "When composing a commit message"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: lllyyysss77/gitea-mirror
+---
+
+# Gitea Mirror Instinct Commit Length
+
+## Action
+
+Keep the commit message around 58 characters on average
+
+## Evidence
+
+- Pattern in commits.averageLength: 58
+- Commit message examples
+
+---
+id: gitea-mirror-instinct-error-handling
+trigger: "When handling errors in code"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: lllyyysss77/gitea-mirror
+---
+
+# Gitea Mirror Instinct Error Handling
+
+## Action
+
+Use try-catch blocks for error handling
+
+## Evidence
+
+- Pattern in errorHandling.style: try-catch
+- TypeScript error handling code
+
