@@ -2026,9 +2026,15 @@ export async function mirrorGitHubOrgToGitea({
         config,
       });
     } else {
-      // For flat-user strategy, we shouldn't create organizations at all
-      // Skip organization creation and let individual repos be handled by getGiteaRepoOwner
-      console.log(`Using flat-user strategy: repos will be placed under user account`);
+      // flat-user: no organizations should be created at all.
+      // mixed: org repos resolve per-repo via getGiteaRepoOwnerAsync in the
+      // loop below (creating their target orgs on demand), so there is
+      // nothing to pre-create here either.
+      console.log(
+        mirrorStrategy === "mixed"
+          ? `Using mixed strategy: repos will be resolved per-repo (orgs created on demand)`
+          : `Using flat-user strategy: repos will be placed under user account`
+      );
       targetOrgName = config.giteaConfig?.defaultOwner || "";
     }
 
