@@ -69,13 +69,13 @@ In **Configuration → Connections → Content & Data**:
 
 - Watch the **Activity Log** for failed runs and retry jobs; filter by repository when you need to chase a single mirror.
 - Point Healthchecks.io, Uptime Kuma, or Prometheus at `http://<mirror-host>:4321/api/health` to confirm the service stays responsive.
-- Export `/api/repos/:id/logs` or the global `/api/events` endpoint periodically to archive sync history alongside the repositories themselves.
+- Export the `/api/events` endpoint (or the Activity Log CSV) periodically to archive sync history alongside the repositories themselves.
 
 ## Tips for smooth syncing
 
 - Avoid running more than one mirror against the same Gitea target; let Gitea Mirror manage the schedule centrally.
 - When restructuring orgs, temporarily disable automatic syncing, move repos in Gitea, then re-enable the scheduler to avoid churn.
-- Rate limits cropping up? Move the mirror onto a different IP or configure GitHub fine-grained PATs per org.
+- Rate limits cropping up? Lengthen the sync interval or trim the metadata components you mirror—authenticated GitHub rate limits are per account, so extra tokens from the same user won't raise the ceiling.
 
 ## Related playbooks
 

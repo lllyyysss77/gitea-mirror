@@ -11,7 +11,7 @@ canonical: "https://gitea-mirror.raylabs.io/comparison/github-backup-tools/"
 
 GitHub hosts millions of repositories, but relying on a single platform comes with risks:
 
-- **Outages**: GitHub experiences downtime (most recent: November 2024, October 2024, August 2024)
+- **Outages**: GitHub experiences downtime several times a year (check [githubstatus.com](https://www.githubstatus.com/history) for the running history)
 - **Account issues**: DMCA takedowns, TOS violations, or account suspensions can lock you out
 - **Accidental deletions**: One wrong click and your repo history vanishes
 - **Company changes**: Microsoft's acquisition led to policy shifts many developers disagreed with
@@ -64,6 +64,8 @@ The question isn't *if* you need backups—it's *which solution* fits your workf
 
 **Setup**:
 ```bash
+git clone https://github.com/RayLabsHQ/gitea-mirror.git
+cd gitea-mirror
 docker compose -f docker-compose.alt.yml up -d
 # Visit http://localhost:4321, create account, add tokens
 ```
@@ -72,7 +74,7 @@ docker compose -f docker-compose.alt.yml up -d
 
 **Best for**: Teams wanting zero infrastructure management, compliance-focused organizations
 
-**How it works**: SaaS platform that backs up GitHub orgs/repos to their cloud storage. Offers point-in-time recovery and compliance features.
+**How it works**: SaaS platform that backs up GitHub orgs/repos to their cloud storage. Offers point-in-time recovery and compliance features. Note: BackHub was acquired by Rewind and now operates as part of Rewind's backup lineup.
 
 **Pros**:
 - ✅ Fully managed (zero infrastructure)
@@ -237,7 +239,7 @@ Yes! The Docker setup takes 15 minutes. Test with a few repos, evaluate, then sc
 
 ### Does Gitea Mirror work with GitHub Enterprise Cloud?
 
-Yes, as long as you have API access and a personal access token. The GitHub API endpoint is configurable.
+Yes. GitHub Enterprise Cloud uses the standard github.com API, so a personal access token is all you need. For GitHub Enterprise Server, point the mirror at your instance's API with the `GH_API_URL` environment variable.
 
 ## Next steps
 

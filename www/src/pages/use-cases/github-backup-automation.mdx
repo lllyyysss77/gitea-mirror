@@ -41,7 +41,7 @@ Shell scripts and `git clone --mirror` jobs work until they don’t—usually wh
 
 - Point your monitoring system at `http://<mirror-host>:4321/api/health` to track uptime.
 - Review sync failures from the **Activity Log** page or export them via `/api/events` for long-term retention.
-- Run `bun run manage-db check` during maintenance windows to verify background tasks, migrations, and queue state.
+- Run `bun run manage-db check` during maintenance windows to verify the database and migrations are healthy.
 
 <figure class="mt-8 flex flex-col items-center">
   <img
@@ -59,7 +59,7 @@ Shell scripts and `git clone --mirror` jobs work until they don’t—usually wh
 
 - Store GitHub and Gitea tokens via the Configuration UI—Gitea Mirror encrypts them at rest.
 - Rotate tokens on a schedule and note expiry dates in your homelab runbook; the dashboard surfaces failures when credentials expire.
-- Export the configuration JSON (`/api/export`) alongside your documentation so you can rebuild the mirror quickly if you need to redeploy.
+- Back up the `data/` directory alongside your documentation—the SQLite database holds your configuration, so restoring it rebuilds the mirror quickly if you need to redeploy.
 
 ## Validate automation
 

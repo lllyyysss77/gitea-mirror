@@ -56,7 +56,7 @@ systemctl status gitea-mirror
 ls /opt/gitea-mirror/data
 ```
 
-You should see `gitea-mirror.db` and a `repos/` directory. Data lives under `/opt/gitea-mirror/data`; back it up or snapshot the underlying storage pool regularly.
+You should see `gitea-mirror.db` (and a `repo-backups/` directory once pre-sync backups run). Data lives under `/opt/gitea-mirror/data`; back it up or snapshot the underlying storage pool regularly. The mirrored repositories themselves live on your Gitea server.
 
 ### 4. Expose the service (optional)
 

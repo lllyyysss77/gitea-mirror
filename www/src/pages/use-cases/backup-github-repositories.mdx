@@ -37,17 +37,17 @@ docker compose -f docker-compose.alt.yml ps
 docker compose -f docker-compose.alt.yml logs -f gitea-mirror
 ```
 
-Wait for "Server started" before moving on.
+Wait for the `Runtime server listening` line in the logs before moving on.
 
 ### 2. Generate tokens and connect GitHub
 
 1. Create a GitHub personal access token (classic) with `repo` enabled and, inside the `admin:org` section, check `read:org` so the mirror can list organization repositories—leave `write:org` and `admin:org` unchecked.
-2. Log in to Gitea and create an access token for an admin/owner account with `write:repository`.
+2. Log in to Gitea and create an access token for an admin/owner account with `write:repository` and `write:organization` (the second scope lets the mirror create destination organizations).
 3. Visit `http://<host>:4321` and sign up—the first user becomes admin.
 4. Complete the setup wizard:
    - Paste the GitHub PAT and Gitea URL/token.
    - Choose which GitHub owners (user/org) to track.
-   - Leave sync interval at the default 1 hour to start.
+   - Leave the sync interval at the default (daily) to start; you can shorten it later.
 
 ### 3. Stage your first backup job
 
@@ -92,7 +92,7 @@ Treat the mirror like any other DR asset:
 
 - The container exposes `/api/health`; add it to Uptime Kuma, Healthchecks.io, or Prometheus.
 - Mirror failures surface in the activity log; consider exporting them through the `/api/events` endpoint.
-- Watch the `data/` volume on the host (e.g. `du -sh data/`) to make sure you have headroom for mirrored repos and LFS blobs.
+- Watch disk usage on your Gitea host—that's where the mirrored repos and LFS blobs actually live. Gitea Mirror's own `data/` volume stays small (SQLite database plus optional pre-sync backup bundles).
 
 ## Hardening tips
 
@@ -117,4 +117,4 @@ Most homelabs pick 30–120 minutes. Faster schedules improve RPO but use more G
 
 ### Where are backups stored and how do I restore?
 
-Repositories and the SQLite DB live under the `data/` directory (or your configured volume). Restore by cloning from Gitea or by moving the volume to a fresh deployment and signing back in.
+The mirrored repositories live in your Gitea instance's storage—Gitea does the actual mirroring. Gitea Mirror's `data/` directory holds its SQLite database (configuration, job history) and optional pre-sync backup bundles. Restore code by cloning from Gitea; restore the mirror service by moving the `data/` volume to a fresh deployment and signing back in.

@@ -55,8 +55,8 @@ In **Configuration → Connections**, open **Content & Data**:
 ### 4. Record provenance
 
 - Add a README or label inside the archive organization that captures the upstream URL, first mirrored date, and token owner.
-- Export a CSV from the **Repositories** view or hit `/api/events` quarterly so you retain a human-friendly change log.
-- Store the configuration export (`/api/export`) alongside your disaster-recovery docs in case you need to rebuild the service.
+- Export the **Activity Log** as CSV or hit `/api/events` quarterly so you retain a human-friendly change log.
+- Back up the `data/` directory (the SQLite database holds your configuration) alongside your disaster-recovery docs in case you need to rebuild the service.
 
 ### 5. Back up the backup
 
@@ -66,7 +66,7 @@ In **Configuration → Connections**, open **Content & Data**:
 
 ## Verify the archive
 
-1. Delete a draft issue on GitHub.
+1. Delete a test issue on GitHub.
 2. Wait for the next sync; open the issue in Gitea—you should still see the original content.
 3. Compare `git tag -l` in both remotes to ensure releases match.
 4. Use `git lfs ls-files` to confirm large assets made it across.
