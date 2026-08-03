@@ -30,7 +30,7 @@ Variables fall into two groups.
 | `BASE_URL` | `/` | Path prefix for subpath deployments, for example `/mirror`. Applied at runtime, so one prebuilt image works under any prefix. |
 | `DATABASE_URL` | `sqlite://data/gitea-mirror.db` | SQLite database location. The container image sets `file:data/gitea-mirror.db`. |
 
-> **Note:** The SQLite file is always created at `data/gitea-mirror.db` relative to the process working directory, and the `data` directory is created if missing. `DATABASE_URL` is accepted but the driver does not currently resolve an alternative path from it. Relocate the database by mounting or symlinking the `data` directory.
+> **Note:** `DATABASE_URL` accepts the `sqlite://` scheme, the legacy `file:` scheme, or a plain path. Relative paths resolve against the process working directory and the parent directory is created if it is missing. Point it at a mounted volume to relocate the database.
 
 ## Authentication and secrets
 

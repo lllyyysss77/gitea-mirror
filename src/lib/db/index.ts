@@ -8,15 +8,32 @@ import { repairDuplicateSsoColumns, restoreSsoDataAfter0013 } from "./migration-
 // Skip database initialization in test environment
 let db: ReturnType<typeof drizzle>;
 
+/**
+ * Resolve the SQLite file location from DATABASE_URL, falling back to the
+ * historical default of <cwd>/data/gitea-mirror.db. Accepts the documented
+ * sqlite:// scheme, the legacy file: scheme, or a plain path; relative
+ * paths resolve against the working directory.
+ */
+function resolveDbPath(): string {
+  const url = process.env.DATABASE_URL?.trim();
+  if (!url) {
+    return path.join(process.cwd(), "data", "gitea-mirror.db");
+  }
+  const raw = url.startsWith("sqlite://")
+    ? url.slice("sqlite://".length)
+    : url.startsWith("file:")
+      ? url.slice("file:".length)
+      : url;
+  return path.resolve(raw);
+}
+
 if (process.env.NODE_ENV !== "test") {
-  // Define the database URL - for development we'll use a local SQLite file
-  const dataDir = path.join(process.cwd(), "data");
-  // Ensure data directory exists
+  const dbPath = resolveDbPath();
+  const dataDir = path.dirname(dbPath);
+  // Ensure the directory exists
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
   }
-
-  const dbPath = path.join(dataDir, "gitea-mirror.db");
 
   // Create an empty database file if it doesn't exist
   if (!fs.existsSync(dbPath)) {
