@@ -97,6 +97,32 @@ describe("sendNotification", () => {
     expect(opts.headers["X-Gotify-Key"]).toBe("my-app-token");
   });
 
+  test("sends webhook notification when provider is webhook", async () => {
+    const config: NotificationConfig = {
+      enabled: true,
+      provider: "webhook",
+      notifyOnSyncError: true,
+      notifyOnSyncSuccess: true,
+      notifyOnNewRepo: false,
+      webhook: {
+        url: "https://example.com/hooks/gitea-mirror",
+      },
+    };
+
+    await sendNotification(config, {
+      title: "Test",
+      message: "Test message",
+      type: "sync_success",
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const [url, opts] = mockFetch.mock.calls[0];
+    expect(url).toBe("https://example.com/hooks/gitea-mirror");
+    const body = JSON.parse(opts.body);
+    expect(body.title).toBe("Test");
+    expect(body.type).toBe("sync_success");
+  });
+
   test("does not throw when fetch fails", async () => {
     mockFetch = mock(() => Promise.reject(new Error("Network error")));
     globalThis.fetch = mockFetch as any;
@@ -189,9 +215,47 @@ describe("sendNotification", () => {
 
     expect(mockFetch).not.toHaveBeenCalled();
   });
+
+  test("skips notification when webhook URL is missing", async () => {
+    const config: NotificationConfig = {
+      enabled: true,
+      provider: "webhook",
+      notifyOnSyncError: true,
+      notifyOnSyncSuccess: true,
+      notifyOnNewRepo: false,
+      webhook: {
+        url: "",
+      },
+    };
+
+    await sendNotification(config, {
+      title: "Test",
+      message: "Test message",
+      type: "sync_success",
+    });
+
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
 });
 
 describe("testNotification", () => {
+  test("returns error when webhook URL is missing", async () => {
+    const config: NotificationConfig = {
+      enabled: true,
+      provider: "webhook",
+      notifyOnSyncError: true,
+      notifyOnSyncSuccess: true,
+      notifyOnNewRepo: false,
+      webhook: {
+        url: "",
+      },
+    };
+
+    const result = await testNotification(config);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Webhook URL");
+  });
+
   test("returns success when notification is sent", async () => {
     const config: NotificationConfig = {
       enabled: true,

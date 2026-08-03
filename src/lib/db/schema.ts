@@ -144,15 +144,21 @@ export const gotifyConfigSchema = z.object({
   priority: z.number().int().min(0).max(10).default(5),
 });
 
+export const webhookConfigSchema = z.object({
+  url: z.string().default(""),
+  secret: z.string().optional(),
+});
+
 export const notificationConfigSchema = z.object({
   enabled: z.boolean().default(false),
-  provider: z.enum(["ntfy", "apprise", "gotify"]).default("ntfy"),
+  provider: z.enum(["ntfy", "apprise", "gotify", "webhook"]).default("ntfy"),
   notifyOnSyncError: z.boolean().default(true),
   notifyOnSyncSuccess: z.boolean().default(false),
   notifyOnNewRepo: z.boolean().default(false),
   ntfy: ntfyConfigSchema.optional(),
   apprise: appriseConfigSchema.optional(),
   gotify: gotifyConfigSchema.optional(),
+  webhook: webhookConfigSchema.optional(),
 });
 
 export type NotificationConfig = z.infer<typeof notificationConfigSchema>;

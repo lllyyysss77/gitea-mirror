@@ -179,6 +179,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
           token: encrypt(processedNotificationConfig.gotify.token),
         };
       }
+      // Encrypt webhook secret if present
+      if (processedNotificationConfig.webhook?.secret) {
+        processedNotificationConfig.webhook = {
+          ...processedNotificationConfig.webhook,
+          secret: encrypt(processedNotificationConfig.webhook.secret),
+        };
+      }
     }
 
     if (existingConfig) {
@@ -366,6 +373,13 @@ export const GET: APIRoute = async ({ request, locals }) => {
             notificationConfig.gotify = { ...notificationConfig.gotify, token: decrypt(notificationConfig.gotify.token) };
           } catch {
             notificationConfig.gotify = { ...notificationConfig.gotify, token: "" };
+          }
+        }
+        if (notificationConfig.webhook?.secret) {
+          try {
+            notificationConfig.webhook = { ...notificationConfig.webhook, secret: decrypt(notificationConfig.webhook.secret) };
+          } catch {
+            notificationConfig.webhook = { ...notificationConfig.webhook, secret: "" };
           }
         }
       }

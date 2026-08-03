@@ -3,6 +3,7 @@ import type { NotificationEvent } from "./providers/ntfy";
 import { sendNtfyNotification } from "./providers/ntfy";
 import { sendAppriseNotification } from "./providers/apprise";
 import { sendGotifyNotification } from "./providers/gotify";
+import { sendWebhookNotification } from "./providers/webhook";
 import { db, configs } from "@/lib/db";
 import { eq, sql } from "drizzle-orm";
 import { decrypt } from "@/lib/utils/encryption";
@@ -59,6 +60,12 @@ export async function sendNotification(
         return;
       }
       await sendGotifyNotification(config.gotify, event);
+    } else if (config.provider === "webhook") {
+      if (!config.webhook?.url) {
+        console.warn("[NotificationService] Webhook URL is not configured, skipping notification");
+        return;
+      }
+      await sendWebhookNotification(config.webhook, event);
     }
   } catch (error) {
     console.error("[NotificationService] Failed to send notification:", error);
@@ -95,6 +102,11 @@ export async function testNotification(
         return { success: false, error: "Gotify URL and token are required" };
       }
       await sendGotifyNotification(notificationConfig.gotify, event);
+    } else if (notificationConfig.provider === "webhook") {
+      if (!notificationConfig.webhook?.url) {
+        return { success: false, error: "Webhook URL is required" };
+      }
+      await sendWebhookNotification(notificationConfig.webhook, event);
     } else {
       return { success: false, error: `Unknown provider: ${notificationConfig.provider}` };
     }
@@ -182,6 +194,12 @@ export async function triggerJobNotification({
       decryptedConfig.gotify = {
         ...decryptedConfig.gotify,
         token: decrypt(decryptedConfig.gotify.token),
+      };
+    }
+    if (decryptedConfig.provider === "webhook" && decryptedConfig.webhook?.secret) {
+      decryptedConfig.webhook = {
+        ...decryptedConfig.webhook,
+        secret: decrypt(decryptedConfig.webhook.secret),
       };
     }
 

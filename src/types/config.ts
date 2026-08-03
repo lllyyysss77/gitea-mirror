@@ -125,15 +125,21 @@ export interface GotifyConfig {
   priority: number;
 }
 
+export interface WebhookConfig {
+  url: string;
+  secret?: string;
+}
+
 export interface NotificationConfig {
   enabled: boolean;
-  provider: "ntfy" | "apprise" | "gotify";
+  provider: "ntfy" | "apprise" | "gotify" | "webhook";
   notifyOnSyncError: boolean;
   notifyOnSyncSuccess: boolean;
   notifyOnNewRepo: boolean;
   ntfy?: NtfyConfig;
   apprise?: AppriseConfig;
   gotify?: GotifyConfig;
+  webhook?: WebhookConfig;
 }
 
 export interface Config extends ConfigType {}

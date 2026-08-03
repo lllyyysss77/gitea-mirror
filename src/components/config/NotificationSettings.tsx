@@ -93,7 +93,7 @@ export function NotificationSettings({
               </Label>
               <Select
                 value={notificationConfig.provider}
-                onValueChange={(value: "ntfy" | "apprise" | "gotify") =>
+                onValueChange={(value: "ntfy" | "apprise" | "gotify" | "webhook") =>
                   onNotificationChange({ ...notificationConfig, provider: value })
                 }
               >
@@ -104,6 +104,7 @@ export function NotificationSettings({
                   <SelectItem value="ntfy">Ntfy.sh</SelectItem>
                   <SelectItem value="apprise">Apprise API</SelectItem>
                   <SelectItem value="gotify">Gotify</SelectItem>
+                  <SelectItem value="webhook">Webhook</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -389,6 +390,62 @@ export function NotificationSettings({
                   />
                   <p className="text-xs text-muted-foreground">
                     Error notifications always use priority 8 regardless of this setting
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Webhook configuration */}
+            {notificationConfig.provider === "webhook" && (
+              <div className="space-y-4 p-4 border border-border rounded-lg bg-card/50">
+                <h3 className="text-sm font-medium">Webhook Settings</h3>
+
+                <div className="space-y-2">
+                  <Label htmlFor="webhook-url" className="text-sm">
+                    Webhook URL <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="webhook-url"
+                    type="url"
+                    placeholder="https://example.com/hooks/gitea-mirror"
+                    value={notificationConfig.webhook?.url || ""}
+                    onChange={(e) =>
+                      onNotificationChange({
+                        ...notificationConfig,
+                        webhook: {
+                          ...notificationConfig.webhook,
+                          url: e.target.value,
+                        },
+                      })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Notifications are sent as a JSON POST with title, message, type, and timestamp fields
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="webhook-secret" className="text-sm">
+                    Signing secret (optional)
+                  </Label>
+                  <Input
+                    id="webhook-secret"
+                    type="password"
+                    placeholder="whsec_..."
+                    value={notificationConfig.webhook?.secret || ""}
+                    onChange={(e) =>
+                      onNotificationChange({
+                        ...notificationConfig,
+                        webhook: {
+                          ...notificationConfig.webhook,
+                          url: notificationConfig.webhook?.url || "",
+                          secret: e.target.value,
+                        },
+                      })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    If set, requests include an X-Webhook-Signature header with an HMAC-SHA256 hex digest of the body (sha256=...)
                   </p>
                 </div>
               </div>
