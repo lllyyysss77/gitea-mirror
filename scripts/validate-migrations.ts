@@ -294,77 +294,6 @@ function verify0013Migration(db: any) {
   assert(normName.dflt_value === null, `Expected normalized_name to have no default, got ${normName.dflt_value}`);
 }
 
-function seedPre0014Database(db: any) {
-  // Migrations 0000-0013 have run, so the OAuth provider tables are in their
-  // better-auth 1.6 shape. Seed a row in each altered table so the 1.7
-  // column-adds can be verified against real data.
-  db.run("INSERT INTO users (id, email, username, name) VALUES ('u-14', 'u14@example.com', 'u14', 'User Fourteen')");
-  db.run("INSERT INTO oauth_clients (id, client_id, redirect_uris) VALUES ('app-14', 'client-14', '[\"https://example.com/cb\"]')");
-  db.run("INSERT INTO oauth_access_tokens (id, token, client_id, user_id, scopes) VALUES ('at-14', 'access-14', 'client-14', 'u-14', '[\"openid\"]')");
-  db.run("INSERT INTO oauth_refresh_tokens (id, token, client_id, user_id, scopes) VALUES ('rt-14', 'refresh-14', 'client-14', 'u-14', '[\"openid\"]')");
-  db.run("INSERT INTO oauth_consents (id, client_id, user_id, scopes) VALUES ('co-14', 'client-14', 'u-14', '[\"openid\"]')");
-}
-
-function verify0014Migration(db: any) {
-  // Columns added for @better-auth/oauth-provider 1.7, all nullable so
-  // pre-existing rows are untouched.
-  const expectedNewColumns: Record<string, string[]> = {
-    oauth_clients: [
-      "client_discovery_id",
-      "client_credentials_scopes",
-      "backchannel_logout_uri",
-      "backchannel_logout_session_required",
-      "application_type",
-      "jwks",
-      "jwks_uri",
-      "dpop_bound_access_tokens",
-    ],
-    oauth_access_tokens: [
-      "authorization_code_id",
-      "resources",
-      "requested_user_info_claims",
-      "revoked",
-      "confirmation",
-    ],
-    oauth_refresh_tokens: [
-      "authorization_code_id",
-      "resources",
-      "requested_user_info_claims",
-      "rotated_at",
-      "rotation_replay_response",
-      "rotation_replay_expires_at",
-      "confirmation",
-    ],
-    oauth_consents: ["resources", "requested_user_info_claims"],
-  };
-  for (const [table, columns] of Object.entries(expectedNewColumns)) {
-    const cols = db
-      .query(`PRAGMA table_info(${table})`)
-      .all() as Array<{ name: string; notnull: number }>;
-    for (const column of columns) {
-      const col = cols.find((c) => c.name === column);
-      assert(col, `Expected ${table}.${column} column to exist`);
-      assert(col.notnull === 0, `Expected ${table}.${column} to be nullable`);
-    }
-  }
-
-  // Seeded rows survive the column adds.
-  for (const [table, id] of [
-    ["oauth_clients", "app-14"],
-    ["oauth_access_tokens", "at-14"],
-    ["oauth_refresh_tokens", "rt-14"],
-    ["oauth_consents", "co-14"],
-  ] as const) {
-    const row = db.query(`SELECT id FROM ${table} WHERE id = '${id}'`).get();
-    assert(row, `Expected ${table} row '${id}' to survive migration`);
-  }
-
-  // The three new 1.7 tables exist and accept rows.
-  db.run("INSERT INTO oauth_resources (id, identifier, name) VALUES ('res-14', 'https://api.example.com', 'Example API')");
-  db.run("INSERT INTO oauth_client_resources (id, client_id, resource_id) VALUES ('cr-14', 'client-14', 'https://api.example.com')");
-  db.run("INSERT INTO oauth_client_assertions (id, expires_at) VALUES ('jti-14', 1234567890)");
-}
-
 const MIGRATION_0012_TIMESTAMP = 1774062000000;
 const MIGRATION_0013_TIMESTAMP = 1780377747526;
 
@@ -479,10 +408,6 @@ const latestUpgradeFixtures: Record<string, UpgradeFixture> = {
   "0013_slim_galactus": {
     seed: seedPre0013Database,
     verify: verify0013Migration,
-  },
-  "0014_fancy_speed_demon": {
-    seed: seedPre0014Database,
-    verify: verify0014Migration,
   },
 };
 

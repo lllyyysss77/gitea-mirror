@@ -678,16 +678,6 @@ export const oauthClients = sqliteTable("oauth_clients", {
   public: integer("public", { mode: "boolean" }),
   type: text("type"),
   requirePKCE: integer("require_pkce", { mode: "boolean" }),
-  // Added by @better-auth/oauth-provider 1.7 (client discovery, client
-  // credentials grant, OIDC back-channel logout, private_key_jwt, DPoP).
-  clientDiscoveryId: text("client_discovery_id"),
-  clientCredentialsScopes: text("client_credentials_scopes"), // JSON string[]
-  backchannelLogoutUri: text("backchannel_logout_uri"),
-  backchannelLogoutSessionRequired: integer("backchannel_logout_session_required", { mode: "boolean" }),
-  applicationType: text("application_type"),
-  jwks: text("jwks"),
-  jwksUri: text("jwks_uri"),
-  dpopBoundAccessTokens: integer("dpop_bound_access_tokens", { mode: "boolean" }),
   referenceId: text("reference_id"),
   metadata: text("metadata"), // JSON
   createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
@@ -709,13 +699,6 @@ export const oauthAccessTokens = sqliteTable("oauth_access_tokens", {
   expiresAt: integer("expires_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
   scopes: text("scopes").notNull(), // JSON string[]
-  // Added by @better-auth/oauth-provider 1.7 (resource indicators, token
-  // revocation on session end, DPoP proof binding).
-  authorizationCodeId: text("authorization_code_id"),
-  resources: text("resources"), // JSON string[]
-  requestedUserInfoClaims: text("requested_user_info_claims"), // JSON string[]
-  revoked: integer("revoked", { mode: "timestamp" }),
-  confirmation: text("confirmation"), // JSON
 }, (table) => [
   index("idx_oauth_access_tokens_token").on(table.token),
   index("idx_oauth_access_tokens_client_id").on(table.clientId),
@@ -735,15 +718,6 @@ export const oauthRefreshTokens = sqliteTable("oauth_refresh_tokens", {
   revoked: integer("revoked", { mode: "timestamp" }),
   authTime: integer("auth_time", { mode: "timestamp" }),
   scopes: text("scopes").notNull(), // JSON string[]
-  // Added by @better-auth/oauth-provider 1.7 (resource indicators, refresh
-  // token rotation with replay detection, DPoP proof binding).
-  authorizationCodeId: text("authorization_code_id"),
-  resources: text("resources"), // JSON string[]
-  requestedUserInfoClaims: text("requested_user_info_claims"), // JSON string[]
-  rotatedAt: integer("rotated_at", { mode: "timestamp" }),
-  rotationReplayResponse: text("rotation_replay_response"),
-  rotationReplayExpiresAt: integer("rotation_replay_expires_at", { mode: "timestamp" }),
-  confirmation: text("confirmation"), // JSON
 }, (table) => [
   index("idx_oauth_refresh_tokens_token").on(table.token),
   index("idx_oauth_refresh_tokens_client_id").on(table.clientId),
@@ -757,58 +731,12 @@ export const oauthConsents = sqliteTable("oauth_consents", {
   userId: text("user_id").references(() => users.id),
   referenceId: text("reference_id"),
   scopes: text("scopes").notNull(), // JSON string[]
-  // Added by @better-auth/oauth-provider 1.7 (resource indicators).
-  resources: text("resources"), // JSON string[]
-  requestedUserInfoClaims: text("requested_user_info_claims"), // JSON string[]
   createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
   updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
 }, (table) => [
   index("idx_oauth_consents_client_id").on(table.clientId),
   index("idx_oauth_consents_user_id").on(table.userId),
 ]);
-
-// OAuth protected resources (RFC 8707 resource indicators, new in
-// @better-auth/oauth-provider 1.7). Empty unless resources are registered;
-// the 1.7 fix for unbound resource indicators only issues audience-restricted
-// tokens for resources listed here.
-export const oauthResources = sqliteTable("oauth_resources", {
-  id: text("id").primaryKey(),
-  identifier: text("identifier").notNull().unique(),
-  name: text("name").notNull(),
-  accessTokenTtl: integer("access_token_ttl"),
-  refreshTokenTtl: integer("refresh_token_ttl"),
-  signingAlgorithm: text("signing_algorithm"),
-  signingKeyId: text("signing_key_id"),
-  allowedScopes: text("allowed_scopes"), // JSON string[]
-  customClaims: text("custom_claims"), // JSON
-  dpopBoundAccessTokensRequired: integer("dpop_bound_access_tokens_required", { mode: "boolean" }),
-  disabled: integer("disabled", { mode: "boolean" }),
-  policyVersion: integer("policy_version"),
-  metadata: text("metadata"), // JSON
-  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
-}, (table) => [
-  index("idx_oauth_resources_identifier").on(table.identifier),
-]);
-
-// Which clients may request which resources (new in 1.7).
-export const oauthClientResources = sqliteTable("oauth_client_resources", {
-  id: text("id").primaryKey(),
-  clientId: text("client_id").notNull(),
-  resourceId: text("resource_id").notNull(),
-  metadata: text("metadata"), // JSON
-  createdAt: integer("created_at", { mode: "timestamp" }).default(sql`(unixepoch())`),
-}, (table) => [
-  index("idx_oauth_client_resources_client_id").on(table.clientId),
-  index("idx_oauth_client_resources_resource_id").on(table.resourceId),
-]);
-
-// Replay prevention for private_key_jwt / client_secret_jwt client assertions
-// (new in 1.7): the row id is the assertion's jti, kept until expiry.
-export const oauthClientAssertions = sqliteTable("oauth_client_assertions", {
-  id: text("id").primaryKey(),
-  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
-});
 
 // JWKS keypairs for signing OIDC id_tokens (better-auth `jwt` plugin).
 // Model name "jwks" pluralizes to the binding name "jwkss" under usePlural,
