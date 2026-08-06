@@ -32,7 +32,7 @@ FROM debian:trixie-slim AS git-lfs-builder
 RUN apt-get update && apt-get -y upgrade && apt-get install -y --no-install-recommends \
   wget ca-certificates git make \
   && rm -rf /var/lib/apt/lists/*
-ARG GO_VERSION=1.25.9
+ARG GO_VERSION=1.25.12
 ARG GIT_LFS_VERSION=3.7.1
 RUN ARCH="$(dpkg --print-architecture)" \
   && wget -qO /tmp/go.tar.gz "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz" \
@@ -44,6 +44,7 @@ ENV GOTOOLCHAIN=local
 RUN git clone --branch "v${GIT_LFS_VERSION}" --depth 1 https://github.com/git-lfs/git-lfs.git /tmp/git-lfs \
   && cd /tmp/git-lfs \
   && go get golang.org/x/crypto@latest \
+  && go get golang.org/x/net@latest \
   && go mod tidy \
   && make \
   && install -m 755 /tmp/git-lfs/bin/git-lfs /usr/local/bin/git-lfs

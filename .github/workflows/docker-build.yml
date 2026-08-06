@@ -251,6 +251,21 @@ jobs:
           write-comment: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      # GitHub rejects SARIF files where a single result carries more than
+      # 1000 relatedLocations, which Scout produces for widely-referenced OS
+      # packages — every upload had been silently failing on this since May
+      # ("rejecting SARIF, as there are more related locations per result than
+      # allowed"). Cap them so uploads flow and stale alerts can auto-close.
+      - name: Sanitize Scout SARIF (cap relatedLocations)
+        if: always()
+        continue-on-error: true
+        run: |
+          if [ -f scout-results.sarif ]; then
+            jq '(.runs[]?.results[]?) |= (if .relatedLocations then .relatedLocations |= .[:100] else . end)' \
+              scout-results.sarif > scout-results.sanitized.sarif
+            mv scout-results.sanitized.sarif scout-results.sarif
+          fi
+
       # Upload security scan results to GitHub Security tab
       - name: Upload Docker Scout scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v4
