@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { Octokit } from "@octokit/rest";
 
 /**
@@ -22,27 +23,65 @@ export interface ConditionalRequestStore {
 /**
  * Process-lifetime, bounded in-memory store. Gitea Mirror runs as a long-lived
  * server whose scheduler re-syncs on an interval, so keeping ETags in memory is
- * enough to turn each repeated poll into a cheap `304`. The bound keeps memory
- * predictable; evicting an entry only costs one full response on the next sync.
+ * enough to turn each repeated poll into a cheap `304`. Bounded both by entry
+ * count and by total body bytes: a single 100-PR page can run to a few hundred
+ * KB, so a count cap alone would let the store grow to gigabytes. Evicting an
+ * entry only costs one full response on the next sync.
  */
 export class InMemoryConditionalRequestStore implements ConditionalRequestStore {
-  private readonly entries = new Map<string, CachedResponse>();
+  private readonly entries = new Map<
+    string,
+    { value: CachedResponse; bytes: number }
+  >();
+  private totalBytes = 0;
 
-  constructor(private readonly maxEntries = 5000) {}
+  constructor(
+    private readonly maxEntries = 5000,
+    private readonly maxTotalBytes = 64 * 1024 * 1024,
+  ) {}
 
   get(key: string): CachedResponse | undefined {
-    return this.entries.get(key);
+    return this.entries.get(key)?.value;
   }
 
   set(key: string, value: CachedResponse): void {
+    const bytes = approximateResponseBytes(value);
+
     // Delete-then-set so Map iteration order approximates LRU for eviction.
-    this.entries.delete(key);
-    this.entries.set(key, value);
-    if (this.entries.size > this.maxEntries) {
+    const existing = this.entries.get(key);
+    if (existing) {
+      this.totalBytes -= existing.bytes;
+      this.entries.delete(key);
+    }
+
+    // A body larger than the whole budget would just evict everything else and
+    // then fail to fit anyway; re-fetching it each sync is the cheaper failure.
+    if (bytes > this.maxTotalBytes) return;
+
+    this.entries.set(key, { value, bytes });
+    this.totalBytes += bytes;
+
+    while (
+      this.entries.size > this.maxEntries ||
+      this.totalBytes > this.maxTotalBytes
+    ) {
       const oldest = this.entries.keys().next().value;
-      if (oldest !== undefined) this.entries.delete(oldest);
+      if (oldest === undefined) break;
+      const evicted = this.entries.get(oldest);
+      this.entries.delete(oldest);
+      if (evicted) this.totalBytes -= evicted.bytes;
     }
   }
+}
+
+/**
+ * Rough byte cost of a cached response: the serialized body plus headers we
+ * retain. Precision doesn't matter here, only that eviction tracks real memory
+ * pressure instead of entry count.
+ */
+function approximateResponseBytes(value: CachedResponse): number {
+  const body = value.data === undefined ? "" : JSON.stringify(value.data) ?? "";
+  return body.length + value.etag.length + (value.link?.length ?? 0);
 }
 
 /**
@@ -58,6 +97,16 @@ export function conditionalRequestCacheKey(
   url: string,
 ): string {
   return `${scope} ${method.toUpperCase()} ${url}`;
+}
+
+/**
+ * Cache scope for clients created with only a token (e.g. the metadata
+ * mirroring path builds clients via `createGitHubClient(token)` with no user
+ * id or username). Without this, all such clients would share one "default"
+ * scope across users. Hashed so the raw token never appears in cache keys.
+ */
+export function conditionalRequestTokenScope(token: string): string {
+  return `token:${createHash("sha256").update(token).digest("hex").slice(0, 16)}`;
 }
 
 /**

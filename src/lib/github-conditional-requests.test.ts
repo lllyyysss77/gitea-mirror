@@ -3,6 +3,7 @@ import { Octokit } from "@octokit/rest";
 import {
   applyConditionalRequests,
   conditionalRequestCacheKey,
+  conditionalRequestTokenScope,
   InMemoryConditionalRequestStore,
 } from "@/lib/github-conditional-requests";
 
@@ -173,5 +174,58 @@ describe("applyConditionalRequests", () => {
     expect(
       store.get(conditionalRequestCacheKey("user-1", "GET", "/x"))?.etag,
     ).toBe("a");
+  });
+
+  test("evicts oldest entries once the byte budget is exceeded", () => {
+    // Each entry is ~126 bytes (120-char body + quotes + etag), budget of 300
+    // fits two: inserting the third must evict the oldest.
+    const store = new InMemoryConditionalRequestStore(5000, 300);
+    const entry = (etag: string) => ({
+      etag,
+      data: "x".repeat(120),
+      status: 200,
+    });
+    store.set("k1", entry("e1"));
+    store.set("k2", entry("e2"));
+    store.set("k3", entry("e3"));
+    expect(store.get("k1")).toBeUndefined();
+    expect(store.get("k2")?.etag).toBe("e2");
+    expect(store.get("k3")?.etag).toBe("e3");
+  });
+
+  test("does not cache a single response larger than the byte budget", () => {
+    const store = new InMemoryConditionalRequestStore(5000, 100);
+    store.set("small", { etag: "e", data: "ok", status: 200 });
+    store.set("huge", { etag: "e", data: "x".repeat(500), status: 200 });
+    expect(store.get("huge")).toBeUndefined();
+    // The oversized body must not have evicted entries that do fit.
+    expect(store.get("small")?.etag).toBe("e");
+  });
+
+  test("frees the byte budget when an entry is overwritten", () => {
+    const store = new InMemoryConditionalRequestStore(5000, 300);
+    const entry = (etag: string) => ({
+      etag,
+      data: "x".repeat(120),
+      status: 200,
+    });
+    // Overwriting the same key must not double-count its bytes, so two more
+    // distinct keys still fit alongside it.
+    store.set("k1", entry("e1"));
+    store.set("k1", entry("e1b"));
+    store.set("k2", entry("e2"));
+    expect(store.get("k1")?.etag).toBe("e1b");
+    expect(store.get("k2")?.etag).toBe("e2");
+  });
+});
+
+describe("conditionalRequestTokenScope", () => {
+  test("is deterministic, distinct per token, and never leaks the token", () => {
+    const a = conditionalRequestTokenScope("ghp_token_a");
+    const b = conditionalRequestTokenScope("ghp_token_b");
+    expect(a).toBe(conditionalRequestTokenScope("ghp_token_a"));
+    expect(a).not.toBe(b);
+    expect(a).not.toContain("ghp_token_a");
+    expect(a.startsWith("token:")).toBe(true);
   });
 });
