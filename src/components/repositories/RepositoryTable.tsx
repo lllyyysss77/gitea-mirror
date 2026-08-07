@@ -26,7 +26,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { InlineDestinationEditor } from "./InlineDestinationEditor";
-import { MarqueeText } from "@/components/ui/marquee-text";
+import { MarqueeText, MarqueeTrigger } from "@/components/ui/marquee-text";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { withBase } from "@/lib/base-path";
@@ -756,7 +756,7 @@ export default function RepositoryTable({
                       </div>
 
                       {/* Repository */}
-                      <div className="h-full py-3 flex items-center gap-2 flex-[2.3] min-w-0">
+                      <MarqueeTrigger className="h-full py-3 flex items-center gap-2 flex-[2.3] min-w-0">
                         <div className="flex-1 min-w-0">
                           <div className="font-medium flex items-center gap-1 min-w-0">
                             <MarqueeText>{repo.name}</MarqueeText>
@@ -778,7 +778,7 @@ export default function RepositoryTable({
                             Fork
                           </span>
                         )}
-                      </div>
+                      </MarqueeTrigger>
                       {/* Owner */}
                       <div className="h-full p-3 flex items-center flex-[1]">
                         <p className="text-sm">{repo.owner}</p>
