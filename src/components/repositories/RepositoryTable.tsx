@@ -26,6 +26,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { InlineDestinationEditor } from "./InlineDestinationEditor";
+import { MarqueeText } from "@/components/ui/marquee-text";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { withBase } from "@/lib/base-path";
@@ -755,25 +756,25 @@ export default function RepositoryTable({
                       </div>
 
                       {/* Repository */}
-                      <div className="h-full py-3 flex items-center gap-2 flex-[2.3]">
-                        <div className="flex-1">
-                          <div className="font-medium flex items-center gap-1">
-                            {repo.name}
+                      <div className="h-full py-3 flex items-center gap-2 flex-[2.3] min-w-0">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium flex items-center gap-1 min-w-0">
+                            <MarqueeText>{repo.name}</MarqueeText>
                             {repo.isStarred && (
-                              <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                              <Star className="h-3 w-3 shrink-0 fill-yellow-500 text-yellow-500" />
                             )}
                           </div>
-                          <div className="text-xs text-muted-foreground">
+                          <MarqueeText className="text-xs text-muted-foreground">
                             {repo.fullName}
-                          </div>
+                          </MarqueeText>
                         </div>
                         {repo.isPrivate && (
-                          <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs">
+                          <span className="ml-2 shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs">
                             Private
                           </span>
                         )}
                         {repo.isForked && (
-                          <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-xs">
+                          <span className="ml-2 shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs">
                             Fork
                           </span>
                         )}
