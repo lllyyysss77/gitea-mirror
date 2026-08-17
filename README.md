@@ -521,11 +521,11 @@ GNU Affero General Public License v3.0 (AGPL-3.0) - see [LICENSE](LICENSE) file 
 
 ## Star History
 
-<a href="https://www.star-history.com/?repos=RayLabsHQ%2Fgitea-mirror&type=date&legend=bottom-right">
+<a href="https://www.star-history.com/?repos=RayLabsHQ%2Fgitea-mirror&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=RayLabsHQ/gitea-mirror&type=date&theme=dark&legend=bottom-right&sealed_token=jZiDMdIujeFow8EpuBuPQ3w_4tdZBU62HO035MltZFFP_9erzd-Ob_1q0AXF_htsbi6JjjB_hlBAfdD-gABI5MnmK8IUG113RpcNF7oE4esKR2jLHZHNHA" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=RayLabsHQ/gitea-mirror&type=date&legend=bottom-right&sealed_token=jZiDMdIujeFow8EpuBuPQ3w_4tdZBU62HO035MltZFFP_9erzd-Ob_1q0AXF_htsbi6JjjB_hlBAfdD-gABI5MnmK8IUG113RpcNF7oE4esKR2jLHZHNHA" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=RayLabsHQ/gitea-mirror&type=date&legend=bottom-right&sealed_token=jZiDMdIujeFow8EpuBuPQ3w_4tdZBU62HO035MltZFFP_9erzd-Ob_1q0AXF_htsbi6JjjB_hlBAfdD-gABI5MnmK8IUG113RpcNF7oE4esKR2jLHZHNHA" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=RayLabsHQ/gitea-mirror&type=date&theme=dark&legend=top-left&sealed_token=LFtWMyznw4suPqb4AAuXEsJNxZsLAnPrarSxYyLqeFLFlV8VzOi75LAVa50puyktOwRHd0XK2Ilgi0EFPxQxkFW1_2bEhDESK08QVQenFjLbKuLQI9E5h1c4R1_m3ZIKTISQijXxiOkAKwX7DMEUD96Uto-Ge8_09sVTeeOcfGp9aXOUK6nDV2oKhDfI" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=RayLabsHQ/gitea-mirror&type=date&legend=top-left&sealed_token=LFtWMyznw4suPqb4AAuXEsJNxZsLAnPrarSxYyLqeFLFlV8VzOi75LAVa50puyktOwRHd0XK2Ilgi0EFPxQxkFW1_2bEhDESK08QVQenFjLbKuLQI9E5h1c4R1_m3ZIKTISQijXxiOkAKwX7DMEUD96Uto-Ge8_09sVTeeOcfGp9aXOUK6nDV2oKhDfI" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=RayLabsHQ/gitea-mirror&type=date&legend=top-left&sealed_token=LFtWMyznw4suPqb4AAuXEsJNxZsLAnPrarSxYyLqeFLFlV8VzOi75LAVa50puyktOwRHd0XK2Ilgi0EFPxQxkFW1_2bEhDESK08QVQenFjLbKuLQI9E5h1c4R1_m3ZIKTISQijXxiOkAKwX7DMEUD96Uto-Ge8_09sVTeeOcfGp9aXOUK6nDV2oKhDfI" />
  </picture>
 </a>
 
