@@ -1028,7 +1028,7 @@ export default function Repository() {
 
   // Check if any filters are active
   const hasActiveFilters = !!(filter.owner || filter.organization || filter.status);
-  const activeFilterCount = [filter.owner, filter.organization, filter.status].filter(Boolean).length;
+  const activeFilterCount = [filter.owner, filter.organization, filter.status, filter.hasOverrides].filter(Boolean).length;
 
   // Clear all filters
   const clearFilters = () => {
@@ -1037,6 +1037,7 @@ export default function Repository() {
       status: "",
       organization: "",
       owner: "",
+      hasOverrides: "",
       sort: filter.sort || "imported-desc",
     });
   };
@@ -1179,6 +1180,39 @@ export default function Repository() {
                   </Select>
                 </div>
 
+                {/* Mirror Options Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <span className="text-muted-foreground">By</span> Mirror options
+                    {filter.hasOverrides && (
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        {filter.hasOverrides === "overridden" ? "Custom" : "Default"}
+                      </span>
+                    )}
+                  </label>
+                  <Select
+                    value={filter.hasOverrides || "all"}
+                    onValueChange={(value) =>
+                      setFilter((prev) => ({
+                        ...prev,
+                        hasOverrides:
+                          value === "all"
+                            ? ""
+                            : (value as "overridden" | "default"),
+                      }))
+                    }
+                  >
+                    <SelectTrigger className="w-full h-10">
+                      <SelectValue placeholder="All repositories" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All repositories</SelectItem>
+                      <SelectItem value="overridden">Custom options</SelectItem>
+                      <SelectItem value="default">Using defaults</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 {/* Sort Filter */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium flex items-center gap-2">
@@ -1304,6 +1338,26 @@ export default function Repository() {
                     </span>
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={filter.hasOverrides || "all"}
+              onValueChange={(value) =>
+                setFilter((prev) => ({
+                  ...prev,
+                  hasOverrides:
+                    value === "all" ? "" : (value as "overridden" | "default"),
+                }))
+              }
+            >
+              <SelectTrigger className="w-[170px] h-10">
+                <SelectValue placeholder="All mirror options" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All mirror options</SelectItem>
+                <SelectItem value="overridden">Custom options</SelectItem>
+                <SelectItem value="default">Using defaults</SelectItem>
               </SelectContent>
             </Select>
 

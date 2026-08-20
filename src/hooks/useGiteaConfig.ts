@@ -1,11 +1,21 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from './useAuth';
 import { apiRequest } from '@/lib/utils';
-import type { ConfigApiResponse, GiteaConfig } from '@/types/config';
+import type { AdvancedOptions, ConfigApiResponse, GiteaConfig, MirrorOptions } from '@/types/config';
 import { getCachedConfig } from './useConfigStatus';
 
 interface GiteaConfigHook {
   giteaConfig: GiteaConfig | null;
+  /**
+   * Advanced options from the same config payload. Exposed so callers can read
+   * starredCodeOnly without a second request.
+   */
+  advancedOptions: AdvancedOptions | null;
+  /**
+   * Mirror flags in the API's reshaped form. The mirror flags are NOT present
+   * on giteaConfig in this payload; use mirrorOptionsToFlags() to read them.
+   */
+  mirrorOptions: MirrorOptions | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -18,6 +28,8 @@ export function useGiteaConfig(): GiteaConfigHook {
   const { user } = useAuth();
   const [giteaConfigState, setGiteaConfigState] = useState<GiteaConfigHook>({
     giteaConfig: null,
+    advancedOptions: null,
+    mirrorOptions: null,
     isLoading: true,
     error: null,
   });
@@ -26,6 +38,8 @@ export function useGiteaConfig(): GiteaConfigHook {
     if (!user?.id) {
       setGiteaConfigState({
         giteaConfig: null,
+        advancedOptions: null,
+        mirrorOptions: null,
         isLoading: false,
         error: 'User not authenticated',
       });
@@ -37,6 +51,8 @@ export function useGiteaConfig(): GiteaConfigHook {
     if (cachedConfig) {
       setGiteaConfigState({
         giteaConfig: cachedConfig.giteaConfig || null,
+        advancedOptions: cachedConfig.advancedOptions || null,
+        mirrorOptions: cachedConfig.mirrorOptions || null,
         isLoading: false,
         error: null,
       });
@@ -53,12 +69,16 @@ export function useGiteaConfig(): GiteaConfigHook {
 
       setGiteaConfigState({
         giteaConfig: configResponse?.giteaConfig || null,
+        advancedOptions: configResponse?.advancedOptions || null,
+        mirrorOptions: configResponse?.mirrorOptions || null,
         isLoading: false,
         error: null,
       });
     } catch (error) {
       setGiteaConfigState({
         giteaConfig: null,
+        advancedOptions: null,
+        mirrorOptions: null,
         isLoading: false,
         error: error instanceof Error ? error.message : 'Failed to fetch Gitea configuration',
       });

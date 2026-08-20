@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   getCoreRowModel,
   getFilteredRowModel,
@@ -9,9 +9,9 @@ import {
   type SortingState,
 } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { FlipHorizontal, GitFork, RefreshCw, RotateCcw, Star, Lock, Ban, Check, ChevronDown, Trash2, X } from "lucide-react";
+import { FlipHorizontal, GitFork, RefreshCw, RotateCcw, Star, Lock, Ban, Check, ChevronDown, SlidersHorizontal, Trash2, X } from "lucide-react";
 import { SiGithub, SiGitea } from "react-icons/si";
-import type { Repository } from "@/lib/db/schema";
+import type { MirrorOverrides, Repository } from "@/lib/db/schema";
 import { Button } from "@/components/ui/button";
 import { formatLastSyncTime } from "@/lib/utils";
 import { buildGiteaWebUrl } from "@/lib/gitea-url";
@@ -27,6 +27,12 @@ import {
 } from "@/components/ui/tooltip";
 import { InlineDestinationEditor } from "./InlineDestinationEditor";
 import { MarqueeText, MarqueeTrigger } from "@/components/ui/marquee-text";
+import { MirrorOverridesDialog } from "@/components/config/MirrorOverridesDialog";
+import {
+  hasMirrorOverrides,
+  mirrorOptionsToFlags,
+  type MirrorOverrideKey,
+} from "@/lib/utils/mirror-overrides";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { withBase } from "@/lib/base-path";
@@ -101,7 +107,83 @@ export default function RepositoryTable({
 }: RepositoryTableProps) {
   const tableParentRef = useRef<HTMLDivElement>(null);
   const lastSelectedIndexRef = useRef<number | null>(null);
-  const { giteaConfig } = useGiteaConfig();
+  const { giteaConfig, advancedOptions, mirrorOptions } = useGiteaConfig();
+  const [overridesTarget, setOverridesTarget] = useState<Repository | null>(null);
+  // Organization-tier overrides for the repo being edited, so the dialog's
+  // "Inherit" hint reflects global -> org rather than global alone.
+  const [orgOverrides, setOrgOverrides] = useState<MirrorOverrides | null>(null);
+  const [orgOverridesLoading, setOrgOverridesLoading] = useState(false);
+
+  useEffect(() => {
+    const orgName = overridesTarget?.organization;
+
+    // Personal repos have no org tier to fetch.
+    if (!overridesTarget || !orgName) {
+      setOrgOverrides(null);
+      setOrgOverridesLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setOrgOverridesLoading(true);
+    setOrgOverrides(null);
+
+    (async () => {
+      try {
+        const response = await fetch(
+          `${withBase("/api/organizations/mirror-overrides")}?name=${encodeURIComponent(orgName)}`
+        );
+        if (!response.ok) throw new Error("Failed to load organization overrides");
+        const data = await response.json();
+        if (!cancelled) setOrgOverrides(data.mirrorOverrides ?? null);
+      } catch {
+        // Degrade to the global values rather than blocking the dialog.
+        if (!cancelled) setOrgOverrides(null);
+      } finally {
+        if (!cancelled) setOrgOverridesLoading(false);
+      }
+    })();
+
+    // Ignore a late response for a repo the user already navigated away from.
+    return () => {
+      cancelled = true;
+    };
+  }, [overridesTarget]);
+
+  // Global defaults with the organization tier layered on top.
+  // The globals come from mirrorOptions, not giteaConfig: /api/config reshapes
+  // the mirror flags on the way out and does not put them on giteaConfig.
+  const inheritedMirrorOptions = useMemo(() => {
+    const globals = mirrorOptionsToFlags(mirrorOptions);
+
+    if (!orgOverrides) return globals;
+
+    for (const key of Object.keys(globals) as MirrorOverrideKey[]) {
+      const orgValue = orgOverrides[key];
+      if (typeof orgValue === "boolean") globals[key] = orgValue;
+    }
+    return globals;
+  }, [mirrorOptions, orgOverrides]);
+
+  const handleUpdateMirrorOverrides = async (
+    repoId: string,
+    overrides: MirrorOverrides | null
+  ) => {
+    const response = await fetch(`${withBase("/api/repositories")}/${repoId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mirrorOverrides: overrides }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to update mirror options");
+    }
+
+    if (onRefresh) {
+      await onRefresh();
+    }
+  };
 
   const handleUpdateDestination = async (repoId: string, newDestination: string | null) => {
     // Call API to update repository destination
@@ -152,6 +234,7 @@ export default function RepositoryTable({
     filter.status,
     filter.owner,
     filter.organization,
+    filter.hasOverrides,
   ].some((val) => val?.toString().trim() !== "");
 
   const columnFilters = useMemo<ColumnFiltersState>(() => {
@@ -169,8 +252,12 @@ export default function RepositoryTable({
       next.push({ id: "organization", value: filter.organization });
     }
 
+    if (filter.hasOverrides) {
+      next.push({ id: "hasOverrides", value: filter.hasOverrides });
+    }
+
     return next;
-  }, [filter.status, filter.owner, filter.organization]);
+  }, [filter.status, filter.owner, filter.organization, filter.hasOverrides]);
 
   const sorting = useMemo(() => getTableSorting(filter.sort), [filter.sort]);
 
@@ -194,6 +281,13 @@ export default function RepositoryTable({
         id: "status",
         accessorFn: (row) => row.status,
         filterFn: "equalsString",
+      },
+      {
+        id: "hasOverrides",
+        accessorFn: (row) =>
+          hasMirrorOverrides(row.mirrorOverrides) ? "overridden" : "default",
+        filterFn: "equalsString",
+        enableGlobalFilter: false,
       },
       {
         id: "importedAt",
@@ -778,6 +872,21 @@ export default function RepositoryTable({
                             Fork
                           </span>
                         )}
+                        {hasMirrorOverrides(repo.mirrorOverrides) && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="ml-2 shrink-0 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-600 dark:text-amber-400">
+                                  Custom
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                This repository overrides the global mirror
+                                options
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
                       </MarqueeTrigger>
                       {/* Owner */}
                       <div className="h-full p-3 flex items-center flex-[1]">
@@ -848,6 +957,7 @@ export default function RepositoryTable({
                           onDelete={onDelete && repo.id ? () => onDelete(repo.id as string) : undefined}
                           onApproveSync={onApproveSync ? () => onApproveSync({ repoId: repo.id ?? "" }) : undefined}
                           onDismissSync={onDismissSync ? () => onDismissSync({ repoId: repo.id ?? "" }) : undefined}
+                          onEditMirrorOptions={repo.id ? () => setOverridesTarget(repo) : undefined}
                         />
                       </div>
                       {/* Links */}
@@ -947,6 +1057,30 @@ export default function RepositoryTable({
           </div>
         </>
       )}
+
+      <MirrorOverridesDialog
+        open={!!overridesTarget}
+        onOpenChange={(open) => {
+          if (!open) setOverridesTarget(null);
+        }}
+        targetKind="repository"
+        targetName={overridesTarget?.fullName ?? ""}
+        value={overridesTarget?.mirrorOverrides ?? null}
+        inheritedFrom={inheritedMirrorOptions}
+        inheritedLoading={orgOverridesLoading}
+        isStarred={!!overridesTarget?.isStarred}
+        starredCodeOnly={!!advancedOptions?.starredCodeOnly}
+        inheritedLabel={
+          overridesTarget?.organization
+            ? "organization or global settings"
+            : "global settings"
+        }
+        onSave={async (overrides) => {
+          if (overridesTarget?.id) {
+            await handleUpdateMirrorOverrides(overridesTarget.id, overrides);
+          }
+        }}
+      />
     </div>
   );
 }
@@ -961,6 +1095,7 @@ function RepoActionButton({
   onDelete,
   onApproveSync,
   onDismissSync,
+  onEditMirrorOptions,
 }: {
   repo: { id: string; status: string };
   isLoading: boolean;
@@ -971,6 +1106,7 @@ function RepoActionButton({
   onDelete?: () => void;
   onApproveSync?: () => void;
   onDismissSync?: () => void;
+  onEditMirrorOptions?: () => void;
 }) {
   // For pending-approval repos, show approve/dismiss actions
   if (repo.status === "pending-approval") {
@@ -1087,6 +1223,12 @@ function RepoActionButton({
         </DropdownMenuTrigger>
       </div>
       <DropdownMenuContent align="end">
+        {onEditMirrorOptions && (
+          <DropdownMenuItem onClick={onEditMirrorOptions}>
+            <SlidersHorizontal className="h-4 w-4 mr-2" />
+            Mirror Options
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onClick={() => onSkip(true)}>
           <Ban className="h-4 w-4 mr-2" />
           Ignore Repository
