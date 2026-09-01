@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { GitFork } from "lucide-react";
 import { SiGithub, SiGitea } from "react-icons/si";
 import type { Repository } from "@/lib/db/schema";
-import { getStatusColor } from "@/lib/utils";
 import { buildGiteaWebUrl } from "@/lib/gitea-url";
 import { useGiteaConfig } from "@/hooks/useGiteaConfig";
 import { withBase } from "@/lib/base-path";
@@ -68,13 +67,6 @@ export function RepositoryList({ repositories }: RepositoryListProps) {
                 key={index}
                 className="flex items-center gap-x-3 py-3.5"
               >
-                <div className="relative flex-shrink-0">
-                  <div
-                    className={`h-2 w-2 rounded-full ${getStatusColor(
-                      repo.status
-                    )}`}
-                  />
-                </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="text-sm font-medium truncate">{repo.name}</h4>

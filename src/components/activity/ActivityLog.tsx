@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef, useMemo } from 'react';
+import Fuse from 'fuse.js';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, Download, RefreshCw, Search, Trash2, Filter, StopCircle } from 'lucide-react';
 import {
@@ -16,7 +17,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../ui/dialog';
-import { apiRequest, formatDate, showErrorToast } from '@/lib/utils';
+import { apiRequest, cn, formatDate, showErrorToast } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import type { MirrorJob } from '@/lib/db/schema';
 import type { ActivityApiResponse } from '@/types/activities';
@@ -28,7 +29,7 @@ import {
   SelectValue,
 } from '../ui/select';
 import { repoStatusEnum, type RepoStatus } from '@/types/Repository';
-import ActivityList from './ActivityList';
+import ActivityList, { STATUS_PRESENTATION } from './ActivityList';
 import { ActivityNameCombobox } from './ActivityNameCombobox';
 import { useSSE } from '@/hooks/useSEE';
 import { useFilterParams } from '@/hooks/useFilterParams';
@@ -250,6 +251,20 @@ export function ActivityLog() {
     });
   };
 
+  // The search used to run again inside ActivityList over the list this had
+  // already filtered. Doing all of it here means one pass, and the count below
+  // matches exactly what the list renders.
+  const visibleActivities = useMemo(() => {
+    const rows = applyLightFilter(activities);
+    if (!filter.searchTerm) return rows;
+
+    const fuse = new Fuse(rows, {
+      keys: ['message', 'details', 'organizationName', 'repositoryName'],
+      threshold: 0.3,
+    });
+    return fuse.search(filter.searchTerm).map((r) => r.item);
+  }, [activities, filter]);
+
   const exportAsCSV = () => {
     const rows = applyLightFilter(activities);
     if (!rows.length) return toast.error('No activities to export.');
@@ -391,6 +406,35 @@ export function ActivityLog() {
   };
 
   // Check if any filters are active
+  // Counts the current state of each repository or organization, not every
+  // event: a repo that failed and then synced is only "synced". Activities
+  // arrive newest first, so the first entry seen for a subject is its state.
+  // Taken from the unfiltered set so the chips stay put when one is clicked.
+  const statusCounts = useMemo(() => {
+    const latestBySubject = new Map<string, string>();
+    activities.forEach((a) => {
+      const subject =
+        a.repositoryId ||
+        a.organizationId ||
+        a.repositoryName ||
+        a.organizationName;
+      // Events with no subject have no state of their own to report.
+      if (!subject || latestBySubject.has(subject)) return;
+      latestBySubject.set(subject, a.status);
+    });
+
+    const counts = new Map<string, number>();
+    latestBySubject.forEach((status) => {
+      counts.set(status, (counts.get(status) ?? 0) + 1);
+    });
+    return counts;
+  }, [activities]);
+
+  // Most actionable first, and only statuses that actually occurred.
+  const statChips = ['failed', 'syncing', 'mirroring', 'imported', 'synced', 'mirrored']
+    .filter((status) => (statusCounts.get(status) ?? 0) > 0)
+    .slice(0, 4);
+
   const hasActiveFilters = !!(filter.status || filter.type || filter.name);
   const activeFilterCount = [filter.status, filter.type, filter.name].filter(Boolean).length;
 
@@ -407,9 +451,9 @@ export function ActivityLog() {
   /* ------------------------------ UI ------------------------------ */
 
   return (
-    <div className='flex flex-col gap-y-4 sm:gap-y-8'>
+    <div className='flex h-full min-h-0 flex-col gap-y-4 sm:gap-y-8'>
       {/* Mobile: Search bar with filter and action buttons */}
-      <div className="flex flex-col gap-2 sm:hidden">
+      <div className="flex flex-col gap-2 lg:hidden">
         <div className="flex items-center gap-2 w-full">
           <div className="relative flex-grow">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -612,7 +656,7 @@ export function ActivityLog() {
       </div>
 
       {/* Desktop: Original layout */}
-      <div className="hidden sm:flex sm:flex-row sm:items-center sm:gap-4 sm:w-full">
+      <div className="hidden lg:flex lg:flex-row lg:items-center lg:gap-4 lg:w-full">
         {/* search input */}
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -629,74 +673,6 @@ export function ActivityLog() {
             }
           />
         </div>
-
-        {/* Filter controls */}
-        <div className="flex items-center gap-2">
-          {/* status select */}
-          <Select
-            value={filter.status || 'all'}
-            onValueChange={(v) =>
-              setFilter((p) => ({
-                ...p,
-                status: v === 'all' ? '' : (v as RepoStatus),
-              }))
-            }
-          >
-            <SelectTrigger className="w-[140px] h-10">
-              <SelectValue placeholder="All statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              {['all', ...repoStatusEnum.options].map((s) => (
-                <SelectItem key={s} value={s}>
-                  <span className="flex items-center gap-2">
-                    {s !== 'all' && (
-                      <span className={`h-2 w-2 rounded-full ${
-                        s === 'synced' ? 'bg-green-500' :
-                        s === 'failed' ? 'bg-red-500' :
-                        s === 'syncing' ? 'bg-blue-500' :
-                        'bg-yellow-500'
-                      }`} />
-                    )}
-                    {s === 'all' ? 'All statuses' : s[0].toUpperCase() + s.slice(1)}
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* type select */}
-          <Select
-            value={filter.type || 'all'}
-            onValueChange={(v) =>
-              setFilter((p) => ({ ...p, type: v === 'all' ? '' : v }))
-            }
-          >
-            <SelectTrigger className="w-[140px] h-10">
-              <SelectValue placeholder="All types" />
-            </SelectTrigger>
-            <SelectContent>
-              {['all', 'repository', 'organization'].map((t) => (
-                <SelectItem key={t} value={t}>
-                  <span className="flex items-center gap-2">
-                    {t !== 'all' && (
-                      <span className={`h-2 w-2 rounded-full ${
-                        t === 'repository' ? 'bg-blue-500' : 'bg-purple-500'
-                      }`} />
-                    )}
-                    {t === 'all' ? 'All types' : t[0].toUpperCase() + t.slice(1)}
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* repo/org name combobox */}
-        <ActivityNameCombobox
-          activities={activities}
-          value={filter.name || ''}
-          onChange={(name) => setFilter((p) => ({ ...p, name }))}
-        />
 
         {/* Action buttons */}
         <div className="flex items-center gap-2 ml-auto">
@@ -755,11 +731,125 @@ export function ActivityLog() {
         </div>
       </div>
 
+      {/* Desktop: filters on their own row so the search box keeps its width */}
+      <div className="hidden lg:flex lg:items-center lg:justify-between lg:gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm text-muted-foreground">
+            {visibleActivities.length === activities.length
+              ? `${activities.length} ${
+                  activities.length === 1 ? 'activity' : 'activities'
+                }`
+              : `Showing ${visibleActivities.length} of ${activities.length} activities`}
+          </span>
+          {statChips.map((status) => {
+            const { Icon, short, tone, wash, spin } = STATUS_PRESENTATION[status];
+            const isActive = filter.status === status;
+            return (
+              <button
+                key={status}
+                type="button"
+                aria-pressed={isActive}
+                title={`${statusCounts.get(status)} currently ${short}. Click to show every ${short} event.`}
+                onClick={() =>
+                  setFilter((p) => ({
+                    ...p,
+                    status: p.status === status ? '' : (status as RepoStatus),
+                  }))
+                }
+                className={cn(
+                  'flex cursor-pointer items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-colors',
+                  wash,
+                  tone,
+                  isActive
+                    ? 'ring-1 ring-current'
+                    : 'opacity-80 hover:opacity-100',
+                )}
+              >
+                <Icon className={cn('h-3 w-3', spin && 'animate-spin')} />
+                {statusCounts.get(status)} {short}
+              </button>
+            );
+          })}
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              Clear filters
+            </Button>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {/* status select */}
+          <Select
+            value={filter.status || 'all'}
+            onValueChange={(v) =>
+              setFilter((p) => ({
+                ...p,
+                status: v === 'all' ? '' : (v as RepoStatus),
+              }))
+            }
+          >
+            <SelectTrigger className="w-[140px] h-10">
+              <SelectValue placeholder="All statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              {['all', ...repoStatusEnum.options].map((s) => (
+                <SelectItem key={s} value={s}>
+                  <span className="flex items-center gap-2">
+                    {s !== 'all' && (
+                      <span className={`h-2 w-2 rounded-full ${
+                        s === 'synced' ? 'bg-green-500' :
+                        s === 'failed' ? 'bg-red-500' :
+                        s === 'syncing' ? 'bg-blue-500' :
+                        'bg-yellow-500'
+                      }`} />
+                    )}
+                    {s === 'all' ? 'All statuses' : s[0].toUpperCase() + s.slice(1)}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* type select */}
+          <Select
+            value={filter.type || 'all'}
+            onValueChange={(v) =>
+              setFilter((p) => ({ ...p, type: v === 'all' ? '' : v }))
+            }
+          >
+            <SelectTrigger className="w-[140px] h-10">
+              <SelectValue placeholder="All types" />
+            </SelectTrigger>
+            <SelectContent>
+              {['all', 'repository', 'organization'].map((t) => (
+                <SelectItem key={t} value={t}>
+                  <span className="flex items-center gap-2">
+                    {t !== 'all' && (
+                      <span className={`h-2 w-2 rounded-full ${
+                        t === 'repository' ? 'bg-blue-500' : 'bg-purple-500'
+                      }`} />
+                    )}
+                    {t === 'all' ? 'All types' : t[0].toUpperCase() + t.slice(1)}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+        {/* repo/org name combobox */}
+        <ActivityNameCombobox
+          activities={activities}
+          value={filter.name || ''}
+          onChange={(name) => setFilter((p) => ({ ...p, name }))}
+        />
+        </div>
+      </div>
+
       {/* activity list */}
       <ActivityList
-        activities={applyLightFilter(activities)}
+        className="min-h-0 flex-1"
+        activities={visibleActivities}
         isLoading={isInitialLoading || !connected}
-        isLiveActive={isLiveEnabled && isFullyConfigured}
         filter={filter}
         setFilter={setFilter}
       />
@@ -823,7 +913,7 @@ export function ActivityLog() {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button 
-            className="fixed bottom-4 right-4 rounded-full h-12 w-12 shadow-lg p-0 z-10 sm:hidden"
+            className="fixed bottom-4 right-4 rounded-full h-12 w-12 shadow-lg p-0 z-10 lg:hidden"
             variant="default"
           >
             <Download className="h-6 w-6" />
