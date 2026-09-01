@@ -66,7 +66,7 @@ const backupStrategies = [
   {
     value: "on-force-push" as const,
     label: "Smart",
-    description: "Snapshot only on history rewrites",
+    description: "Snapshot only on rewrites",
     icon: Sparkles,
     info: "Backs up only when a force-push is detected.",
   },

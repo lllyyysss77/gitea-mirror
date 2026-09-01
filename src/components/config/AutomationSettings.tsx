@@ -322,7 +322,7 @@ export function AutomationSettings({
             <>
               <StatusFooterItem
                 icon={History}
-                label="Last cleanup"
+                label="Last run"
                 value={
                   cleanupConfig.lastRun
                     ? formatDate(cleanupConfig.lastRun)
@@ -332,7 +332,7 @@ export function AutomationSettings({
               {cleanupConfig.enabled && cleanupConfig.nextRun ? (
                 <StatusFooterItem
                   icon={Calendar}
-                  label="Next cleanup"
+                  label="Next run"
                   value={formatDate(cleanupConfig.nextRun)}
                   valueClassName="text-indigo-500"
                 />
