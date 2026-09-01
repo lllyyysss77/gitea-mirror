@@ -12,8 +12,9 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { FlipHorizontal, GitFork, MoreVertical, RefreshCw, RotateCcw, Star, Lock, Ban, Check, ChevronDown, SlidersHorizontal, Trash2, X } from "lucide-react";
 import { SiGithub, SiGitea } from "react-icons/si";
 import type { MirrorOverrides, Repository } from "@/lib/db/schema";
+import { repoStatusEnum, type RepoStatus } from "@/types/Repository";
 import { Button } from "@/components/ui/button";
-import { formatLastSyncTime } from "@/lib/utils";
+import { cn, formatLastSyncTime, getStatusColor } from "@/lib/utils";
 import { buildGiteaWebUrl } from "@/lib/gitea-url";
 import type { FilterParams } from "@/types/filter";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,6 +36,13 @@ import {
   type MirrorOverrideKey,
 } from "@/lib/utils/mirror-overrides";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { withBase } from "@/lib/base-path";
 import {
@@ -44,6 +52,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+export const REPOSITORY_SORT_OPTIONS = [
+  { value: "imported-desc", label: "Recently Imported" },
+  { value: "imported-asc", label: "Oldest Imported" },
+  { value: "updated-desc", label: "Recently Updated" },
+  { value: "updated-asc", label: "Oldest Updated" },
+  { value: "name-asc", label: "Name (A-Z)" },
+  { value: "name-desc", label: "Name (Z-A)" },
+] as const;
 
 interface RepositoryTableProps {
   repositories: Repository[];
@@ -238,7 +255,9 @@ export default function RepositoryTable({
     filter.owner,
     filter.organization,
     filter.hasOverrides,
-  ].some((val) => val?.toString().trim() !== "");
+    // val?.toString() is undefined for an unset filter, and undefined !== ""
+    // is true, so this used to report a filter on a completely clean view.
+  ].some((val) => (val ?? "").toString().trim() !== "");
 
   const columnFilters = useMemo<ColumnFiltersState>(() => {
     const next: ColumnFiltersState = [];
@@ -662,114 +681,198 @@ export default function RepositoryTable({
     );
   };
 
-  return isLoading ? (
-    <div className="space-y-3 lg:space-y-0">
-      {/* Mobile skeleton */}
-      <div className="lg:hidden">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Card key={i} className="mb-3">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <Skeleton className="h-4 w-4 mt-1" />
-                <div className="flex-1 space-y-3">
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                  <Skeleton className="h-4 w-1/3" />
-                  <div className="flex gap-2">
-                    <Skeleton className="h-8 w-20" />
-                    <Skeleton className="h-8 w-8" />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+  /* Sits above the table in both the loading and loaded states so the
+     controls do not appear and disappear as data arrives. */
+  const filterRow = (
+    <div
+      className={cn(
+        "flex flex-wrap items-center justify-between gap-3 sm:mb-4",
+        hasAnyFilter && "mb-4"
+      )}
+    >
+      <div className="flex items-center gap-2">
+        {hasAnyFilter && (
+          <>
+            <span className="text-sm text-muted-foreground">
+              Showing {visibleRepositories.length} of {repositories.length} repositories
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                setFilter({
+                  searchTerm: "",
+                  status: "",
+                  organization: "",
+                  owner: "",
+                  sort: filter.sort || "imported-desc",
+                })
+              }
+            >
+              Clear filters
+            </Button>
+          </>
+        )}
       </div>
 
-      {/* Desktop skeleton */}
-      <div className="hidden lg:block border rounded-md">
-        <div className="h-[45px] flex items-center justify-between border-b bg-muted/50">
-          <div className="h-full p-3 flex items-center justify-center flex-[0.3]">
-            <Skeleton className="h-4 w-4" />
-          </div>
-          <div className="h-full py-3 text-sm font-medium flex-[2.3]">
-            Repository
-          </div>
-          <div className="h-full p-3 text-sm font-medium flex-[1]">Owner</div>
-          <div className="h-full p-3 text-sm font-medium flex-[1]">
-            Organization
-          </div>
-          <div className="h-full p-3 text-sm font-medium flex-[1]">
-            Last Mirrored
-          </div>
-          <div className="h-full p-3 text-sm font-medium flex-[1]">Status</div>
-          <div className="h-full p-3 text-sm font-medium flex-[1]">
-            Actions
-          </div>
-          <div className="h-full p-3 text-sm font-medium flex-[0.8] text-center">
-            Links
-          </div>
+      <div className="hidden flex-wrap items-center gap-2 sm:flex">
+        <Select
+          value={filter.status || "all"}
+          onValueChange={(value) =>
+            setFilter({
+              ...filter,
+              status: value === "all" ? "" : (value as RepoStatus),
+            })
+          }
+        >
+          <SelectTrigger className="h-10 w-[140px]">
+            <SelectValue placeholder="All statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            {["all", ...repoStatusEnum.options].map((status) => (
+              <SelectItem key={status} value={status}>
+                <span className="flex items-center gap-2">
+                  {status !== "all" && (
+                    <span className={`h-2 w-2 rounded-full ${getStatusColor(status)}`} />
+                  )}
+                  {status === "all"
+                    ? "All statuses"
+                    : status.charAt(0).toUpperCase() + status.slice(1)}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={filter.hasOverrides || "all"}
+          onValueChange={(value) =>
+            setFilter({
+              ...filter,
+              hasOverrides:
+                value === "all" ? "" : (value as "overridden" | "default"),
+            })
+          }
+        >
+          <SelectTrigger className="h-10 w-[170px]">
+            <SelectValue placeholder="All mirror options" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All mirror options</SelectItem>
+            <SelectItem value="overridden">Custom options</SelectItem>
+            <SelectItem value="default">Using defaults</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={filter.sort || "imported-desc"}
+          onValueChange={(value) => setFilter({ ...filter, sort: value })}
+        >
+          <SelectTrigger className="h-10 w-[190px]">
+            <SelectValue placeholder="Sort repositories" />
+          </SelectTrigger>
+          <SelectContent>
+            {REPOSITORY_SORT_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
+
+  return isLoading ? (
+    <div>
+      {filterRow}
+      <div className="space-y-3 lg:space-y-0">
+        {/* Mobile skeleton */}
+        <div className="lg:hidden">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Card key={i} className="mb-3">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <Skeleton className="h-4 w-4 mt-1" />
+                  <div className="flex-1 space-y-3">
+                    <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                    <Skeleton className="h-4 w-1/3" />
+                    <div className="flex gap-2">
+                      <Skeleton className="h-8 w-20" />
+                      <Skeleton className="h-8 w-8" />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div
-            key={i}
-            className="h-[65px] flex items-center justify-between border-b bg-transparent"
-          >
+        {/* Desktop skeleton */}
+        <div className="hidden lg:block border rounded-md">
+          <div className="h-[45px] flex items-center justify-between border-b bg-muted/50">
             <div className="h-full p-3 flex items-center justify-center flex-[0.3]">
               <Skeleton className="h-4 w-4" />
             </div>
-            <div className="h-full p-3 flex-[2.3]">
-              <Skeleton className="h-5 w-48" />
-              <Skeleton className="h-3 w-24 mt-1" />
+            <div className="h-full py-3 text-sm font-medium flex-[2.3]">
+              Repository
             </div>
-            <div className="h-full p-3 flex-[1]">
-              <Skeleton className="h-4 w-20" />
+            <div className="h-full p-3 text-sm font-medium flex-[1]">Owner</div>
+            <div className="h-full p-3 text-sm font-medium flex-[1]">
+              Organization
             </div>
-            <div className="h-full p-3 flex-[1]">
-              <Skeleton className="h-4 w-20" />
+            <div className="h-full p-3 text-sm font-medium flex-[1]">
+              Last Mirrored
             </div>
-            <div className="h-full p-3 flex-[1]">
-              <Skeleton className="h-4 w-24" />
+            <div className="h-full p-3 text-sm font-medium flex-[1]">Status</div>
+            <div className="h-full p-3 text-sm font-medium flex-[1]">
+              Actions
             </div>
-            <div className="h-full p-3 flex-[1]">
-              <Skeleton className="h-4 w-16" />
-            </div>
-            <div className="h-full p-3 flex-[1]">
-              <Skeleton className="h-8 w-20" />
-            </div>
-            <div className="h-full p-3 flex-[0.8] flex items-center justify-center gap-1">
-              <Skeleton className="h-8 w-8" />
-              <Skeleton className="h-8 w-8" />
+            <div className="h-full p-3 text-sm font-medium flex-[0.8] text-center">
+              Links
             </div>
           </div>
-        ))}
+
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-[65px] flex items-center justify-between border-b bg-transparent"
+            >
+              <div className="h-full p-3 flex items-center justify-center flex-[0.3]">
+                <Skeleton className="h-4 w-4" />
+              </div>
+              <div className="h-full p-3 flex-[2.3]">
+                <Skeleton className="h-5 w-48" />
+                <Skeleton className="h-3 w-24 mt-1" />
+              </div>
+              <div className="h-full p-3 flex-[1]">
+                <Skeleton className="h-4 w-20" />
+              </div>
+              <div className="h-full p-3 flex-[1]">
+                <Skeleton className="h-4 w-20" />
+              </div>
+              <div className="h-full p-3 flex-[1]">
+                <Skeleton className="h-4 w-24" />
+              </div>
+              <div className="h-full p-3 flex-[1]">
+                <Skeleton className="h-4 w-16" />
+              </div>
+              <div className="h-full p-3 flex-[1]">
+                <Skeleton className="h-8 w-20" />
+              </div>
+              <div className="h-full p-3 flex-[0.8] flex items-center justify-center gap-1">
+                <Skeleton className="h-8 w-8" />
+                <Skeleton className="h-8 w-8" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   ) : (
     <div>
-      {hasAnyFilter && (
-        <div className="mb-4 flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">
-            Showing {visibleRepositories.length} of {repositories.length} repositories
-          </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() =>
-              setFilter({
-                searchTerm: "",
-                status: "",
-                organization: "",
-                owner: "",
-                sort: filter.sort || "imported-desc",
-              })
-            }
-          >
-            Clear filters
-          </Button>
-        </div>
-      )}
+      {filterRow}
 
       {visibleRepositories.length === 0 ? (
         <div className="text-center py-8">

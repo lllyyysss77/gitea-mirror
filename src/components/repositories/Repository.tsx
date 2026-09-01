@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import RepositoryTable from "./RepositoryTable";
+import RepositoryTable, { REPOSITORY_SORT_OPTIONS } from "./RepositoryTable";
 import type { MirrorJob, Repository } from "@/lib/db/schema";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -51,15 +51,6 @@ import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { useConfigStatus } from "@/hooks/useConfigStatus";
 import { useNavigation } from "@/components/layout/MainLayout";
 import { withBase } from "@/lib/base-path";
-
-const REPOSITORY_SORT_OPTIONS = [
-  { value: "imported-desc", label: "Recently Imported" },
-  { value: "imported-asc", label: "Oldest Imported" },
-  { value: "updated-desc", label: "Recently Updated" },
-  { value: "updated-asc", label: "Oldest Updated" },
-  { value: "name-asc", label: "Name (A-Z)" },
-  { value: "name-desc", label: "Name (Z-A)" },
-] as const;
 
 export default function Repository() {
   const [repositories, setRepositories] = useState<Repository[]>([]);
@@ -1311,87 +1302,15 @@ export default function Repository() {
             }
           />
 
-          {/* Filter controls in a responsive row */}
-          <div className="flex flex-row items-center gap-2">
-            <Select
-              value={filter.status || "all"}
-              onValueChange={(value) =>
-                setFilter((prev) => ({
-                  ...prev,
-                  status: value === "all" ? "" : (value as RepoStatus),
-                }))
-              }
-            >
-              <SelectTrigger className="w-[140px] h-10">
-                <SelectValue placeholder="All statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                {["all", ...repoStatusEnum.options].map((status) => (
-                  <SelectItem key={status} value={status}>
-                    <span className="flex items-center gap-2">
-                      {status !== "all" && (
-                        <span className={`h-2 w-2 rounded-full ${getStatusColor(status)}`} />
-                      )}
-                      {status === "all"
-                        ? "All statuses"
-                        : status.charAt(0).toUpperCase() + status.slice(1)}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={filter.hasOverrides || "all"}
-              onValueChange={(value) =>
-                setFilter((prev) => ({
-                  ...prev,
-                  hasOverrides:
-                    value === "all" ? "" : (value as "overridden" | "default"),
-                }))
-              }
-            >
-              <SelectTrigger className="w-[170px] h-10">
-                <SelectValue placeholder="All mirror options" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All mirror options</SelectItem>
-                <SelectItem value="overridden">Custom options</SelectItem>
-                <SelectItem value="default">Using defaults</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={filter.sort || "imported-desc"}
-              onValueChange={(value) =>
-                setFilter((prev) => ({
-                  ...prev,
-                  sort: value,
-                }))
-              }
-            >
-              <SelectTrigger className="w-[190px] h-10">
-                <SelectValue placeholder="Sort repositories" />
-              </SelectTrigger>
-              <SelectContent>
-                {REPOSITORY_SORT_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleRefresh}
-              title="Refresh repositories"
-              className="h-10 w-10 shrink-0"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleRefresh}
+            title="Refresh repositories"
+            className="h-10 w-10 shrink-0"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
 
           {/* Mirror All action */}
           <div className="flex items-center gap-2 border-l pl-4">
