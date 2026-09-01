@@ -39,7 +39,7 @@ export function RecentActivity({ activities }: RecentActivityProps) {
   useTimeFormat();
 
   return (
-    <Card className="w-full">
+    <Card className="h-full w-full">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-3 text-base font-semibold">
           <Activity className="h-5 w-5 text-muted-foreground" />
@@ -71,7 +71,7 @@ export function RecentActivity({ activities }: RecentActivityProps) {
             {activities.map((activity, index) => {
               const { Icon, color } = activityIcon(activity.status);
               return (
-                <div key={index} className="flex items-center gap-x-3 py-3">
+                <div key={index} className="flex items-center gap-x-3 py-3.5">
                   <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-muted">
                     <Icon className={`h-4 w-4 ${color}`} />
                   </div>

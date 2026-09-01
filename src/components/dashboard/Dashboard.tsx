@@ -269,7 +269,7 @@ export function Dashboard() {
         <StatusCardSkeleton />
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 items-start">
+      <div className="flex flex-col lg:flex-row gap-6">
         {/* Repository List Skeleton */}
         <div className="w-full lg:w-1/2 border rounded-lg p-4">
           <div className="flex justify-between items-center mb-4">
@@ -327,7 +327,7 @@ export function Dashboard() {
         />
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 items-start">
+      <div className="flex flex-col lg:flex-row gap-6">
         <div className="w-full lg:w-1/2">
           <RepositoryList repositories={repositories.slice(0, 8)} />
         </div>

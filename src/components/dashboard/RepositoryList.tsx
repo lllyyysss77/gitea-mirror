@@ -39,7 +39,7 @@ export function RepositoryList({ repositories }: RepositoryListProps) {
   };
 
   return (
-    <Card className="w-full">
+    <Card className="h-full w-full">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-3 text-base font-semibold">
           <GitFork className="h-5 w-5 text-muted-foreground" />
