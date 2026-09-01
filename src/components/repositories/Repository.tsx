@@ -1034,11 +1034,11 @@ export default function Repository() {
   };
 
   return (
-    <div className="flex flex-col gap-y-4 sm:gap-y-8">
+    <div className="flex h-full min-h-0 flex-col gap-y-4 sm:gap-y-8">
       {/* Search and filters */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full">
         {/* Mobile: Search bar with filter button */}
-        <div className="flex items-center gap-2 w-full sm:hidden">
+        <div className="flex items-center gap-2 w-full lg:hidden">
           <div className="relative flex-grow">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
@@ -1270,7 +1270,7 @@ export default function Repository() {
         </div>
 
         {/* Desktop: Original layout */}
-        <div className="hidden sm:flex sm:flex-row sm:items-center sm:gap-4 sm:w-full">
+        <div className="hidden lg:flex lg:flex-row lg:items-center lg:gap-4 lg:w-full">
           <div className="relative flex-grow min-w-[180px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
@@ -1329,7 +1329,7 @@ export default function Repository() {
 
       {/* Desktop: Bulk actions row - shown when repos are selected */}
       {selectedRepoIds.size > 0 && (
-        <div className="hidden sm:flex items-center gap-2 flex-wrap">
+        <div className="hidden lg:flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-2 px-3 py-1 bg-muted/50 rounded-md">
             <span className="text-sm font-medium">
               {selectedRepoIds.size} selected
@@ -1430,7 +1430,7 @@ export default function Repository() {
 
       {/* Action buttons for mobile - only show when items are selected */}
       {selectedRepoIds.size > 0 && (
-        <div className="flex items-center gap-2 flex-wrap sm:hidden">
+        <div className="flex items-center gap-2 flex-wrap lg:hidden">
           <div className="flex items-center gap-2 px-3 py-1 bg-muted/50 rounded-md">
               <span className="text-sm font-medium">
                 {selectedRepoIds.size} selected
@@ -1552,7 +1552,6 @@ export default function Repository() {
         <RepositoryTable
           repositories={repositories}
           isLoading={isInitialLoading || !connected}
-          isLiveActive={isLiveEnabled && isFullyConfigured}
           filter={filter}
           setFilter={setFilter}
           onMirror={handleMirrorRepo}

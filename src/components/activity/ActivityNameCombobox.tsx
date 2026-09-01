@@ -1,6 +1,5 @@
 import * as React from "react";
-import { ChevronsUpDown, Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ChevronDown, Check } from "lucide-react";
 import {
   Command,
   CommandEmpty,
@@ -14,15 +13,25 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { selectTriggerClassName } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 type ActivityNameComboboxProps = {
   activities: any[];
   value: string;
   onChange: (value: string) => void;
+  className?: string;
 };
 
-export function ActivityNameCombobox({ activities, value, onChange }: ActivityNameComboboxProps) {
+/** Stays a combobox rather than a Select because the name list grows with the
+ *  activity log and needs the search box. The trigger borrows the Select
+ *  styling so it reads as the same control as the status and type dropdowns. */
+export function ActivityNameCombobox({
+  activities,
+  value,
+  onChange,
+  className,
+}: ActivityNameComboboxProps) {
   // Collect unique names from repositoryName and organizationName
   const names = React.useMemo(() => {
     const set = new Set<string>();
@@ -34,25 +43,30 @@ export function ActivityNameCombobox({ activities, value, onChange }: ActivityNa
   }, [activities]);
 
   const [open, setOpen] = React.useState(false);
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
+      {/* The button stays inline: PopoverTrigger asChild clones its child to
+          attach the click handler and ref, which a wrapper component would
+          swallow unless it forwarded both. */}
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
+        <button
+          type="button"
           role="combobox"
           aria-expanded={open}
-          className="w-full sm:w-[180px] justify-between h-10"
+          className={cn(
+            selectTriggerClassName,
+            "h-10 w-full lg:w-50",
+            className
+          )}
         >
-          <span className={cn(
-            "truncate",
-            !value && "text-muted-foreground"
-          )}>
+          <span className={cn("truncate", !value && "text-muted-foreground")}>
             {value || "All names"}
           </span>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
+          <ChevronDown className="size-4 shrink-0 opacity-50" />
+        </button>
       </PopoverTrigger>
-      <PopoverContent className="w-[180px] p-0">
+      <PopoverContent className="w-50 p-0">
         <Command>
           <CommandInput placeholder="Search name..." />
           <CommandList>
@@ -66,7 +80,12 @@ export function ActivityNameCombobox({ activities, value, onChange }: ActivityNa
                   setOpen(false);
                 }}
               >
-                <Check className={cn("mr-2 h-4 w-4", value === "" ? "opacity-100" : "opacity-0")} />
+                <Check
+                  className={cn(
+                    "mr-2 h-4 w-4",
+                    value === "" ? "opacity-100" : "opacity-0"
+                  )}
+                />
                 All names
               </CommandItem>
               {names.map((name) => (
@@ -78,7 +97,12 @@ export function ActivityNameCombobox({ activities, value, onChange }: ActivityNa
                     setOpen(false);
                   }}
                 >
-                  <Check className={cn("mr-2 h-4 w-4", value === name ? "opacity-100" : "opacity-0")} />
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value === name ? "opacity-100" : "opacity-0"
+                    )}
+                  />
                   {name}
                 </CommandItem>
               ))}

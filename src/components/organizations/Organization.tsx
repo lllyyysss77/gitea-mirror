@@ -490,9 +490,9 @@ export function Organization() {
   return (
     <div className="flex flex-col gap-y-4 sm:gap-y-8">
       {/* Search and filters */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center gap-2 lg:gap-4 w-full">
         {/* Mobile: Search bar with filter button */}
-        <div className="flex items-center gap-2 w-full sm:hidden">
+        <div className="flex items-center gap-2 w-full lg:hidden">
           <div className="relative flex-grow">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
@@ -725,7 +725,7 @@ export function Organization() {
         </div>
 
         {/* Desktop: Original layout */}
-        <div className="hidden sm:flex sm:flex-row sm:items-center sm:gap-4 sm:w-full">
+        <div className="hidden lg:flex lg:flex-row lg:items-center lg:gap-4 lg:w-full">
           <div className="relative flex-grow">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input

@@ -65,7 +65,6 @@ export const REPOSITORY_SORT_OPTIONS = [
 interface RepositoryTableProps {
   repositories: Repository[];
   isLoading: boolean;
-  isLiveActive?: boolean;
   filter: FilterParams;
   setFilter: (filter: FilterParams) => void;
   onMirror: ({ repoId }: { repoId: string }) => Promise<void>;
@@ -108,7 +107,6 @@ function getTableSorting(sortOrder: string | undefined): SortingState {
 export default function RepositoryTable({
   repositories,
   isLoading,
-  isLiveActive = false,
   filter,
   setFilter,
   onMirror,
@@ -684,38 +682,35 @@ export default function RepositoryTable({
   /* Sits above the table in both the loading and loaded states so the
      controls do not appear and disappear as data arrives. */
   const filterRow = (
-    <div
-      className={cn(
-        "flex flex-wrap items-center justify-between gap-3 sm:mb-4",
-        hasAnyFilter && "mb-4"
-      )}
-    >
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
       <div className="flex items-center gap-2">
+        <span className="text-sm text-muted-foreground">
+          {hasAnyFilter
+            ? `Showing ${visibleRepositories.length} of ${repositories.length} repositories`
+            : `${repositories.length} ${
+                repositories.length === 1 ? "repository" : "repositories"
+              }`}
+        </span>
         {hasAnyFilter && (
-          <>
-            <span className="text-sm text-muted-foreground">
-              Showing {visibleRepositories.length} of {repositories.length} repositories
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() =>
-                setFilter({
-                  searchTerm: "",
-                  status: "",
-                  organization: "",
-                  owner: "",
-                  sort: filter.sort || "imported-desc",
-                })
-              }
-            >
-              Clear filters
-            </Button>
-          </>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() =>
+              setFilter({
+                searchTerm: "",
+                status: "",
+                organization: "",
+                owner: "",
+                sort: filter.sort || "imported-desc",
+              })
+            }
+          >
+            Clear filters
+          </Button>
         )}
       </div>
 
-      <div className="hidden flex-wrap items-center gap-2 sm:flex">
+      <div className="hidden flex-wrap items-center gap-2 lg:flex">
         <Select
           value={filter.status || "all"}
           onValueChange={(value) =>
@@ -871,7 +866,7 @@ export default function RepositoryTable({
       </div>
     </div>
   ) : (
-    <div>
+    <div className="flex h-full min-h-0 flex-col">
       {filterRow}
 
       {visibleRepositories.length === 0 ? (
@@ -883,8 +878,8 @@ export default function RepositoryTable({
           </p>
         </div>
       ) : (
-        <>
-          {/* Mobile card view */}
+        <div className="flex min-h-0 flex-1 flex-col">
+          {/* Mobile card view: flows in the page scroll rather than its own. */}
           <div className="lg:hidden pb-20">
             {/* Select all checkbox */}
             <div className="flex items-center gap-3 mb-3 p-3 bg-muted/50 rounded-md">
@@ -906,7 +901,7 @@ export default function RepositoryTable({
           </div>
 
           {/* Desktop table view */}
-          <div className="hidden lg:flex flex-col border rounded-md">
+          <div className="hidden lg:flex min-h-0 flex-1 flex-col border rounded-md">
             {/* Table header */}
             <div className="h-[45px] flex items-center justify-between border-b bg-muted/50">
               <div className="h-full p-3 flex items-center justify-center flex-[0.3]">
@@ -938,7 +933,7 @@ export default function RepositoryTable({
             {/* Table body wrapper (for a parent in virtualization) */}
             <div
               ref={tableParentRef}
-              className="flex flex-col max-h-[calc(100dvh-276px)] overflow-y-auto"
+              className="flex min-h-0 flex-1 flex-col overflow-y-auto"
             >
               <div
                 style={{
@@ -1147,48 +1142,8 @@ export default function RepositoryTable({
                 })}
               </div>
             </div>
-
-            {/* Status Bar */}
-            <div className="h-[40px] flex items-center justify-between border-t bg-muted/30 px-3 relative">
-              <div className="flex items-center gap-2">
-                <div className={`h-1.5 w-1.5 rounded-full ${isLiveActive ? 'bg-emerald-500' : 'bg-primary'}`} />
-                <span className="text-sm font-medium text-foreground">
-                  {hasAnyFilter
-                    ? `Showing ${visibleRepositories.length} of ${repositories.length} repositories`
-                    : `${repositories.length} ${repositories.length === 1 ? 'repository' : 'repositories'} total`}
-                </span>
-              </div>
-
-              {/* Center - Live active indicator */}
-              {isLiveActive && (
-                <div className="flex items-center gap-1.5 absolute left-1/2 transform -translate-x-1/2">
-                  <div
-                    className="h-1 w-1 rounded-full bg-emerald-500"
-                    style={{
-                      animation: 'pulse 2s ease-in-out infinite'
-                    }}
-                  />
-                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                    Live active
-                  </span>
-                  <div
-                    className="h-1 w-1 rounded-full bg-emerald-500"
-                    style={{
-                      animation: 'pulse 2s ease-in-out infinite',
-                      animationDelay: '1s'
-                    }}
-                  />
-                </div>
-              )}
-
-              {hasAnyFilter && (
-                <span className="text-xs text-muted-foreground">
-                  Filters applied
-                </span>
-              )}
-            </div>
           </div>
-        </>
+        </div>
       )}
 
       <MirrorOverridesDialog

@@ -52,7 +52,7 @@ function FilterCombobox({
           type="button"
           role="combobox"
           aria-expanded={open}
-          className={cn(selectTriggerClassName, "h-10 w-full sm:w-50")}
+          className={cn(selectTriggerClassName, "h-10 w-full lg:w-50")}
         >
           <span className={cn("truncate", !value && "text-muted-foreground")}>
             {value || emptyLabel}
