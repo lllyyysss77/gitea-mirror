@@ -10,6 +10,10 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 import { LoaderCircle, Plus } from "lucide-react";
+import { parseGitHubRepoReference } from "@/lib/utils/github-url";
+
+const inputClassName =
+  "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
 
 interface AddRepositoryDialogProps {
   isDialogOpen: boolean;
@@ -32,26 +36,71 @@ export default function AddRepositoryDialog({
   setIsDialogOpen,
   onAddRepository,
 }: AddRepositoryDialogProps) {
+  const [url, setUrl] = useState<string>("");
   const [repo, setRepo] = useState<string>("");
   const [owner, setOwner] = useState<string>("");
   const [destinationOrg, setDestinationOrg] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
+  const resetForm = () => {
+    setError("");
+    setUrl("");
+    setRepo("");
+    setOwner("");
+    setDestinationOrg("");
+  };
+
   useEffect(() => {
     if (!isDialogOpen) {
-      setError("");
-      setRepo("");
-      setOwner("");
-      setDestinationOrg("");
+      resetForm();
     }
   }, [isDialogOpen]);
+
+  /** Fill the name and owner fields from anything that names a repository. */
+  const applyReference = (value: string): boolean => {
+    const parsed = parseGitHubRepoReference(value);
+    if (!parsed) return false;
+    setOwner(parsed.owner);
+    setRepo(parsed.repo);
+    setError("");
+    return true;
+  };
+
+  const handleUrlChange = (value: string) => {
+    setUrl(value);
+    if (!value.trim()) return;
+    if (!applyReference(value)) {
+      setOwner("");
+      setRepo("");
+    }
+  };
+
+  /** Pasting a URL into the name box fills both fields rather than one bad one. */
+  const handleReferencePaste =
+    (fallback: (value: string) => void) =>
+    (e: React.ClipboardEvent<HTMLInputElement>) => {
+      const pasted = e.clipboardData.getData("text");
+      if (!pasted.includes("/")) return;
+      if (applyReference(pasted)) {
+        e.preventDefault();
+        setUrl(pasted.trim());
+      } else {
+        fallback(pasted);
+      }
+    };
+
+  const urlIsUnparsed = url.trim() !== "" && (!owner || !repo);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!repo || !owner || repo.trim() === "" || owner.trim() === "") {
-      setError("Please enter a valid repository name and owner.");
+      setError(
+        urlIsUnparsed
+          ? "That does not look like a GitHub repository URL."
+          : "Please enter a valid repository name and owner."
+      );
       return;
     }
 
@@ -64,10 +113,7 @@ export default function AddRepositoryDialog({
         destinationOrg: destinationOrg.trim() || undefined,
       });
 
-      setError("");
-      setRepo("");
-      setOwner("");
-      setDestinationOrg("");
+      resetForm();
       setIsDialogOpen(false);
     } catch (err: any) {
       setError(err?.message || "Failed to add repository.");
@@ -96,37 +142,73 @@ export default function AddRepositoryDialog({
           <div className="space-y-4">
             <div>
               <label
-                htmlFor="name"
+                htmlFor="repositoryUrl"
+                className="block text-sm font-medium mb-1.5"
+              >
+                GitHub URL
+              </label>
+              <input
+                id="repositoryUrl"
+                type="text"
+                value={url}
+                onChange={(e) => handleUrlChange(e.target.value)}
+                className={inputClassName}
+                placeholder="https://github.com/vercel/next.js"
+                autoComplete="off"
+                autoFocus
+              />
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                {urlIsUnparsed
+                  ? "Could not read an owner and repository from that."
+                  : "Paste a repository URL and the fields below fill in."}
+              </p>
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center">
+                <span className="bg-background px-2 text-xs uppercase tracking-wider text-muted-foreground">
+                  or
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="repositoryName"
                 className="block text-sm font-medium mb-1.5"
               >
                 Repository Name
               </label>
               <input
-                id="name"
+                id="repositoryName"
                 type="text"
                 value={repo}
                 onChange={(e) => setRepo(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                onPaste={handleReferencePaste((value) => setRepo(value))}
+                className={inputClassName}
                 placeholder="e.g., next.js"
                 autoComplete="off"
-                autoFocus
                 required
               />
             </div>
 
             <div>
               <label
-                htmlFor="name"
+                htmlFor="repositoryOwner"
                 className="block text-sm font-medium mb-1.5"
               >
                 Repository Owner
               </label>
               <input
-                id="name"
+                id="repositoryOwner"
                 type="text"
                 value={owner}
                 onChange={(e) => setOwner(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                onPaste={handleReferencePaste((value) => setOwner(value))}
+                className={inputClassName}
                 placeholder="e.g., vercel"
                 autoComplete="off"
                 required
@@ -148,7 +230,7 @@ export default function AddRepositoryDialog({
                 type="text"
                 value={destinationOrg}
                 onChange={(e) => setDestinationOrg(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className={inputClassName}
                 placeholder="Gitea org or user (uses default strategy if empty)"
                 autoComplete="off"
               />

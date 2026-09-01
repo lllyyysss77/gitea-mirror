@@ -13,6 +13,10 @@ import { LoaderCircle, Plus } from "lucide-react";
 import type { MembershipRole } from "@/types/organizations";
 import { RadioGroup, RadioGroupItem } from "../ui/radio";
 import { Label } from "../ui/label";
+import { parseGitHubOwnerReference } from "@/lib/utils/github-url";
+
+const inputClassName =
+  "w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
 
 interface AddOrganizationDialogProps {
   isDialogOpen: boolean;
@@ -33,24 +37,63 @@ export default function AddOrganizationDialog({
   setIsDialogOpen,
   onAddOrganization,
 }: AddOrganizationDialogProps) {
+  const [url, setUrl] = useState<string>("");
   const [org, setOrg] = useState<string>("");
   const [role, setRole] = useState<MembershipRole>("member");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
+  const resetForm = () => {
+    setError("");
+    setUrl("");
+    setOrg("");
+    setRole("member");
+  };
+
   useEffect(() => {
     if (!isDialogOpen) {
-      setError("");
-      setOrg("");
-      setRole("member");
+      resetForm();
     }
   }, [isDialogOpen]);
+
+  /** Fill the name field from anything that names an account. */
+  const applyReference = (value: string): boolean => {
+    const parsed = parseGitHubOwnerReference(value);
+    if (!parsed) return false;
+    setOrg(parsed);
+    setError("");
+    return true;
+  };
+
+  const handleUrlChange = (value: string) => {
+    setUrl(value);
+    if (!value.trim()) return;
+    if (!applyReference(value)) {
+      setOrg("");
+    }
+  };
+
+  /** Pasting a URL into the name box fills the name rather than the whole URL. */
+  const handleReferencePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pasted = e.clipboardData.getData("text");
+    if (!pasted.includes("/")) return;
+    if (applyReference(pasted)) {
+      e.preventDefault();
+      setUrl(pasted.trim());
+    }
+  };
+
+  const urlIsUnparsed = url.trim() !== "" && !org;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!org || org.trim() === "") {
-      setError("Please enter a valid organization name.");
+      setError(
+        urlIsUnparsed
+          ? "That does not look like a GitHub organization URL."
+          : "Please enter a valid organization name."
+      );
       return;
     }
 
@@ -59,9 +102,7 @@ export default function AddOrganizationDialog({
 
       await onAddOrganization({ org, role });
 
-      setError("");
-      setOrg("");
-      setRole("member");
+      resetForm();
       setIsDialogOpen(false);
     } catch (err: any) {
       setError(err?.message || "Failed to add organization.");
@@ -90,20 +131,55 @@ export default function AddOrganizationDialog({
           <div className="space-y-4">
             <div>
               <label
-                htmlFor="name"
+                htmlFor="organizationUrl"
+                className="block text-sm font-medium mb-1.5"
+              >
+                GitHub URL
+              </label>
+              <input
+                id="organizationUrl"
+                type="text"
+                value={url}
+                onChange={(e) => handleUrlChange(e.target.value)}
+                className={inputClassName}
+                placeholder="https://github.com/microsoft"
+                autoComplete="off"
+                autoFocus
+              />
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                {urlIsUnparsed
+                  ? "Could not read an organization from that."
+                  : "Paste an organization URL and the name below fills in."}
+              </p>
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center">
+                <span className="bg-background px-2 text-xs uppercase tracking-wider text-muted-foreground">
+                  or
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="organizationName"
                 className="block text-sm font-medium mb-1.5"
               >
                 Organization Name
               </label>
               <input
-                id="name"
+                id="organizationName"
                 type="text"
                 value={org}
                 onChange={(e) => setOrg(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                onPaste={handleReferencePaste}
+                className={inputClassName}
                 placeholder="e.g., microsoft"
                 autoComplete="off"
-                autoFocus
                 required
               />
             </div>
