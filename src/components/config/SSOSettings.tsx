@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -342,395 +341,391 @@ export function SSOSettings() {
       </div>
 
       {/* SSO Providers */}
-      <Card className="flex h-full flex-col">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <ShieldCheck className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <CardTitle className="text-base font-semibold">Identity Providers</CardTitle>
-                    <CardDescription className="text-sm">
-                      Users sign in with their existing accounts (Google, Azure AD, Authentik...)
-                    </CardDescription>
+      <div className="flex flex-col overflow-hidden rounded-xl border border-border bg-card">
+        {/* py-3 rather than py-4: the h-8 button makes this row 56px tall,
+            matching the Sign-in Methods header so both dividers line up. */}
+        <div className="flex items-center justify-between gap-3 px-6 py-3">
+          <div className="flex items-center gap-3">
+            <ShieldCheck className="h-5 w-5 text-muted-foreground" />
+            <h3 className="text-base font-semibold">Identity Providers</h3>
+          </div>
+          <Dialog open={showProviderDialog} onOpenChange={setShowProviderDialog}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="bg-indigo-500 text-white hover:bg-indigo-600">
+                <Plus className="h-4 w-4" />
+                Add provider
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] md:max-h-[85vh] lg:max-h-[90vh] overflow-hidden flex flex-col">
+              <DialogHeader className="flex-shrink-0">
+                <DialogTitle>{editingProvider ? 'Edit SSO Provider' : 'Add SSO Provider'}</DialogTitle>
+                <DialogDescription>
+                  {editingProvider 
+                    ? 'Update the configuration for this identity provider'
+                    : 'Configure an external identity provider for user authentication'}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex-1 overflow-y-auto px-1 -mx-1 [&_label]:text-xs [&_label]:font-medium [&_label]:text-muted-foreground">
+                <Tabs value={providerType} onValueChange={(value) => setProviderType(value as 'oidc' | 'saml')}>
+                  <TabsList className="sticky top-0 z-10 grid w-full grid-cols-2 gap-1 rounded-lg bg-muted p-1">
+                    <TabsTrigger
+                      value="oidc"
+                      className="rounded-md text-xs text-muted-foreground data-[state=active]:bg-background data-[state=active]:font-medium data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                    >
+                      OIDC / OAuth2
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="saml"
+                      className="rounded-md text-xs text-muted-foreground data-[state=active]:bg-background data-[state=active]:font-medium data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                    >
+                      SAML 2.0
+                    </TabsTrigger>
+                  </TabsList>
+
+                  {/* Common Fields */}
+                  <div className="space-y-4 mt-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="providerId">Provider ID</Label>
+                      <Input
+                        id="providerId"
+                        value={providerForm.providerId}
+                        onChange={e => setProviderForm(prev => ({ ...prev, providerId: e.target.value }))}
+                        placeholder="google-sso"
+                        disabled={!!editingProvider}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="domain">Email Domain</Label>
+                      <Input
+                        id="domain"
+                        value={providerForm.domain}
+                        onChange={e => setProviderForm(prev => ({ ...prev, domain: e.target.value }))}
+                        placeholder="example.com"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="issuer">Issuer URL</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="issuer"
+                        value={providerForm.issuer}
+                        onChange={e => setProviderForm(prev => ({ ...prev, issuer: e.target.value }))}
+                        placeholder={providerType === 'oidc' ? "https://accounts.google.com" : "https://idp.example.com"}
+                      />
+                      {providerType === 'oidc' && (
+                        <Button
+                          variant="outline"
+                          onClick={discoverOIDC}
+                          disabled={isDiscovering}
+                        >
+                          {isDiscovering ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Discover'}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="organizationId">Organization ID (Optional)</Label>
+                    <Input
+                      id="organizationId"
+                      value={providerForm.organizationId}
+                      onChange={e => setProviderForm(prev => ({ ...prev, organizationId: e.target.value }))}
+                      placeholder="org_123"
+                    />
+                    <p className="text-xs text-muted-foreground">Link this provider to an organization for automatic user provisioning</p>
                   </div>
                 </div>
-                <Dialog open={showProviderDialog} onOpenChange={setShowProviderDialog}>
-                  <DialogTrigger asChild>
-                    <Button size="sm" className="bg-indigo-500 text-white hover:bg-indigo-600">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add provider
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl max-h-[90vh] md:max-h-[85vh] lg:max-h-[90vh] overflow-hidden flex flex-col">
-                    <DialogHeader className="flex-shrink-0">
-                      <DialogTitle>{editingProvider ? 'Edit SSO Provider' : 'Add SSO Provider'}</DialogTitle>
-                      <DialogDescription>
-                        {editingProvider 
-                          ? 'Update the configuration for this identity provider'
-                          : 'Configure an external identity provider for user authentication'}
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="flex-1 overflow-y-auto px-1 -mx-1 [&_label]:text-xs [&_label]:font-medium [&_label]:text-muted-foreground">
-                      <Tabs value={providerType} onValueChange={(value) => setProviderType(value as 'oidc' | 'saml')}>
-                        <TabsList className="sticky top-0 z-10 grid w-full grid-cols-2 gap-1 rounded-lg bg-muted p-1">
-                          <TabsTrigger
-                            value="oidc"
-                            className="rounded-md text-xs text-muted-foreground data-[state=active]:bg-background data-[state=active]:font-medium data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-                          >
-                            OIDC / OAuth2
-                          </TabsTrigger>
-                          <TabsTrigger
-                            value="saml"
-                            className="rounded-md text-xs text-muted-foreground data-[state=active]:bg-background data-[state=active]:font-medium data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-                          >
-                            SAML 2.0
-                          </TabsTrigger>
-                        </TabsList>
-                        
-                        {/* Common Fields */}
-                        <div className="space-y-4 mt-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="providerId">Provider ID</Label>
-                            <Input
-                              id="providerId"
-                              value={providerForm.providerId}
-                              onChange={e => setProviderForm(prev => ({ ...prev, providerId: e.target.value }))}
-                              placeholder="google-sso"
-                              disabled={!!editingProvider}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="domain">Email Domain</Label>
-                            <Input
-                              id="domain"
-                              value={providerForm.domain}
-                              onChange={e => setProviderForm(prev => ({ ...prev, domain: e.target.value }))}
-                              placeholder="example.com"
-                            />
-                          </div>
-                        </div>
 
-                        <div className="space-y-2">
-                          <Label htmlFor="issuer">Issuer URL</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              id="issuer"
-                              value={providerForm.issuer}
-                              onChange={e => setProviderForm(prev => ({ ...prev, issuer: e.target.value }))}
-                              placeholder={providerType === 'oidc' ? "https://accounts.google.com" : "https://idp.example.com"}
-                            />
-                            {providerType === 'oidc' && (
-                              <Button
-                                variant="outline"
-                                onClick={discoverOIDC}
-                                disabled={isDiscovering}
-                              >
-                                {isDiscovering ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Discover'}
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="organizationId">Organization ID (Optional)</Label>
-                          <Input
-                            id="organizationId"
-                            value={providerForm.organizationId}
-                            onChange={e => setProviderForm(prev => ({ ...prev, organizationId: e.target.value }))}
-                            placeholder="org_123"
-                          />
-                          <p className="text-xs text-muted-foreground">Link this provider to an organization for automatic user provisioning</p>
-                        </div>
-                      </div>
-
-                      <TabsContent value="oidc" className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="clientId">Client ID</Label>
-                            <Input
-                              id="clientId"
-                              value={providerForm.clientId}
-                              onChange={e => setProviderForm(prev => ({ ...prev, clientId: e.target.value }))}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="clientSecret">Client Secret</Label>
-                            <Input
-                              id="clientSecret"
-                              type="password"
-                              value={providerForm.clientSecret}
-                              onChange={e => setProviderForm(prev => ({ ...prev, clientSecret: e.target.value }))}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="authEndpoint">Authorization Endpoint</Label>
-                          <Input
-                            id="authEndpoint"
-                            value={providerForm.authorizationEndpoint}
-                            onChange={e => setProviderForm(prev => ({ ...prev, authorizationEndpoint: e.target.value }))}
-                            placeholder="https://accounts.google.com/o/oauth2/auth"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="tokenEndpoint">Token Endpoint</Label>
-                          <Input
-                            id="tokenEndpoint"
-                            value={providerForm.tokenEndpoint}
-                            onChange={e => setProviderForm(prev => ({ ...prev, tokenEndpoint: e.target.value }))}
-                            placeholder="https://oauth2.googleapis.com/token"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="scopes">OAuth Scopes</Label>
-                          <MultiSelect
-                            options={[
-                              { label: "OpenID", value: "openid" },
-                              { label: "Email", value: "email" },
-                              { label: "Profile", value: "profile" },
-                              { label: "Offline Access", value: "offline_access" },
-                            ]}
-                            selected={providerForm.scopes}
-                            onChange={(scopes) => setProviderForm(prev => ({ ...prev, scopes }))}
-                            placeholder="Select scopes..."
-                          />
-                          <p className="text-xs text-muted-foreground">
-                            Select the OAuth scopes to request from the provider
-                          </p>
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                          <Switch
-                            id="pkce"
-                            checked={providerForm.pkce}
-                            onCheckedChange={(checked) => setProviderForm(prev => ({ ...prev, pkce: checked }))}
-                            className={accentSwitch}
-                          />
-                          <Label htmlFor="pkce">Enable PKCE</Label>
-                        </div>
-
-                        <Alert>
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertDescription>
-                            <div className="space-y-2">
-                              <p>Redirect URL: {buildAbsoluteAppUrl(`/api/auth/sso/callback/${providerForm.providerId || '{provider-id}'}`)}</p>
-                              {isTrustedIssuer(providerForm.issuer, ['google.com']) && (
-                                <p className="text-xs text-muted-foreground">
-                                  Note: Google doesn't support the "offline_access" scope. Make sure to exclude it from the selected scopes.
-                                </p>
-                              )}
-                            </div>
-                          </AlertDescription>
-                        </Alert>
-                      </TabsContent>
-
-                      <TabsContent value="saml" className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="entryPoint">SAML Entry Point</Label>
-                          <Input
-                            id="entryPoint"
-                            value={providerForm.entryPoint}
-                            onChange={e => setProviderForm(prev => ({ ...prev, entryPoint: e.target.value }))}
-                            placeholder="https://idp.example.com/sso"
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="cert">X.509 Certificate</Label>
-                          <Textarea
-                            id="cert"
-                            value={providerForm.cert}
-                            onChange={e => setProviderForm(prev => ({ ...prev, cert: e.target.value }))}
-                            placeholder="-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
-                            rows={6}
-                          />
-                        </div>
-
-                        <div className="flex items-center space-x-2">
-                          <Switch
-                            id="wantAssertionsSigned"
-                            checked={providerForm.wantAssertionsSigned}
-                            onCheckedChange={(checked) => setProviderForm(prev => ({ ...prev, wantAssertionsSigned: checked }))}
-                          />
-                          <Label htmlFor="wantAssertionsSigned">Require Signed Assertions</Label>
-                        </div>
-
-                        <Alert>
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertDescription>
-                            <div className="space-y-1">
-                              <p>Callback URL: {buildAbsoluteAppUrl(`/api/auth/sso/saml2/callback/${providerForm.providerId || '{provider-id}'}`)}</p>
-                              <p>SP Metadata: {buildAbsoluteAppUrl(`/api/auth/sso/saml2/sp/metadata?providerId=${providerForm.providerId || '{provider-id}'}`)}</p>
-                            </div>
-                          </AlertDescription>
-                        </Alert>
-                      </TabsContent>
-                    </Tabs>
+                <TabsContent value="oidc" className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="clientId">Client ID</Label>
+                      <Input
+                        id="clientId"
+                        value={providerForm.clientId}
+                        onChange={e => setProviderForm(prev => ({ ...prev, clientId: e.target.value }))}
+                      />
                     </div>
-                    <DialogFooter className="flex-shrink-0 pt-4 border-t">
-                      <Button 
-                        variant="outline" 
-                        onClick={() => {
-                          setShowProviderDialog(false);
-                          setEditingProvider(null);
-                          // Reset form
-                          setProviderForm({
-                            issuer: '',
-                            domain: '',
-                            providerId: '',
-                            organizationId: '',
-                            clientId: '',
-                            clientSecret: '',
-                            authorizationEndpoint: '',
-                            tokenEndpoint: '',
-                            jwksEndpoint: '',
-                            userInfoEndpoint: '',
-                            discoveryEndpoint: '',
-                            scopes: ['openid', 'email', 'profile'] as string[],
-                            pkce: true,
-                            entryPoint: '',
-                            cert: '',
-                            callbackUrl: '',
-                            audience: '',
-                            wantAssertionsSigned: true,
-                            signatureAlgorithm: 'sha256',
-                            digestAlgorithm: 'sha256',
-                            identifierFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
-                          });
-                        }}
+                    <div className="space-y-2">
+                      <Label htmlFor="clientSecret">Client Secret</Label>
+                      <Input
+                        id="clientSecret"
+                        type="password"
+                        value={providerForm.clientSecret}
+                        onChange={e => setProviderForm(prev => ({ ...prev, clientSecret: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="authEndpoint">Authorization Endpoint</Label>
+                    <Input
+                      id="authEndpoint"
+                      value={providerForm.authorizationEndpoint}
+                      onChange={e => setProviderForm(prev => ({ ...prev, authorizationEndpoint: e.target.value }))}
+                      placeholder="https://accounts.google.com/o/oauth2/auth"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="tokenEndpoint">Token Endpoint</Label>
+                    <Input
+                      id="tokenEndpoint"
+                      value={providerForm.tokenEndpoint}
+                      onChange={e => setProviderForm(prev => ({ ...prev, tokenEndpoint: e.target.value }))}
+                      placeholder="https://oauth2.googleapis.com/token"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="scopes">OAuth Scopes</Label>
+                    <MultiSelect
+                      options={[
+                        { label: "OpenID", value: "openid" },
+                        { label: "Email", value: "email" },
+                        { label: "Profile", value: "profile" },
+                        { label: "Offline Access", value: "offline_access" },
+                      ]}
+                      selected={providerForm.scopes}
+                      onChange={(scopes) => setProviderForm(prev => ({ ...prev, scopes }))}
+                      placeholder="Select scopes..."
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Select the OAuth scopes to request from the provider
+                    </p>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="pkce"
+                      checked={providerForm.pkce}
+                      onCheckedChange={(checked) => setProviderForm(prev => ({ ...prev, pkce: checked }))}
+                      className={accentSwitch}
+                    />
+                    <Label htmlFor="pkce">Enable PKCE</Label>
+                  </div>
+
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      <div className="space-y-2">
+                        <p>Redirect URL: {buildAbsoluteAppUrl(`/api/auth/sso/callback/${providerForm.providerId || '{provider-id}'}`)}</p>
+                        {isTrustedIssuer(providerForm.issuer, ['google.com']) && (
+                          <p className="text-xs text-muted-foreground">
+                            Note: Google doesn't support the "offline_access" scope. Make sure to exclude it from the selected scopes.
+                          </p>
+                        )}
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                </TabsContent>
+
+                <TabsContent value="saml" className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="entryPoint">SAML Entry Point</Label>
+                    <Input
+                      id="entryPoint"
+                      value={providerForm.entryPoint}
+                      onChange={e => setProviderForm(prev => ({ ...prev, entryPoint: e.target.value }))}
+                      placeholder="https://idp.example.com/sso"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="cert">X.509 Certificate</Label>
+                    <Textarea
+                      id="cert"
+                      value={providerForm.cert}
+                      onChange={e => setProviderForm(prev => ({ ...prev, cert: e.target.value }))}
+                      placeholder="-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+                      rows={6}
+                    />
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="wantAssertionsSigned"
+                      checked={providerForm.wantAssertionsSigned}
+                      onCheckedChange={(checked) => setProviderForm(prev => ({ ...prev, wantAssertionsSigned: checked }))}
+                    />
+                    <Label htmlFor="wantAssertionsSigned">Require Signed Assertions</Label>
+                  </div>
+
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      <div className="space-y-1">
+                        <p>Callback URL: {buildAbsoluteAppUrl(`/api/auth/sso/saml2/callback/${providerForm.providerId || '{provider-id}'}`)}</p>
+                        <p>SP Metadata: {buildAbsoluteAppUrl(`/api/auth/sso/saml2/sp/metadata?providerId=${providerForm.providerId || '{provider-id}'}`)}</p>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                </TabsContent>
+              </Tabs>
+              </div>
+              <DialogFooter className="flex-shrink-0 pt-4 border-t">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowProviderDialog(false);
+                    setEditingProvider(null);
+                    // Reset form
+                    setProviderForm({
+                      issuer: '',
+                      domain: '',
+                      providerId: '',
+                      organizationId: '',
+                      clientId: '',
+                      clientSecret: '',
+                      authorizationEndpoint: '',
+                      tokenEndpoint: '',
+                      jwksEndpoint: '',
+                      userInfoEndpoint: '',
+                      discoveryEndpoint: '',
+                      scopes: ['openid', 'email', 'profile'] as string[],
+                      pkce: true,
+                      entryPoint: '',
+                      cert: '',
+                      callbackUrl: '',
+                      audience: '',
+                      wantAssertionsSigned: true,
+                      signatureAlgorithm: 'sha256',
+                      digestAlgorithm: 'sha256',
+                      identifierFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
+                    });
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={createProvider}
+                  disabled={addingProvider}
+                  className="bg-indigo-500 text-white hover:bg-indigo-600"
+                >
+                  {addingProvider ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {editingProvider ? 'Updating...' : 'Creating...'}
+                    </>
+                  ) : (
+                    editingProvider ? 'Update Provider' : 'Create Provider'
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+        <div className="border-t border-border" />
+        <div className="flex-1 p-6">
+          {providers.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="mx-auto h-12 w-12 text-muted-foreground/50">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                </svg>
+              </div>
+              <h3 className="mt-4 text-lg font-medium">No SSO providers configured</h3>
+              <p className="mt-2 text-sm text-muted-foreground max-w-sm mx-auto">
+                Enable Single Sign-On by adding an external identity provider like Google, Azure AD, or any OIDC-compliant service.
+              </p>
+              <div className="mt-6">
+                <Button onClick={() => setShowProviderDialog(true)}>
+                  <Plus className="h-4 w-4" />
+                  Add Your First Provider
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {providers.map(provider => (
+                <div key={provider.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="font-semibold text-sm">{provider.providerId}</h4>
+                        <Badge variant="outline" className="text-xs">
+                          {provider.samlConfig ? 'SAML' : 'OIDC'}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-3">{provider.domain}</p>
+
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2 text-sm">
+                          <span className="w-24 shrink-0 font-medium text-foreground">Issuer:</span>
+                          <span className="text-muted-foreground break-all">{provider.issuer}</span>
+                        </div>
+
+                        {provider.oidcConfig && (
+                          <>
+                            <div className="flex items-start gap-2 text-sm">
+                              <span className="w-24 shrink-0 font-medium text-foreground">Client ID:</span>
+                              <span className="font-mono text-xs text-muted-foreground break-all">{provider.oidcConfig.clientId}</span>
+                            </div>
+
+                            {provider.oidcConfig.scopes && provider.oidcConfig.scopes.length > 0 && (
+                              <div className="flex items-start gap-2 text-sm">
+                                <span className="w-24 shrink-0 font-medium text-foreground">Scopes:</span>
+                                <div className="flex flex-wrap gap-1">
+                                  {provider.oidcConfig.scopes.map(scope => (
+                                    <Badge key={scope} variant="secondary" className="text-xs">
+                                      {scope}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {provider.samlConfig && (
+                          <div className="flex items-start gap-2 text-sm">
+                            <span className="w-24 shrink-0 font-medium text-foreground">Entry Point:</span>
+                            <span className="text-muted-foreground break-all">{provider.samlConfig.entryPoint}</span>
+                          </div>
+                        )}
+
+                        {provider.organizationId && (
+                          <div className="flex items-start gap-2 text-sm">
+                            <span className="w-24 shrink-0 font-medium text-foreground">Organization:</span>
+                            <span className="text-muted-foreground">{provider.organizationId}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-foreground"
+                        onClick={() => startEditProvider(provider)}
                       >
-                        Cancel
+                        <Edit2 className="h-4 w-4" />
                       </Button>
                       <Button
-                        onClick={createProvider}
-                        disabled={addingProvider}
-                        className="bg-indigo-500 text-white hover:bg-indigo-600"
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-destructive"
+                        onClick={() => deleteProvider(provider.id)}
                       >
-                        {addingProvider ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            {editingProvider ? 'Updating...' : 'Creating...'}
-                          </>
-                        ) : (
-                          editingProvider ? 'Update Provider' : 'Create Provider'
-                        )}
+                        <Trash2 className="h-4 w-4" />
                       </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardHeader>
-            <CardContent className="flex-1">
-              {providers.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="mx-auto h-12 w-12 text-muted-foreground/50">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
-                    </svg>
-                  </div>
-                  <h3 className="mt-4 text-lg font-medium">No SSO providers configured</h3>
-                  <p className="mt-2 text-sm text-muted-foreground max-w-sm mx-auto">
-                    Enable Single Sign-On by adding an external identity provider like Google, Azure AD, or any OIDC-compliant service.
-                  </p>
-                  <div className="mt-6">
-                    <Button onClick={() => setShowProviderDialog(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Your First Provider
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {providers.map(provider => (
-                    <div key={provider.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h4 className="font-semibold text-sm">{provider.providerId}</h4>
-                            <Badge variant="outline" className="text-xs">
-                              {provider.samlConfig ? 'SAML' : 'OIDC'}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground mb-3">{provider.domain}</p>
-                          
-                          <div className="space-y-2">
-                            <div className="flex items-start gap-2 text-sm">
-                              <span className="text-muted-foreground min-w-[80px]">Issuer:</span>
-                              <span className="text-muted-foreground break-all">{provider.issuer}</span>
-                            </div>
-                            
-                            {provider.oidcConfig && (
-                              <>
-                                <div className="flex items-start gap-2 text-sm">
-                                  <span className="text-muted-foreground min-w-[80px]">Client ID:</span>
-                                  <span className="font-mono text-xs text-muted-foreground break-all">{provider.oidcConfig.clientId}</span>
-                                </div>
-                                
-                                {provider.oidcConfig.scopes && provider.oidcConfig.scopes.length > 0 && (
-                                  <div className="flex items-start gap-2 text-sm">
-                                    <span className="text-muted-foreground min-w-[80px]">Scopes:</span>
-                                    <div className="flex flex-wrap gap-1">
-                                      {provider.oidcConfig.scopes.map(scope => (
-                                        <Badge key={scope} variant="secondary" className="text-xs">
-                                          {scope}
-                                        </Badge>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </>
-                            )}
-                            
-                            {provider.samlConfig && (
-                              <div className="flex items-start gap-2 text-sm">
-                                <span className="text-muted-foreground min-w-[80px]">Entry Point:</span>
-                                <span className="text-muted-foreground break-all">{provider.samlConfig.entryPoint}</span>
-                              </div>
-                            )}
-                            
-                            {provider.organizationId && (
-                              <div className="flex items-start gap-2 text-sm">
-                                <span className="text-muted-foreground min-w-[80px]">Organization:</span>
-                                <span className="text-muted-foreground">{provider.organizationId}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-muted-foreground hover:text-foreground"
-                            onClick={() => startEditProvider(provider)}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-muted-foreground hover:text-destructive"
-                            onClick={() => deleteProvider(provider.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
                     </div>
-                  ))}
+                  </div>
                 </div>
-              )}
-            </CardContent>
-      <div className="mt-auto border-t border-border" />
-      <div className="flex items-center gap-2 px-6 py-3.5 text-xs text-muted-foreground/70">
-        <Info className="h-3.5 w-3.5" />
-        Users are matched to existing accounts by email address
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="border-t border-border" />
+        <div className="flex items-center gap-2 px-6 py-3.5 text-xs text-muted-foreground/70">
+          <Info className="h-3.5 w-3.5" />
+          Users are matched to existing accounts by email address
+        </div>
       </div>
-      </Card>
     </div>
   );
 }
