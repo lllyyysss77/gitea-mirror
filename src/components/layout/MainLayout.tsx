@@ -133,7 +133,7 @@ function AppWithProviders({ page: initialPage }: AppProps) {
 
   return (
     <NavigationContext.Provider value={{ navigationKey }}>
-      <main className="flex min-h-screen flex-col">
+      <main className="flex h-dvh flex-col overflow-hidden">
         <Header 
           currentPage={currentPage} 
           onNavigate={handleNavigation} 
@@ -142,7 +142,7 @@ function AppWithProviders({ page: initialPage }: AppProps) {
           isSidebarCollapsed={sidebarCollapsed}
           isSidebarOpen={sidebarOpen}
         />
-        <div className="flex flex-1 relative">
+        <div className="flex flex-1 min-h-0 relative">
           <Sidebar 
             onNavigate={handleNavigation} 
             isOpen={sidebarOpen}
@@ -150,7 +150,7 @@ function AppWithProviders({ page: initialPage }: AppProps) {
             onClose={() => setSidebarOpen(false)}
             onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           />
-          <section className={`flex-1 p-4 sm:p-6 overflow-y-auto h-[calc(100dvh-4.55rem)] w-full transition-all duration-200 ${
+          <section className={`flex-1 min-h-0 p-4 sm:p-6 overflow-y-auto w-full transition-all duration-200 ${
             sidebarCollapsed ? 'md:w-[calc(100%-5rem)] xl:w-[calc(100%-16rem)]' : 'md:w-[calc(100%-16rem)]'
           }`}>
             {currentPage === "dashboard" && <Dashboard />}
