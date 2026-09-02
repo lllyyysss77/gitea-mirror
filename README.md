@@ -547,9 +547,9 @@ GNU Affero General Public License v3.0 (AGPL-3.0) - see [LICENSE](LICENSE) file 
 
 <a href="https://www.star-history.com/?repos=RayLabsHQ%2Fgitea-mirror&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=RayLabsHQ/gitea-mirror&type=date&theme=dark&legend=top-left&sealed_token=LFtWMyznw4suPqb4AAuXEsJNxZsLAnPrarSxYyLqeFLFlV8VzOi75LAVa50puyktOwRHd0XK2Ilgi0EFPxQxkFW1_2bEhDESK08QVQenFjLbKuLQI9E5h1c4R1_m3ZIKTISQijXxiOkAKwX7DMEUD96Uto-Ge8_09sVTeeOcfGp9aXOUK6nDV2oKhDfI" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=RayLabsHQ/gitea-mirror&type=date&legend=top-left&sealed_token=LFtWMyznw4suPqb4AAuXEsJNxZsLAnPrarSxYyLqeFLFlV8VzOi75LAVa50puyktOwRHd0XK2Ilgi0EFPxQxkFW1_2bEhDESK08QVQenFjLbKuLQI9E5h1c4R1_m3ZIKTISQijXxiOkAKwX7DMEUD96Uto-Ge8_09sVTeeOcfGp9aXOUK6nDV2oKhDfI" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=RayLabsHQ/gitea-mirror&type=date&legend=top-left&sealed_token=LFtWMyznw4suPqb4AAuXEsJNxZsLAnPrarSxYyLqeFLFlV8VzOi75LAVa50puyktOwRHd0XK2Ilgi0EFPxQxkFW1_2bEhDESK08QVQenFjLbKuLQI9E5h1c4R1_m3ZIKTISQijXxiOkAKwX7DMEUD96Uto-Ge8_09sVTeeOcfGp9aXOUK6nDV2oKhDfI" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=RayLabsHQ/gitea-mirror&type=date&theme=dark&legend=top-left&sealed_token=zodo-E2HH58BX1LXhjYFF1dKmophMxE1C-ho3bvwiiC1iFxC7MTeKTy-uQgcInXqQV6QF5oHXYjDoHhPdUOJNnlgjYmVqsCMTvLVrcFTD0DWKH6fvG6qC-xfXS_2bUWPt_ybnIsuoOoTWppmkCLlfTy0-_jpkHQOrTorh3Hbul43dUWUwJraXc2W6XHD" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=RayLabsHQ/gitea-mirror&type=date&legend=top-left&sealed_token=zodo-E2HH58BX1LXhjYFF1dKmophMxE1C-ho3bvwiiC1iFxC7MTeKTy-uQgcInXqQV6QF5oHXYjDoHhPdUOJNnlgjYmVqsCMTvLVrcFTD0DWKH6fvG6qC-xfXS_2bUWPt_ybnIsuoOoTWppmkCLlfTy0-_jpkHQOrTorh3Hbul43dUWUwJraXc2W6XHD" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=RayLabsHQ/gitea-mirror&type=date&legend=top-left&sealed_token=zodo-E2HH58BX1LXhjYFF1dKmophMxE1C-ho3bvwiiC1iFxC7MTeKTy-uQgcInXqQV6QF5oHXYjDoHhPdUOJNnlgjYmVqsCMTvLVrcFTD0DWKH6fvG6qC-xfXS_2bUWPt_ybnIsuoOoTWppmkCLlfTy0-_jpkHQOrTorh3Hbul43dUWUwJraXc2W6XHD" />
  </picture>
 </a>
 
