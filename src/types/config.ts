@@ -5,8 +5,14 @@ export type MirrorStrategy = "preserve" | "single-org" | "flat-user" | "mixed";
 export type StarredReposMode = "dedicated-org" | "preserve-owner";
 export type BackupStrategy = "disabled" | "always" | "on-force-push" | "block-on-force-push";
 export type ScheduleMode = "interval" | "clock";
+/** Which host repositories are pulled from. "gitea" also covers Forgejo. */
+export type SourceProvider = "github" | "gitlab" | "gitea";
+/** Which host repositories are mirrored into. Same API, different label. */
+export type DestinationProvider = "gitea" | "forgejo";
 
 export interface GiteaConfig {
+  /** Defaults to "gitea" when absent. */
+  provider?: DestinationProvider;
   url: string;
   externalUrl?: string;
   username: string;
@@ -58,6 +64,10 @@ export interface DatabaseCleanupConfig {
 export type DuplicateNameStrategy = "suffix" | "prefix" | "owner-org";
 
 export interface GitHubConfig {
+  /** Defaults to "github" when absent. */
+  provider?: SourceProvider;
+  /** Instance base URL for GitLab and Gitea sources. */
+  url?: string;
   username: string;
   token: string;
   privateRepositories: boolean;
@@ -90,6 +100,17 @@ export interface AdvancedOptions {
   skipPersonalRepos?: boolean;
 }
 
+/**
+ * Whether the source and destination may still be changed freely. Once
+ * repositories have been imported the source is locked, and once anything
+ * has been mirrored the destination is locked; a change then needs the
+ * matching confirm flag on the save request.
+ */
+export interface ConfigLockState {
+  source: { locked: boolean; repositoryCount: number };
+  destination: { locked: boolean; mirroredCount: number };
+}
+
 export interface SaveConfigApiRequest {
   userId: string;
   githubConfig: GitHubConfig;
@@ -99,6 +120,10 @@ export interface SaveConfigApiRequest {
   notificationConfig?: NotificationConfig;
   mirrorOptions?: MirrorOptions;
   advancedOptions?: AdvancedOptions;
+  /** Required to change a locked source (provider or instance URL). */
+  confirmSourceChange?: boolean;
+  /** Required to change a locked destination (Gitea server URL). */
+  confirmDestinationChange?: boolean;
 }
 
 export interface SaveConfigApiResponse {
@@ -164,5 +189,6 @@ export interface ConfigApiResponse {
   exclude: string[];
   createdAt: Date;
   updatedAt: Date;
+  locks?: ConfigLockState;
   error?: string;
 }

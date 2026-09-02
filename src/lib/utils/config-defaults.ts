@@ -78,6 +78,7 @@ export async function createDefaultConfig({ userId, envOverrides = {} }: Default
     githubConfig: {
       owner: githubUsername,
       type: "personal",
+      provider: "github",
       token: githubToken ? encrypt(githubToken) : "",
       includeStarred: false,
       includeForks: true,
@@ -93,6 +94,7 @@ export async function createDefaultConfig({ userId, envOverrides = {} }: Default
     },
     giteaConfig: {
       url: giteaUrl,
+      provider: "gitea",
       externalUrl: giteaExternalUrl || undefined,
       token: giteaToken ? encrypt(giteaToken) : "",
       defaultOwner: giteaUsername,

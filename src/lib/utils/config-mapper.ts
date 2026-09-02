@@ -9,6 +9,11 @@ import type {
   AdvancedOptions,
   SaveConfigApiRequest 
 } from "@/types/config";
+import {
+  normalizeSourceProviderKind,
+  normalizeSourceUrl,
+} from "@/lib/source-providers/kinds";
+import { normalizeDestinationProviderKind } from "@/lib/destination-kinds";
 import { z } from "zod";
 import { githubConfigSchema, giteaConfigSchema, scheduleConfigSchema, cleanupConfigSchema } from "@/lib/db/schema";
 import { parseInterval } from "@/lib/utils/duration-parser";
@@ -67,10 +72,23 @@ export function mapUiToDbConfig(
     giteaConfig?: Partial<DbGiteaConfig>;
   }
 ): { githubConfig: DbGitHubConfig; giteaConfig: DbGiteaConfig } {
+  // The source host. GitHub keeps no per-config URL: GHES routing comes
+  // from GH_API_URL. Other hosts store their normalized instance URL.
+  const sourceProvider = normalizeSourceProviderKind(
+    githubConfig.provider ?? existing?.githubConfig?.provider
+  );
+  const rawSourceUrl = githubConfig.url ?? existing?.githubConfig?.url ?? "";
+  const sourceUrl =
+    sourceProvider === "github" || !rawSourceUrl.trim()
+      ? undefined
+      : normalizeSourceUrl(rawSourceUrl, sourceProvider);
+
   // Map GitHub config to match database schema fields
   const dbGithubConfig: DbGitHubConfig = {
     // Map username to owner field
     owner: githubConfig.username,
+    provider: sourceProvider,
+    url: sourceUrl,
     type: existing?.githubConfig?.type || "personal", // Not in UI; preserve stored value
     token: githubConfig.token || "",
 
@@ -105,6 +123,9 @@ export function mapUiToDbConfig(
   // Map Gitea config to match database schema
   const dbGiteaConfig: DbGiteaConfig = {
     url: giteaConfig.url,
+    provider: normalizeDestinationProviderKind(
+      giteaConfig.provider ?? existing?.giteaConfig?.provider
+    ),
     externalUrl: giteaConfig.externalUrl?.trim() || undefined,
     token: giteaConfig.token,
     defaultOwner: giteaConfig.username, // Map username to defaultOwner
@@ -176,6 +197,8 @@ export function mapDbToUiConfig(dbConfig: any): {
 } {
   // Map from database GitHub config to UI fields
   const githubConfig: GitHubConfig = {
+    provider: normalizeSourceProviderKind(dbConfig.githubConfig?.provider),
+    url: dbConfig.githubConfig?.url || "",
     username: dbConfig.githubConfig?.owner || "", // Map owner to username
     token: dbConfig.githubConfig?.token || "",
     privateRepositories: dbConfig.githubConfig?.includePrivate || false, // Map includePrivate to privateRepositories
@@ -188,6 +211,7 @@ export function mapDbToUiConfig(dbConfig: any): {
 
   // Map from database Gitea config to UI fields
   const giteaConfig: GiteaConfig = {
+    provider: normalizeDestinationProviderKind(dbConfig.giteaConfig?.provider),
     url: dbConfig.giteaConfig?.url || "",
     externalUrl: dbConfig.giteaConfig?.externalUrl || "",
     username: dbConfig.giteaConfig?.defaultOwner || "", // Map defaultOwner to username

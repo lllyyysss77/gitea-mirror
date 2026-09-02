@@ -1,4 +1,11 @@
 import type { APIRoute } from "astro";
+import {
+  SOURCE_PROVIDER_LABELS,
+  isSourceProviderKind,
+  isValidSourceUrl,
+  normalizeSourceProviderKind,
+} from "@/lib/source-providers/kinds";
+import { evaluateConfigChange, loadConfigLocks } from "@/lib/config-locks";
 import { db, configs, users } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 import { eq, sql } from "drizzle-orm";
@@ -31,6 +38,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       mirrorOptions,
       advancedOptions,
       notificationConfig,
+      confirmSourceChange,
+      confirmDestinationChange,
     } = body;
 
     if (!githubConfig || !giteaConfig || !scheduleConfig || !cleanupConfig || !mirrorOptions || !advancedOptions) {
@@ -83,6 +92,27 @@ export const POST: APIRoute = async ({ request, locals }) => {
       }
     }
 
+    // Validate the source provider and, for GitLab and Gitea sources, the instance URL
+    if (githubConfig.provider !== undefined && !isSourceProviderKind(githubConfig.provider)) {
+      return new Response(
+        JSON.stringify({ success: false, message: "Unknown source provider." }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    const sourceProvider = normalizeSourceProviderKind(githubConfig.provider);
+    if (sourceProvider !== "github") {
+      const rawSourceUrl = typeof githubConfig.url === "string" ? githubConfig.url.trim() : "";
+      if (rawSourceUrl && !isValidSourceUrl(rawSourceUrl)) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: `${SOURCE_PROVIDER_LABELS[sourceProvider]} URL must be a valid http or https URL.`,
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // Fetch existing config — prefer the active config; fall back to most-recently-updated
     // so a stale inactive stub never wins over a populated active row (see issue #271).
     const existingConfigResult = await db
@@ -112,6 +142,26 @@ export const POST: APIRoute = async ({ request, locals }) => {
             : existingConfig.giteaConfig;
       } catch (parseError) {
         console.error("Failed to parse existing config:", parseError);
+      }
+    }
+
+    // A locked source or destination only changes with explicit confirmation.
+    if (existingConfig) {
+      const locks = await loadConfigLocks(userId);
+      const verdict = evaluateConfigChange({
+        locks,
+        existingSource: existingGithub,
+        incomingSource: githubConfig,
+        existingDestinationUrl: existingGitea?.url,
+        incomingDestinationUrl: giteaConfig.url,
+        confirmSourceChange: confirmSourceChange === true,
+        confirmDestinationChange: confirmDestinationChange === true,
+      });
+      if (!verdict.ok) {
+        return new Response(
+          JSON.stringify({ success: false, message: verdict.message, lock: verdict.lock }),
+          { status: 409, headers: { "Content-Type": "application/json" } }
+        );
       }
     }
 
@@ -291,6 +341,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
       .orderBy(sql`${configs.isActive} DESC`, sql`${configs.updatedAt} DESC`)
       .limit(1);
 
+    const locks = await loadConfigLocks(userId);
+
     if (config.length === 0) {
       // Create default configuration for the user
       const defaultConfig = await createDefaultConfig({ userId });
@@ -306,6 +358,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
           ...uiConfig,
           scheduleConfig: uiScheduleConfig,
           cleanupConfig: uiCleanupConfig,
+          locks,
         }),
         {
           status: 200,
@@ -398,6 +451,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
           nextRun: dbConfig.cleanupConfig.nextRun,
         },
         notificationConfig,
+        locks,
       }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -423,6 +477,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
           nextRun: dbConfig.cleanupConfig.nextRun,
         },
         notificationConfig: dbConfig.notificationConfig,
+        locks,
       }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
