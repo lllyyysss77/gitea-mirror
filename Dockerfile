@@ -32,8 +32,13 @@ FROM debian:trixie-slim AS git-lfs-builder
 RUN apt-get update && apt-get -y upgrade && apt-get install -y --no-install-recommends \
   wget ca-certificates git make \
   && rm -rf /var/lib/apt/lists/*
-ARG GO_VERSION=1.25.14
+ARG GO_VERSION=1.27.1
 ARG GIT_LFS_VERSION=3.7.1
+# Pinned rather than @latest: a cached layer kept an old @latest resolution
+# after golang.org/x/crypto 0.56.0 fixed CVE-2026-56855 and CVE-2026-78662.
+# x/crypto 0.56.0 needs Go 1.26 or newer, hence the toolchain above.
+ARG GO_X_CRYPTO_VERSION=v0.56.0
+ARG GO_X_NET_VERSION=v0.58.0
 RUN ARCH="$(dpkg --print-architecture)" \
   && wget -qO /tmp/go.tar.gz "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz" \
   && tar -C /usr/local -xzf /tmp/go.tar.gz \
@@ -43,8 +48,8 @@ ENV PATH="/usr/local/go/bin:/root/go/bin:${PATH}"
 ENV GOTOOLCHAIN=local
 RUN git clone --branch "v${GIT_LFS_VERSION}" --depth 1 https://github.com/git-lfs/git-lfs.git /tmp/git-lfs \
   && cd /tmp/git-lfs \
-  && go get golang.org/x/crypto@latest \
-  && go get golang.org/x/net@latest \
+  && go get "golang.org/x/crypto@${GO_X_CRYPTO_VERSION}" \
+  && go get "golang.org/x/net@${GO_X_NET_VERSION}" \
   && go mod tidy \
   && make \
   && install -m 755 /tmp/git-lfs/bin/git-lfs /usr/local/bin/git-lfs
@@ -55,6 +60,13 @@ WORKDIR /app
 RUN apt-get update && apt-get -y upgrade && apt-get install -y --no-install-recommends \
   git wget sqlite3 openssl ca-certificates \
   && rm -rf /var/lib/apt/lists/*
+# The app runs as an unprivileged user and never calls a setuid helper.
+# Dropping the bits closes the path CVE-2026-78409 and CVE-2026-78410 need
+# in mount(8); Debian ships no trixie fix for them. See .vex/README.md.
+RUN find / -xdev -type f -perm /6000 -exec chmod a-s '{}' +
+# OpenVEX statements for CVEs this image cannot reach, so that
+# `docker scout cves` on the published image reports them as not affected.
+COPY .vex/*.vex.json /var/lib/db/
 COPY --from=git-lfs-builder /usr/local/bin/git-lfs /usr/local/bin/git-lfs
 RUN git lfs install
 COPY --from=pruner /app/node_modules ./node_modules
