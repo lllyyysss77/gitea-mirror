@@ -41,7 +41,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Proper documentation for multi-URL access patterns
 - Comprehensive fix report documentation
 
+### Changed
+- A new configuration starts with scheduling off unless `SCHEDULE_ENABLED=true`, `SCHEDULE_INTERVAL` or `GITEA_MIRROR_INTERVAL` turns it on, the same rule the environment loader uses; the built-in default schedule is the daily 22:00 clock schedule the automation card shows, so enabling from the card and the scheduler agree from the first save (#427)
+
 ### Fixed
+- The `latest` Docker image tag no longer lags behind a release (#425)
+  - A merge and the version bump that follows it land on main seconds apart; both built the image and both pushed `latest`, and on v3.36.1 the older build finished last, so `latest` carried 3.36.0 until the weekly rebuild replaced it
+  - The workflow runs one build per ref at a time, `latest` is pushed only by a stable release tag build, main builds push `edge` and the short commit sha, and the security scan looks at the image the run just pushed
+- The automation card shows the schedule that actually runs (#427)
+  - A fresh install started with scheduling on and a plain 24 hour interval counted from first login, and the card, which only knows clock schedules, showed the 22:00 placeholder as if it were saved; the same misreport hit Docker installs with `GITEA_MIRROR_INTERVAL=8h`
+  - When a plain interval is stored (from `SCHEDULE_INTERVAL`, `GITEA_MIRROR_INTERVAL` or an older version) the card says what runs and where it came from, and leaves frequency and start time unset until one is picked
+  - The timezone chip shows the stored timezone instead of the browser's, and becomes a one-click switch to the browser timezone when the two differ
+- Ignoring an organization stops its repositories from syncing (#429)
+  - Ignore Organization only changed the organization row; its mirrored repositories kept syncing and rediscovery kept importing new ones for it
+  - The organization's idle repositories are ignored with it (rows in flight or being deleted finish on their own) and restored when it is included again, mirrored ones as mirrored and the rest as imported; rediscovery skips ignored organizations
+- Organization cards name the configured destination instead of always saying Gitea (#430)
+- The Nix snippets in the README, NIX.md and the deployment guide import the module before enabling `services.gitea-mirror`, and put the flake input in `flake.nix` where it belongs (#426)
 - Crash recovery no longer resumes a job that is still running
   - A job older than two hours was treated as interrupted even while it checkpointed every two minutes, so recovery started a second pass over the same repositories alongside the original; the age rule is gone and only a missing or stale checkpoint marks a job interrupted
   - Every completed item is now recorded in the job's checkpoint instead of one in every N, so a real resume skips exactly what was done; progress events are still throttled
