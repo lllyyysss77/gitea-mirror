@@ -8,9 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Security
+- Raised the devalue floor to 5.9.2 in the application and the documentation site (GHSA-9rgm-9g3h-6x36, denial of service through malformed input); both lockfiles resolve 5.9.4
 - Raised the dependency floors for the advisories published on 2026-09-08: Astro 7.2.8 (remote code execution through AVIF image optimization, and an authorization bypass when stripping the configured base), @xmldom/xmldom 0.8.15 (eight parser and serializer issues), sharp 0.35.4 (libheif), svgo 4.1.0 (removeScripts sanitization) and js-yaml 4.3.2 (merge-key CPU use). Applied to both the application and the documentation site.
 
 ### Added
+- Sync an organization that is already mirrored (#429)
+  - The organization card menu gains Sync Organization for mirrored and failed organizations; the Mirror button only ever covered the first run
+  - `POST /api/job/sync-org` re-discovers the organization's repositories from its source, mirrors the imported ones and syncs the mirrored, synced and failed ones, leaving rows another run owns alone; the organization is claimed before the response so two clicks cannot both start a run
+- CSV export of repositories and organizations (#428)
+  - `GET /api/repositories/export` and `GET /api/organizations/export` return the tables without the internal fields (ids, sync metadata, mirror option overrides); an Export CSV button sits in both toolbars and API keys work on both routes
+- The login page can open on SSO (#438)
+  - `AUTH_DEFAULT_METHOD=sso` sets the instance default, and each browser remembers the method it last signed in with; the new public `GET /api/auth/methods` tells the login page which methods exist and which to open on
 - Public organizations without a source connection (#409)
   - The Add Organization dialog offers a Public only mode, the default when no source is connected: pick GitHub, GitLab or Gitea/Forgejo, optionally an instance URL, and the organization is imported anonymously
   - A tokenless source row is found or created for that provider and host and the organization is pinned to it, so attribution, locks, the scheduler and cleanup keep working per source
@@ -45,6 +53,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A new configuration starts with scheduling off unless `SCHEDULE_ENABLED=true`, `SCHEDULE_INTERVAL` or `GITEA_MIRROR_INTERVAL` turns it on, the same rule the environment loader uses; the built-in default schedule is the daily 22:00 clock schedule the automation card shows, so enabling from the card and the scheduler agree from the first save (#427)
 
 ### Fixed
+- A GitHub rate limit no longer holds the scheduler lock until the reset (#437)
+  - Every rate-limited request used to sleep for the full reset window inside the scheduler run, up to three times per request, so a large sync could keep the lock for hours while every tick logged "Scheduler is already running"; restarting was the only way out and the repositories that failed on the limit needed a manual retry
+  - Waits of up to two minutes are still slept off in the request; a longer reset pauses the source instead, the run stops at the next batch or repository, the lock is released and the next run is moved to just after the reset
+  - A repository whose attempt failed only because of the rate limit goes back to the status it had before, so the run after the reset picks it up on its own
 - The `latest` Docker image tag no longer lags behind a release (#425)
   - A merge and the version bump that follows it land on main seconds apart; both built the image and both pushed `latest`, and on v3.36.1 the older build finished last, so `latest` carried 3.36.0 until the weekly rebuild replaced it
   - The workflow runs one build per ref at a time, `latest` is pushed only by a stable release tag build, main builds push `edge` and the short commit sha, and the security scan looks at the image the run just pushed
